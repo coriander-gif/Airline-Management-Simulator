@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.1.3</title>
+    <title>AIRLINE TYCOON JAPAN v0.1.4</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -76,7 +76,7 @@
         .text-muted { color: var(--col-text-muted); }
         .font-bold { font-weight: bold; }
         
-        .btn { background-color: var(--col-primary); color: white; border: none; padding: 10px 20px; font-size: 0.9rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; display: inline-flex; align-items: center; justify-content: center; }
+        .btn { background-color: var(--col-primary); color: white; border: none; padding: 10px 20px; font-size: 0.9rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
         .btn:hover:not(:disabled) { background-color: var(--col-primary-hover); }
         .btn:active:not(:disabled) { transform: scale(0.98); }
         .btn:disabled { background-color: var(--col-bg-hover); color: var(--col-text-muted); cursor: not-allowed; }
@@ -94,7 +94,7 @@
         .lf-badge { font-weight: bold; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; display: inline-block; }
         .lf-very-low { background-color: rgba(239, 68, 68, 0.15); color: var(--col-danger); }
         .lf-low { background-color: rgba(245, 158, 11, 0.15); color: var(--col-warning); }
-        .lf-normal { background-color: rgba(2, 132, 199, 0.15); color: var(--col-primary); }
+        .lf-normal { background-color: rgba(245, 158, 11, 0.15); color: var(--col-warning); } /* Adjusted based on requirements (yellowish) */
         .lf-high { background-color: rgba(16, 185, 129, 0.15); color: var(--col-success); }
         .lf-very-high { background-color: rgba(16, 185, 129, 0.3); color: var(--col-success); border: 1px solid var(--col-success); }
 
@@ -109,6 +109,7 @@
         .toast.show { opacity: 1; transform: translateY(0); }
         .toast.error { border-left-color: var(--col-danger); }
         .toast.success { border-left-color: var(--col-success); }
+        .toast.warning { border-left-color: var(--col-warning); }
 
         /* Title Screen */
         #screen-title { align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--col-bg-panel) 0%, var(--col-bg-dark) 100%); }
@@ -135,7 +136,6 @@
         .nav-item { padding: 15px 20px; color: var(--col-text-main); cursor: pointer; border-bottom: 1px solid var(--panel-border); transition: background-color 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
         .nav-item:hover { background-color: var(--col-bg-hover); }
         .nav-item.active { background-color: var(--col-primary); color: white; font-weight: bold; border-left: 4px solid var(--col-primary-hover); }
-        .nav-soon { font-size: 0.65rem; background-color: var(--col-bg-hover); padding: 2px 6px; border-radius: 10px; color: var(--col-text-muted);}
         
         .hq-main-view { flex: 1; position: relative; overflow: hidden; background-color: var(--col-bg-dark); }
         
@@ -173,7 +173,7 @@
         .card-header { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--col-bg-dark); padding-bottom: 5px; }
         .card-body { font-size: 0.85rem; color: var(--col-text-main); flex: 1; }
         .card-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .card-footer { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
+        .card-footer { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
         .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
         .badge-lease { background-color: var(--col-warning); color: #fff; }
         .badge-owned { background-color: var(--col-success); color: #fff; }
@@ -206,13 +206,31 @@
         .news-label { background-color: var(--col-primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-right: 10px; }
         
         /* Modal System */
-        #custom-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background-color: var(--shadow-strong); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
+        #custom-modal, #progress-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background-color: var(--shadow-strong); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
         .modal-content { background-color: var(--col-bg-panel); width: 90%; max-width: 550px; max-height: 90vh; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px var(--shadow-strong); border: 1px solid var(--panel-border); }
         .modal-header { padding: 15px 20px; background-color: var(--col-bg-dark); font-weight: bold; border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; }
         .modal-body { padding: 20px; font-size: 0.95rem; line-height: 1.5; overflow-y: auto; flex: 1; }
         .modal-footer { padding: 15px 20px; background-color: var(--col-bg-hover); display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--panel-border); }
 
-        /* Mobile Adjustments & Cards View */
+        /* Next Day / Time Control */
+        .time-control { position: relative; display: flex; align-items: center; }
+        .time-control-dropdown { position: absolute; top: 100%; right: 0; margin-top: 5px; background: var(--col-bg-panel); border: 1px solid var(--panel-border); border-radius: 6px; box-shadow: 0 4px 12px var(--shadow-strong); display: none; flex-direction: column; min-width: 150px; z-index: 100; overflow: hidden; }
+        .time-control-dropdown.show { display: flex; }
+        .time-dropdown-btn { background: none; border: none; padding: 10px 15px; text-align: left; font-size: 0.9rem; color: var(--col-text-main); cursor: pointer; transition: 0.2s; border-bottom: 1px solid var(--panel-border); }
+        .time-dropdown-btn:hover { background: var(--col-bg-hover); color: var(--col-primary); font-weight: bold; }
+        .time-dropdown-btn:last-child { border-bottom: none; }
+
+        /* Progress Bar */
+        .progress-container { width: 100%; background-color: var(--col-bg-hover); border-radius: 8px; overflow: hidden; height: 20px; margin-top: 15px; }
+        .progress-bar { height: 100%; background-color: var(--col-primary); width: 0%; transition: width 0.1s linear; }
+
+        /* Mini Bar Chart */
+        .mini-chart { display: flex; align-items: flex-end; gap: 2px; height: 50px; padding: 5px; background: var(--col-bg-dark); border-radius: 4px; border: 1px solid var(--panel-border); }
+        .mini-chart-bar { flex: 1; background-color: var(--col-primary); min-width: 4px; transition: height 0.3s; border-radius: 2px 2px 0 0; position: relative; }
+        .mini-chart-bar:hover::after { content: attr(data-val) "%"; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: var(--col-bg-panel); color: var(--col-text-main); font-size: 10px; padding: 2px 4px; border: 1px solid var(--panel-border); border-radius: 3px; z-index: 10; pointer-events: none; }
+        .mini-chart-empty { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--col-text-muted); }
+
+        /* Mobile Adjustments */
         .routes-cards-mobile { display: none; }
         @media (max-width: 768px) {
             .hq-header { flex-wrap: wrap; height: auto; padding: 10px; padding-top: 50px; gap: 10px; }
@@ -238,6 +256,7 @@
 
     <div id="toast-container"></div>
 
+    <!-- Generic Modal -->
     <div id="custom-modal" class="hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -251,6 +270,20 @@
         </div>
     </div>
 
+    <!-- Progress Modal (Batch Processing) -->
+    <div id="progress-modal" class="hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header"><span id="prog-title">日付を進めています...</span></div>
+            <div class="modal-body text-center">
+                <div id="prog-date" class="font-bold" style="font-size: 1.1rem; margin-bottom: 10px;">-</div>
+                <div id="prog-text" class="text-muted">進行状況: 0 / 0日</div>
+                <div class="progress-container">
+                    <div id="prog-bar" class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Screen 1: Title -->
     <div id="screen-title" class="screen">
         <div class="title-logo">AIRLINE TYCOON <span>JAPAN</span></div>
@@ -259,7 +292,9 @@
             <button class="btn btn-outline" id="btn-continue" onclick="Game.continueGame()" disabled>CONTINUE</button>
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
-        <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem;">Version 0.1.3 (Management Improvement)</div>
+        <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center;">
+            Version 0.1.4<br>Economy, Route Management & Time Acceleration Update
+        </div>
     </div>
 
     <!-- Screen 2: New Company -->
@@ -313,9 +348,19 @@
             <div class="header-stats">
                 <div class="stat-item"><span class="stat-label">現在の日付</span><span class="stat-value" id="hq-date">-</span></div>
                 <div class="stat-item"><span class="stat-label">保有資金</span><span class="stat-value text-success" id="hq-funds">-</span></div>
-                <div class="stat-item"><span class="stat-label">航空機</span><span class="stat-value" id="hq-fleet">0</span></div>
-                <div class="stat-item"><span class="stat-label">路線</span><span class="stat-value" id="hq-routes">0</span></div>
-                <button class="btn" style="padding: 5px 15px; font-size: 0.9rem; margin-left: 10px;" onclick="Logic.advanceDay()">NEXT DAY ➔</button>
+                <div class="stat-item"><span class="stat-label">機材/路線</span><span class="stat-value"><span id="hq-fleet">0</span> / <span id="hq-routes">0</span></span></div>
+                
+                <div class="time-control" id="time-control-group">
+                    <button class="btn" style="padding: 5px 15px; font-size: 0.9rem;" onclick="Logic.advanceDays(1)" id="btn-next-day">NEXT DAY ➔</button>
+                    <button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.9rem; margin-left: 5px; border:none; background:var(--col-bg-hover);" onclick="UI.toggleTimeDropdown()" id="btn-time-opts">▼</button>
+                    <div class="time-control-dropdown" id="time-dropdown">
+                        <button class="time-dropdown-btn" onclick="Logic.advanceDays(3)">3日進める</button>
+                        <button class="time-dropdown-btn" onclick="Logic.advanceDays(7)">7日進める</button>
+                        <button class="time-dropdown-btn" onclick="Logic.advanceDays(14)">14日進める</button>
+                        <button class="time-dropdown-btn" onclick="Logic.advanceDays(30)">30日進める</button>
+                        <button class="time-dropdown-btn" onclick="Views.showCustomAdvanceModal()">任意の日数を指定...</button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -325,7 +370,7 @@
                 <div class="nav-item active" onclick="UI.switchMainView('view-map', this)">経営本部 (MAP)</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-fleet', this)">機材管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-routes', this)">路線管理</div>
-                <div class="nav-item" onclick="UI.showSoon('財務・統計管理')">財務・統計 <span class="nav-soon">SOON</span></div>
+                <div class="nav-item" onclick="UI.switchMainView('view-finance', this)">財務・統計</div>
                 <div style="flex:1;"></div>
                 <div class="nav-item" onclick="Game.manualSave()">💾 セーブ</div>
                 <div class="nav-item text-danger" onclick="Game.returnToTitle()">ログアウト</div>
@@ -381,11 +426,8 @@
                                     <th>路線名</th>
                                     <th>距離</th>
                                     <th>割当機材</th>
-                                    <th>便数/日</th>
-                                    <th>直近搭乗率</th>
-                                    <th>直近旅客</th>
-                                    <th>直近売上</th>
-                                    <th>直近費用</th>
+                                    <th>運賃設定</th>
+                                    <th>直近LF</th>
                                     <th>直近利益</th>
                                     <th>操作</th>
                                 </tr>
@@ -396,6 +438,23 @@
 
                     <!-- Mobile Cards View -->
                     <div id="routes-cards-mobile" class="routes-cards-mobile"></div>
+                </div>
+
+                <!-- 4. Finance & Stats View -->
+                <div id="view-finance" class="mgmt-panel">
+                    <div class="panel-header-title">財務・統計情報</div>
+                    <div class="data-grid" id="finance-grid" style="margin-bottom: 20px;"></div>
+                    <div class="card">
+                        <div class="card-header">月次収支履歴</div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>年月</th><th>運航便数</th><th>旅客数</th><th>平均LF</th><th>売上合計</th><th>費用合計</th><th>月間損益</th></tr>
+                                </thead>
+                                <tbody id="finance-monthly-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -408,8 +467,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.1.3
-         * MANAGEMENT IMPROVEMENT UPDATE
+         * AIRLINE TYCOON JAPAN v0.1.4
+         * ECONOMY, ROUTE MANAGEMENT & TIME ACCELERATION UPDATE
          */
 
         const ThemeManager = {
@@ -417,10 +476,7 @@
             current: "light",
             init() {
                 let savedTheme = "light";
-                try {
-                    const stored = localStorage.getItem(this.THEME_KEY);
-                    if (stored === "dark" || stored === "light") savedTheme = stored;
-                } catch(e) {}
+                try { const stored = localStorage.getItem(this.THEME_KEY); if (stored === "dark" || stored === "light") savedTheme = stored; } catch(e) {}
                 this.setTheme(savedTheme);
             },
             toggleTheme() { this.setTheme(this.current === "light" ? "dark" : "light"); },
@@ -428,19 +484,17 @@
                 this.current = themeName;
                 if (themeName === "dark") {
                     document.body.setAttribute('data-theme', 'dark');
-                    document.getElementById('theme-icon').textContent = '☀️';
-                    document.getElementById('theme-text').textContent = 'ライトモード';
+                    document.getElementById('theme-icon').textContent = '☀️'; document.getElementById('theme-text').textContent = 'ライト';
                 } else {
                     document.body.removeAttribute('data-theme');
-                    document.getElementById('theme-icon').textContent = '🌙';
-                    document.getElementById('theme-text').textContent = 'ダークモード';
+                    document.getElementById('theme-icon').textContent = '🌙'; document.getElementById('theme-text').textContent = 'ダーク';
                 }
                 try { localStorage.setItem(this.THEME_KEY, themeName); } catch(e){}
             }
         };
 
         const GameData = {
-            VERSION: "0.1.3",
+            VERSION: "0.1.4",
             SAVE_KEY: "atj_save_v1",
             START_DATE: "2026-04-01",
             START_FUNDS: 5000000000,
@@ -470,7 +524,6 @@
                 { id: 'OKA', iata: 'OKA', icao: 'ROAH', name: '那覇空港', pref: '沖縄県', scale: 5, demand: 85, lat: 26.195, lon: 127.645, labelOffset: [1, 0] }
             ],
 
-            // Aircraft Master
             Aircrafts: [
                 { id: 'atr72', maker: 'ATR', name: 'ATR 72-600', cat: 'ターボプロップ', seats: 70, range: 1500, price: 3500000000, leaseInit: 350000000, leaseDaily: 700000, speed: 500, fuelRate: 0.8, maint: 300000 },
                 { id: 'a220', maker: 'Airbus', name: 'Airbus A220-300', cat: '小型ジェット', seats: 130, range: 6000, price: 10000000000, leaseInit: 1000000000, leaseDaily: 2000000, speed: 830, fuelRate: 1.2, maint: 500000 },
@@ -506,20 +559,14 @@
         const Utils = {
             formatMoney: (n) => {
                 if (n === null || n === undefined || isNaN(n)) return "0円";
-                const isNeg = n < 0;
-                const abs = Math.abs(Math.round(n));
+                const isNeg = n < 0; const abs = Math.abs(Math.round(n));
                 return (isNeg ? "-" : "") + new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 }).format(abs);
             },
             formatDate: (ds) => {
                 if (!ds) return "-";
-                const [y,m,d] = ds.split('-').map(Number);
-                const date = new Date(y, m-1, d);
+                const [y,m,d] = ds.split('-').map(Number); const date = new Date(y, m-1, d);
                 const w = ['日','月','火','水','木','金','土'];
                 return `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()}(${w[date.getDay()]})`;
-            },
-            isValidDate: (y, m, d) => {
-                const date = new Date(y, m - 1, d);
-                return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
             },
             haversine: (lat1, lon1, lat2, lon2) => {
                 const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180;
@@ -529,15 +576,15 @@
             genRegNum: () => `JA${String(Math.floor(Math.random()*900)+100)}${Player.company.iata}`,
             
             getLoadFactorBadgeHtml: (lf) => {
-                let badgeClass = 'lf-normal';
-                let text = '普通';
+                let badgeClass = 'lf-normal'; let text = '普通';
                 if (lf < 40) { badgeClass = 'lf-very-low'; text = '非常に低い'; }
                 else if (lf < 60) { badgeClass = 'lf-low'; text = '低い'; }
                 else if (lf < 80) { badgeClass = 'lf-normal'; text = '普通'; }
                 else if (lf < 95) { badgeClass = 'lf-high'; text = '高い'; }
                 else { badgeClass = 'lf-very-high'; text = '非常に高い'; }
-                return `<span class="lf-badge ${badgeClass}">${lf}% (${text})</span>`;
-            }
+                return `<span class="lf-badge ${badgeClass}">${lf}%</span>`;
+            },
+            getStandardFare: (distance) => 3000 + (distance * 18)
         };
 
         // ==========================================
@@ -553,6 +600,7 @@
                 if(window.innerWidth <= 768) this.toggleSidebar();
                 if(id === 'view-fleet') Views.renderFleet();
                 if(id === 'view-routes') Views.renderRoutes();
+                if(id === 'view-finance') Views.renderFinance();
             },
             showModal(title, msg, contentHtml = null, btnsHtml = null) {
                 document.getElementById('modal-title').textContent = title;
@@ -585,8 +633,13 @@
                     document.getElementById('news-ticker-text').textContent = `${Utils.formatDate(Player.history[0].date)} - ${Player.history[0].msg}`;
                 }
             },
-            showSoon(feature) { this.showModal('開発中', `${feature}機能は現在開発中です。`); },
             toggleSidebar() { document.getElementById('hq-sidebar').classList.toggle('open'); },
+            toggleTimeDropdown() {
+                const d = document.getElementById('time-dropdown');
+                d.classList.toggle('show');
+                const closeDrop = (e) => { if(!e.target.closest('#time-control-group')) { d.classList.remove('show'); document.removeEventListener('click', closeDrop); } };
+                if(d.classList.contains('show')) { setTimeout(() => document.addEventListener('click', closeDrop), 10); }
+            },
             
             showAirportDetails(apId) {
                 const ap = GameData.Airports.find(a => a.id === apId); if(!ap) return;
@@ -608,40 +661,40 @@
         };
 
         // ==========================================
-        // Logic (Core Gameplay System & Calculations)
+        // Logic (Core Gameplay System, Batch Advance & Finance)
         // ==========================================
         const Logic = {
+            _resetFinanceObject() { return { rev: 0, cost: { fuel: 0, airport: 0, maint: 0, lease: 0, other: 0 } }; },
+            _logCapitalExpense(amount, desc) {
+                Player.company.funds -= amount;
+                Player.company.finances.thisMonth.cost.other += amount;
+                Player.company.finances.total.cost.other += amount;
+            },
+
             buyAircraft(acId, isLease) {
-                const ac = GameData.Aircrafts.find(a => a.id === acId);
-                if (!ac) return false;
+                const ac = GameData.Aircrafts.find(a => a.id === acId); if (!ac) return false;
                 const cost = isLease ? ac.leaseInit : ac.price;
-                if (Player.company.funds < cost) {
-                    UI.showToast("資金が不足しています。", "error"); return false;
-                }
-                Player.company.funds -= cost;
+                if (Player.company.funds < cost) { UI.showToast("資金が不足しています。", "error"); return false; }
+                
+                this._logCapitalExpense(cost, isLease ? "リース初期費用" : "機材購入費");
                 const reg = Utils.genRegNum();
                 Player.company.fleet.push({
-                    reg: reg, typeId: ac.id, status: 'idle', routeId: null,
-                    isLeased: isLease, age: 0, 
-                    stats: { flights: 0, pax: 0, rev: 0 }
+                    reg: reg, typeId: ac.id, status: 'idle', routeId: null, isLeased: isLease, age: 0, stats: { flights: 0, pax: 0, rev: 0 }
                 });
                 const t = isLease ? "リース契約" : "購入";
                 Player.history.unshift({ date: Player.company.date, msg: `${ac.name} (${reg}) を${t}しました。` });
                 UI.hideModal(); UI.updateHeader(); UI.showToast(`${ac.name}を${t}しました！`, "success");
-                Views.renderFleet();
-                Game.saveData(true); // Auto-save
+                Views.renderFleet(); Game.saveData(true);
                 return true;
             },
 
             returnLease(reg) {
-                const idx = Player.company.fleet.findIndex(f => f.reg === reg);
-                if (idx === -1) return;
+                const idx = Player.company.fleet.findIndex(f => f.reg === reg); if (idx === -1) return;
                 const plane = Player.company.fleet[idx];
                 if (plane.routeId) { UI.showToast("路線に割り当て中のため返却できません。", "error"); return; }
                 Player.company.fleet.splice(idx, 1);
                 Player.history.unshift({ date: Player.company.date, msg: `リース機 ${reg} を返却しました。` });
-                UI.showToast(`${reg} を返却しました。`); Views.renderFleet(); UI.updateHeader();
-                Game.saveData(true); // Auto-save
+                UI.showToast(`${reg} を返却しました。`); Views.renderFleet(); UI.updateHeader(); Game.saveData(true);
             },
 
             createRoute(fromId, toId) {
@@ -649,106 +702,160 @@
                 const routeId = [fromId, toId].sort().join('-');
                 if (Player.company.routes.find(r => r.id === routeId)) { UI.showToast("既に路線が存在します", "error"); return; }
                 
-                const from = GameData.Airports.find(a => a.id === fromId);
-                const to = GameData.Airports.find(a => a.id === toId);
-                if (!from || !to) { UI.showToast("不正な空港が指定されました", "error"); return; }
-
+                const from = GameData.Airports.find(a => a.id === fromId); const to = GameData.Airports.find(a => a.id === toId);
                 const dist = Utils.haversine(from.lat, from.lon, to.lat, to.lon);
                 const cost = Math.floor(dist * 100000 + (from.scale + to.scale) * 5000000);
                 
                 if (Player.company.funds < cost) { UI.showToast("開設費用が不足しています", "error"); return; }
                 
-                Player.company.funds -= cost;
+                this._logCapitalExpense(cost, "路線開設費");
                 Player.company.routes.push({
-                    id: routeId, from: fromId, to: toId, distance: dist, assignedReg: null,
-                    stats: { 
-                        flights: 0, pax: 0, rev: 0, profit: 0, 
-                        lastLf: 0, lastPax: 0, lastRev: 0, lastCost: 0, lastProfit: 0, lastFlights: 0
-                    }
+                    id: routeId, from: fromId, to: toId, distance: dist, assignedReg: null, fareMult: 1.0,
+                    stats: { flights: 0, pax: 0, rev: 0, profit: 0, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: {fuel:0, airport:0, maint:0, lease:0}, lastProfit: 0, lastFlights: 0, lfHistory: [] }
                 });
                 Player.history.unshift({ date: Player.company.date, msg: `${from.name} - ${to.name} 線を開設しました。` });
                 UI.hideModal(); UI.updateHeader(); UI.showToast("路線を開設しました", "success");
                 MapSystem.drawRoutes(); Views.renderRoutes(); UI.switchMainView('view-routes', document.querySelectorAll('.nav-item')[2]);
-                Game.saveData(true); // Auto-save
+                Game.saveData(true);
             },
 
-            // Safe Assign Aircraft System
             assignAircraft(routeId, reg) {
                 const route = Player.company.routes.find(r => r.id === routeId);
-                if (!route) { UI.showToast("路線が見つかりません", "error"); return; }
-
                 if (reg === 'none') {
-                    // Unassign logic
-                    if (route.assignedReg) {
-                        const oldPlane = Player.company.fleet.find(f => f.reg === route.assignedReg);
-                        if (oldPlane) { oldPlane.routeId = null; oldPlane.status = 'idle'; }
-                        route.assignedReg = null;
-                    }
-                    UI.hideModal(); Views.renderRoutes(); Views.renderFleet(); MapSystem.drawRoutes();
-                    Game.saveData(true);
-                    return;
+                    if (route.assignedReg) { const oldPlane = Player.company.fleet.find(f => f.reg === route.assignedReg); if (oldPlane) { oldPlane.routeId = null; oldPlane.status = 'idle'; } route.assignedReg = null; }
+                    UI.hideModal(); Views.renderRoutes(); Views.renderFleet(); MapSystem.drawRoutes(); Game.saveData(true); return;
                 }
-
                 const plane = Player.company.fleet.find(f => f.reg === reg);
-                if (!plane) { UI.showToast("指定された機材が存在しません", "error"); return; }
-
                 const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
-                if (!acDef) { UI.showToast("機材データが不正です", "error"); return; }
+                if (plane.routeId && plane.routeId !== routeId) { UI.showToast("既に別路線に割り当てられています", "error"); return; }
+                if (acDef.range < route.distance) { UI.showToast("航続距離が不足しています", "error"); return; }
 
-                // Validation before modifying state
-                if (plane.routeId && plane.routeId !== routeId) {
-                    UI.showToast("この機材はすでに別の路線に割り当てられています", "error"); return;
-                }
-                if (acDef.range < route.distance) {
-                    UI.showToast(`航続距離が不足しています (路線: ${route.distance}km / 航続: ${acDef.range}km)`, "error"); return;
-                }
-
-                // Everything valid -> Commit state change safely
-                if (route.assignedReg) {
-                    const oldPlane = Player.company.fleet.find(f => f.reg === route.assignedReg);
-                    if (oldPlane) { oldPlane.routeId = null; oldPlane.status = 'idle'; }
-                }
-                plane.routeId = routeId;
-                plane.status = 'active';
-                route.assignedReg = reg;
-
-                UI.hideModal(); Views.renderRoutes(); Views.renderFleet(); MapSystem.drawRoutes();
-                UI.showToast(`機材 ${reg} を割り当てました`, "success");
-                Game.saveData(true); // Auto-save
+                if (route.assignedReg) { const oldPlane = Player.company.fleet.find(f => f.reg === route.assignedReg); if (oldPlane) { oldPlane.routeId = null; oldPlane.status = 'idle'; } }
+                plane.routeId = routeId; plane.status = 'active'; route.assignedReg = reg;
+                UI.hideModal(); Views.renderRoutes(); Views.renderFleet(); MapSystem.drawRoutes(); UI.showToast(`機材 ${reg} を割り当てました`, "success"); Game.saveData(true);
             },
 
-            // --- IMPROVED DAILY OPERATION SYSTEM ---
-            advanceDay() {
+            setFareMultiplier(routeId, mult) {
+                const route = Player.company.routes.find(r => r.id === routeId); if(!route) return;
+                route.fareMult = Math.max(0.5, Math.min(2.0, parseFloat(mult) || 1.0));
+                UI.showToast(`運賃を ${Math.round(route.fareMult * 100)}% に設定しました`, "success");
+                Views.renderRoutes(); Game.saveData(true);
+            },
+
+            // --- BATCH TIME ADVANCE SYSTEM ---
+            isAdvancing: false,
+            async advanceDays(days) {
+                if (this.isAdvancing) return;
+                const dInt = parseInt(days, 10);
+                if (isNaN(dInt) || dInt < 1 || dInt > 365) { UI.showToast("1〜365日の間で指定してください。", "error"); return; }
+                
+                document.getElementById('time-dropdown').classList.remove('show');
+                this.isAdvancing = true;
+                document.getElementById('btn-next-day').disabled = true; document.getElementById('btn-time-opts').disabled = true;
+                
+                const progModal = document.getElementById('progress-modal');
+                const progBar = document.getElementById('prog-bar');
+                const progText = document.getElementById('prog-text');
+                const progDate = document.getElementById('prog-date');
+                progModal.classList.remove('hidden');
+
+                let summary = { days: 0, rev: 0, fuel: 0, airport: 0, maint: 0, lease: 0, pax: 0, flights: 0, stopped: false };
+                const startDateStr = Player.company.date;
+
+                for (let i = 0; i < dInt; i++) {
+                    if (Player.company.funds < -1000000000) { 
+                        summary.stopped = true; summary.stopReason = "資金ショート (10億円以上の赤字)"; break; 
+                    }
+
+                    const res = this._processOneDay();
+                    summary.days++; summary.rev += res.rev; summary.fuel += res.fuel; summary.airport += res.airport; summary.maint += res.maint; summary.lease += res.lease; summary.pax += res.pax; summary.flights += res.flights;
+
+                    if (i % 3 === 0 || i === dInt - 1) { // Yield and update UI every few days
+                        progBar.style.width = `${((i+1)/dInt)*100}%`;
+                        progText.textContent = `進行状況: ${i+1} / ${dInt}日`;
+                        progDate.textContent = Utils.formatDate(Player.company.date);
+                        await new Promise(resolve => setTimeout(resolve, 5));
+                    }
+                }
+
+                progModal.classList.add('hidden');
+                this.isAdvancing = false;
+                document.getElementById('btn-next-day').disabled = false; document.getElementById('btn-time-opts').disabled = false;
+                
+                UI.updateHeader();
+                
+                // Show Batch Result Modal
+                const costSum = summary.fuel + summary.airport + summary.maint + summary.lease;
+                const profit = summary.rev - costSum;
+                let html = `
+                    ${summary.stopped ? `<div class="text-danger font-bold" style="margin-bottom:10px;">⚠️ 進行中断: ${summary.stopReason}</div>` : ''}
+                    <div class="card-row"><span>期間</span><span>${Utils.formatDate(startDateStr)} ～ ${Utils.formatDate(Player.company.date)} (${summary.days}日間)</span></div>
+                    <hr style="margin:8px 0; border:0; border-top:1px solid var(--panel-border);">
+                    <div class="data-grid" style="margin-bottom:15px;">
+                        <div class="card">
+                            <div class="card-row"><span>総運航便数</span><span>${summary.flights.toLocaleString()}便</span></div>
+                            <div class="card-row"><span>総搭乗旅客</span><span>${summary.pax.toLocaleString()}人</span></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-row"><span>期間売上</span><span class="text-success">+${Utils.formatMoney(summary.rev)}</span></div>
+                            <div class="card-row"><span>期間費用</span><span class="text-danger">-${Utils.formatMoney(costSum)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                            <div class="card-row font-bold"><span>期間損益</span><span class="${profit>=0?'text-success':'text-danger'}">${Utils.formatMoney(profit)}</span></div>
+                        </div>
+                    </div>
+                `;
+                UI.showModal('一括進行 完了レポート', '', html);
+                
+                if (document.getElementById('view-routes').classList.contains('active')) Views.renderRoutes();
+                if (document.getElementById('view-finance').classList.contains('active')) Views.renderFinance();
+                Game.saveData(true);
+            },
+
+            _processOneDay() {
                 const dateParts = Player.company.date.split('-').map(Number);
                 let y = dateParts[0], m = dateParts[1], d = dateParts[2] + 1;
-                // Calendar check
                 const daysInMonth = new Date(y, m, 0).getDate();
-                if (d > daysInMonth) { d = 1; m++; if (m > 12) { m = 1; y++; } }
+                let monthChanged = false;
+                if (d > daysInMonth) { 
+                    d = 1; m++; 
+                    if (m > 12) { m = 1; y++; }
+                    monthChanged = true;
+                }
+                const oldDateStr = Player.company.date;
                 Player.company.date = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
-                let totalCompanyRev = 0;
-                let totalCompanyCost = 0;
-                let totalPax = 0;
-                let totalFlights = 0;
-                let resultsHtml = '';
+                let dayRes = { rev:0, fuel:0, airport:0, maint:0, lease:0, pax:0, flights:0 };
+
+                // Handle Month Roll-over for Finances
+                if (monthChanged) {
+                    const prevMonthStr = oldDateStr.substring(0,7);
+                    const tm = Player.company.finances.thisMonth;
+                    const monthCostSum = tm.cost.fuel + tm.cost.airport + tm.cost.maint + tm.cost.lease + tm.cost.other;
+                    Player.company.finances.monthlyRecords.unshift({
+                        ym: prevMonthStr, rev: tm.rev, cost: tm.cost, profit: tm.rev - monthCostSum,
+                        flights: Player.company.finances._tmStats ? Player.company.finances._tmStats.f : 0,
+                        pax: Player.company.finances._tmStats ? Player.company.finances._tmStats.p : 0,
+                        avgLf: Player.company.finances._tmStats && Player.company.finances._tmStats.f>0 ? Math.round((Player.company.finances._tmStats.p / Player.company.finances._tmStats.seats)*100) : 0
+                    });
+                    if(Player.company.finances.monthlyRecords.length > 24) Player.company.finances.monthlyRecords.pop();
+                    Player.company.finances.thisMonth = this._resetFinanceObject();
+                    Player.company.finances._tmStats = { f: 0, p: 0, seats: 0 };
+                }
 
                 // Track unallocated lease costs
-                let unallocatedCost = 0;
-
-                // Process Fleet Status & Costs
+                let unallocatedLease = 0;
                 Player.company.fleet.forEach(f => {
                     const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
                     if (!f.routeId) {
                         f.status = 'idle';
-                        if (f.isLeased && ac) {
-                            unallocatedCost += ac.leaseDaily;
-                        }
+                        if (f.isLeased && ac) unallocatedLease += ac.leaseDaily;
                     }
                 });
+                dayRes.lease += unallocatedLease;
 
-                // Operations & Financial Calculations per Route
+                // Process Routes
                 Player.company.routes.forEach(route => {
-                    let rRev = 0, rCost = 0, rPax = 0, rFlights = 0, rLf = 0;
+                    let rRev = 0, rPax = 0, rFlights = 0, rLf = 0, rSeats = 0;
                     let rFuel = 0, rAirport = 0, rMaint = 0, rLease = 0;
 
                     if (route.assignedReg) {
@@ -758,123 +865,72 @@
                         const to = GameData.Airports.find(a => a.id === route.to);
 
                         if (plane && ac && from && to && ac.range >= route.distance) {
-                            // 1. Calculate Flights (14h ops window, 45m turnaround)
-                            const flightTimeH = route.distance / ac.speed;
-                            const blockTimeH = flightTimeH + 0.75;
-                            const maxTrips = Math.floor(14 / blockTimeH);
-                            const dailyFlights = Math.floor(maxTrips / 2) * 2; // Pair roundtrips
+                            const flightTimeH = route.distance / ac.speed; const blockTimeH = flightTimeH + 0.75;
+                            const maxTrips = Math.floor(14 / blockTimeH); const dailyFlights = Math.floor(maxTrips / 2) * 2;
 
                             if (dailyFlights > 0) {
-                                const capacity = dailyFlights * ac.seats;
-
-                                // 2. Enhanced Demand & Load Factor Model
+                                rSeats = dailyFlights * ac.seats;
                                 const baseDemand = Math.sqrt(from.demand * to.demand) * 2.8;
                                 const distFactor = Math.max(0.4, 1.2 - (route.distance / 2500));
                                 const repFactor = (Player.company.reputation || 50) / 50;
                                 const awFactor = (Player.company.awareness || 10) / 20;
 
-                                // Fare Effect
-                                const standardFare = 3000 + (route.distance * 18);
-                                const actualFare = standardFare; // Default fare
-                                const fareRatio = actualFare / standardFare;
-                                const fareFactor = Math.max(0.5, 1.5 - (0.5 * fareRatio));
+                                // Fare & Elasticity
+                                const stdFare = Utils.getStandardFare(route.distance);
+                                const mult = route.fareMult || 1.0;
+                                const actualFare = Math.floor(stdFare * mult);
+                                // Demand Elasticity: If mult=0.5 -> 1.5. If mult=2.0 -> 0.5. Non-linear penalization for high fares.
+                                const fareElast = Math.max(0.1, 1.0 + (1.0 - mult) * (mult > 1.0 ? 1.5 : 1.0)); 
+                                const dailyFluc = 0.95 + (Math.random() * 0.1);
+                                
+                                const potentialPax = Math.floor(baseDemand * distFactor * repFactor * awFactor * fareElast * dailyFluc * 2.2);
 
-                                // Daily slight variation (0.95 - 1.05)
-                                const dailyFluctuation = 0.95 + (Math.random() * 0.1);
-
-                                const potentialPax = Math.floor(baseDemand * distFactor * repFactor * awFactor * fareFactor * dailyFluctuation * 2.2);
-
-                                rPax = Math.min(potentialPax, capacity);
-                                rLf = Math.min(100, Math.round((rPax / capacity) * 100));
-
-                                // Revenue
+                                rPax = Math.min(potentialPax, rSeats);
+                                rLf = Math.min(100, Math.round((rPax / rSeats) * 100));
                                 rRev = Math.floor(rPax * actualFare);
 
-                                // 3. Accurate Route Costs
                                 rFuel = Math.floor(route.distance * ac.fuelRate * dailyFlights * GameData.FUEL_UNIT_PRICE);
                                 rAirport = Math.floor((from.scale + to.scale) * 25000 * dailyFlights);
                                 rMaint = ac.maint;
                                 rLease = plane.isLeased ? ac.leaseDaily : 0;
-
-                                rCost = rFuel + rAirport + rMaint + rLease;
                                 rFlights = dailyFlights;
 
-                                // Update Fleet & Route Lifetime Stats
-                                route.stats.flights = (route.stats.flights || 0) + rFlights;
-                                route.stats.pax = (route.stats.pax || 0) + rPax;
-                                route.stats.rev = (route.stats.rev || 0) + rRev;
-                                route.stats.profit = (route.stats.profit || 0) + (rRev - rCost);
-
-                                plane.stats.flights = (plane.stats.flights || 0) + rFlights;
-                                plane.stats.pax = (plane.stats.pax || 0) + rPax;
-                                plane.stats.rev = (plane.stats.rev || 0) + rRev;
-                                plane.status = 'active';
+                                route.stats.flights += rFlights; route.stats.pax += rPax; route.stats.rev += rRev; 
+                                route.stats.profit += (rRev - (rFuel+rAirport+rMaint+rLease));
+                                plane.stats.flights += rFlights; plane.stats.pax += rPax; plane.stats.rev += rRev; plane.status = 'active';
                             } else {
-                                plane.status = 'idle';
-                                if (plane.isLeased) rLease = ac.leaseDaily; // Allocated lease cost even if not flying
-                                rCost = rLease;
+                                plane.status = 'idle'; if (plane.isLeased) rLease = ac.leaseDaily;
                             }
                         }
                     }
 
-                    // Update Route Last Performance
-                    route.stats.lastLf = rLf;
-                    route.stats.lastPax = rPax;
-                    route.stats.lastRev = rRev;
-                    route.stats.lastCost = rCost;
-                    route.stats.lastProfit = rRev - rCost;
-                    route.stats.lastFlights = rFlights;
+                    const rCostSum = rFuel + rAirport + rMaint + rLease;
+                    route.stats.lastLf = rLf; route.stats.lastPax = rPax; route.stats.lastRev = rRev; 
+                    route.stats.lastCost = { fuel: rFuel, airport: rAirport, maint: rMaint, lease: rLease }; 
+                    route.stats.lastProfit = rRev - rCostSum; route.stats.lastFlights = rFlights;
+                    if(!route.stats.lfHistory) route.stats.lfHistory = [];
+                    route.stats.lfHistory.push(rLf);
+                    if(route.stats.lfHistory.length > 30) route.stats.lfHistory.shift();
 
-                    totalCompanyRev += rRev;
-                    totalCompanyCost += rCost;
-                    totalPax += rPax;
-                    totalFlights += rFlights;
-
-                    if (rFlights > 0) {
-                        resultsHtml += `
-                            <div class="card-row" style="margin-bottom:6px; border-bottom:1px solid var(--panel-border); padding-bottom:4px;">
-                                <span><b>${route.id}</b> (${rFlights}便)</span> 
-                                <span>${Utils.getLoadFactorBadgeHtml(rLf)} 利益: <b class="${rRev - rCost >= 0 ? 'text-success' : 'text-danger'}">${Utils.formatMoney(rRev - rCost)}</b></span>
-                            </div>`;
-                    }
+                    dayRes.rev += rRev; dayRes.fuel += rFuel; dayRes.airport += rAirport; dayRes.maint += rMaint; dayRes.lease += rLease; dayRes.pax += rPax; dayRes.flights += rFlights;
+                    if (!Player.company.finances._tmStats) Player.company.finances._tmStats = { f:0, p:0, seats:0 };
+                    Player.company.finances._tmStats.f += rFlights; Player.company.finances._tmStats.p += rPax; Player.company.finances._tmStats.seats += rSeats;
                 });
 
-                // Add unallocated costs (idle leased planes)
-                totalCompanyCost += unallocatedCost;
+                // Update Finances
+                const dCost = dayRes.fuel + dayRes.airport + dayRes.maint + dayRes.lease;
+                const dProfit = dayRes.rev - dCost;
+                Player.company.funds += dProfit;
 
-                const dailyProfit = totalCompanyRev - totalCompanyCost;
-                Player.company.funds += dailyProfit;
+                Player.company.finances.today = { rev: dayRes.rev, cost: { fuel: dayRes.fuel, airport: dayRes.airport, maint: dayRes.maint, lease: dayRes.lease, other: 0 } };
+                
+                const tm = Player.company.finances.thisMonth;
+                tm.rev += dayRes.rev; tm.cost.fuel += dayRes.fuel; tm.cost.airport += dayRes.airport; tm.cost.maint += dayRes.maint; tm.cost.lease += dayRes.lease;
+                
+                const tot = Player.company.finances.total;
+                tot.rev += dayRes.rev; tot.cost.fuel += dayRes.fuel; tot.cost.airport += dayRes.airport; tot.cost.maint += dayRes.maint; tot.cost.lease += dayRes.lease;
 
-                UI.updateHeader();
-
-                // Show Daily Summary Modal
-                let sumHtml = `
-                    <div class="data-grid" style="margin-bottom:15px;">
-                        <div class="card">
-                            <div class="card-row"><span>総運航便数</span><span>${totalFlights}便</span></div>
-                            <div class="card-row"><span>総搭乗旅客数</span><span>${totalPax.toLocaleString()}人</span></div>
-                        </div>
-                        <div class="card">
-                            <div class="card-row"><span>日次総売上</span><span class="text-success">+${Utils.formatMoney(totalCompanyRev)}</span></div>
-                            <div class="card-row"><span>日次総費用</span><span class="text-danger">-${Utils.formatMoney(totalCompanyCost)}</span></div>
-                            ${unallocatedCost > 0 ? `<div class="card-row" style="font-size:0.75rem; color:var(--col-text-muted);"><span>(うち待機機材リース料)</span><span>-${Utils.formatMoney(unallocatedCost)}</span></div>` : ''}
-                            <hr style="border:0; border-top:1px solid var(--panel-border); margin:4px 0;">
-                            <div class="card-row font-bold">
-                                <span>会社日次損益</span><span class="${dailyProfit >= 0 ? 'text-success' : 'text-danger'}">${Utils.formatMoney(dailyProfit)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="font-size:0.9rem; font-weight:bold; margin-bottom:5px;">路線別運航結果</div>
-                    <div style="font-size:0.85rem; max-height:160px; overflow-y:auto; background:var(--col-bg-dark); padding:10px; border-radius:6px; border:1px solid var(--panel-border);">
-                        ${totalFlights > 0 ? resultsHtml : '<div class="text-muted text-center" style="padding:10px;">本日の運航便はありません。</div>'}
-                    </div>
-                `;
-                UI.showModal(`${Utils.formatDate(Player.company.date)} 運航報告`, "", sumHtml);
-
-                if (document.getElementById('view-routes').classList.contains('active')) Views.renderRoutes();
-                if (document.getElementById('view-fleet').classList.contains('active')) Views.renderFleet();
-
-                Game.saveData(true); // Autosave after turn
+                return dayRes;
             }
         };
 
@@ -884,27 +940,19 @@
         const Views = {
             renderFleet() {
                 const c = document.getElementById('fleet-list-container'); c.innerHTML = '';
-                if (!Player.company.fleet || Player.company.fleet.length === 0) { 
-                    c.innerHTML = '<div class="text-muted">保有する機材はありません。</div>'; return; 
-                }
+                if (!Player.company.fleet || Player.company.fleet.length === 0) { c.innerHTML = '<div class="text-muted">保有する機材はありません。</div>'; return; }
                 Player.company.fleet.forEach(f => {
-                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
-                    const isFlying = f.status === 'active';
+                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId); const isFlying = f.status === 'active';
                     c.innerHTML += `
                         <div class="card">
                             <div class="card-header">
                                 <span>${f.reg}</span>
-                                <div>
-                                    <span class="badge ${f.isLeased ? 'badge-lease' : 'badge-owned'}">${f.isLeased ? 'LEASED' : 'OWNED'}</span>
-                                    <span class="badge ${isFlying ? 'badge-active' : 'badge-idle'}">${isFlying ? '運航中' : '待機中'}</span>
-                                </div>
+                                <div><span class="badge ${f.isLeased ? 'badge-lease' : 'badge-owned'}">${f.isLeased ? 'LEASED' : 'OWNED'}</span><span class="badge ${isFlying ? 'badge-active' : 'badge-idle'}">${isFlying ? '運航中' : '待機中'}</span></div>
                             </div>
                             <div class="card-body">
                                 <div class="card-row"><span>機種</span><span><b>${ac ? ac.name : f.typeId}</b> (${ac ? ac.seats : '-'}席)</span></div>
                                 <div class="card-row"><span>割り当て路線</span><span>${f.routeId || '未割り当て'}</span></div>
                                 <div class="card-row"><span>累計運航便数</span><span>${(f.stats.flights || 0).toLocaleString()} 便</span></div>
-                                <div class="card-row"><span>累計搭乗旅客</span><span>${(f.stats.pax || 0).toLocaleString()} 人</span></div>
-                                <div class="card-row"><span>累計運賃売上</span><span>${Utils.formatMoney(f.stats.rev || 0)}</span></div>
                             </div>
                             <div class="card-footer">
                                 ${f.isLeased ? `<button class="btn btn-sm btn-danger" onclick="Logic.returnLease('${f.reg}')" ${f.routeId ? 'disabled title="路線解除後に返却可能"' : ''}>リース返却</button>` : ''}
@@ -922,11 +970,10 @@
                             <div class="card-header">${ac.name} <span class="text-muted" style="font-size:0.8rem; font-weight:normal;">${ac.maker}</span></div>
                             <div class="card-body" style="margin-bottom:10px;">
                                 <div class="card-row"><span>カテゴリー</span><span>${ac.cat} (${ac.seats}席)</span></div>
-                                <div class="card-row"><span>航続距離 / 速度</span><span>${ac.range} km / ${ac.speed} km/h</span></div>
+                                <div class="card-row"><span>航続/速度</span><span>${ac.range}km / ${ac.speed}km/h</span></div>
                                 <hr style="border:0; border-top:1px solid var(--panel-border); margin:5px 0;">
                                 <div class="card-row"><span>一括購入価格</span><span class="font-bold">${Utils.formatMoney(ac.price)}</span></div>
-                                <div class="card-row"><span>リース初期費用</span><span>${Utils.formatMoney(ac.leaseInit)}</span></div>
-                                <div class="card-row"><span>リース日次料</span><span>${Utils.formatMoney(ac.leaseDaily)} / 日</span></div>
+                                <div class="card-row"><span>リース初期/日次</span><span>${Utils.formatMoney(ac.leaseInit)} / ${Utils.formatMoney(ac.leaseDaily)}</span></div>
                             </div>
                             <div class="card-footer">
                                 <button class="btn btn-sm btn-outline" onclick="Logic.buyAircraft('${ac.id}', true)">リース契約</button>
@@ -940,74 +987,139 @@
             },
 
             renderRoutes() {
-                const tb = document.getElementById('routes-table-body');
-                const mobCards = document.getElementById('routes-cards-mobile');
+                const tb = document.getElementById('routes-table-body'); const mobCards = document.getElementById('routes-cards-mobile');
                 tb.innerHTML = ''; mobCards.innerHTML = '';
 
                 if (!Player.company.routes || Player.company.routes.length === 0) {
-                    tb.innerHTML = '<tr><td colspan="10" class="text-center text-muted">開設済みの路線はありません。</td></tr>';
+                    tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted">開設済みの路線はありません。</td></tr>';
                     mobCards.innerHTML = '<div class="text-muted text-center" style="padding:20px;">開設済みの路線はありません。</div>';
                     return;
                 }
 
                 Player.company.routes.forEach(r => {
-                    const st = r.stats || {};
-                    const lastProfit = st.lastProfit || 0;
+                    const st = r.stats || {}; const lastProfit = st.lastProfit || 0;
                     const profClass = lastProfit >= 0 ? 'text-success' : 'text-danger';
                     const lfHtml = Utils.getLoadFactorBadgeHtml(st.lastLf || 0);
+                    const stdFare = Utils.getStandardFare(r.distance);
+                    const fareMult = r.fareMult || 1.0; const actualFare = Math.floor(stdFare * fareMult);
 
-                    // Desktop Row
                     tb.innerHTML += `
                         <tr>
-                            <td class="font-bold">${r.id}</td>
+                            <td class="font-bold"><a href="#" onclick="Views.showRouteDetails('${r.id}')" style="color:var(--col-primary);">${r.id}</a></td>
                             <td>${r.distance} km</td>
                             <td>${r.assignedReg || '<span class="text-muted">未割り当て</span>'}</td>
-                            <td>${st.lastFlights || 0} 便</td>
+                            <td><span class="${fareMult>1.0?'text-danger':(fareMult<1.0?'text-success':'')}">${actualFare.toLocaleString()}円 (${Math.round(fareMult*100)}%)</span></td>
                             <td>${lfHtml}</td>
-                            <td>${(st.lastPax || 0).toLocaleString()} 人</td>
-                            <td class="text-success">${Utils.formatMoney(st.lastRev || 0)}</td>
-                            <td class="text-danger">${Utils.formatMoney(st.lastCost || 0)}</td>
                             <td class="${profClass} font-bold">${Utils.formatMoney(lastProfit)}</td>
                             <td>
+                                <button class="btn btn-sm btn-outline" onclick="Views.showFareModal('${r.id}')">運賃設定</button>
                                 <button class="btn btn-sm" onclick="Views.showAssignModal('${r.id}')">${r.assignedReg ? '機材変更' : '機材割当'}</button>
                             </td>
                         </tr>
                     `;
 
-                    // Mobile Card
                     mobCards.innerHTML += `
                         <div class="card">
                             <div class="card-header">
-                                <span>路線: ${r.id} (${r.distance}km)</span>
-                                <button class="btn btn-sm" onclick="Views.showAssignModal('${r.id}')">${r.assignedReg ? '機材変更' : '割当'}</button>
+                                <a href="#" onclick="Views.showRouteDetails('${r.id}')" style="color:var(--col-primary); text-decoration:none;">路線: ${r.id}</a>
+                                <div>
+                                    <button class="btn btn-sm btn-outline" onclick="Views.showFareModal('${r.id}')">運賃</button>
+                                    <button class="btn btn-sm" onclick="Views.showAssignModal('${r.id}')">${r.assignedReg ? '機材変更' : '割当'}</button>
+                                </div>
                             </div>
                             <div class="card-body">
                                 <div class="card-row"><span>割当機材</span><span>${r.assignedReg || '未割当'}</span></div>
-                                <div class="card-row"><span>直近搭乗率</span><span>${lfHtml}</span></div>
-                                <div class="card-row"><span>直近売上 / 費用</span><span>${Utils.formatMoney(st.lastRev||0)} / -${Utils.formatMoney(st.lastCost||0)}</span></div>
-                                <div class="card-row font-bold"><span>直近利益</span><span class="${profClass}">${Utils.formatMoney(lastProfit)}</span></div>
+                                <div class="card-row"><span>運賃設定</span><span>${actualFare.toLocaleString()}円 (${Math.round(fareMult*100)}%)</span></div>
+                                <div class="card-row"><span>直近LF / 利益</span><span>${lfHtml} <span class="${profClass}">${Utils.formatMoney(lastProfit)}</span></span></div>
                             </div>
                         </div>
                     `;
                 });
             },
+            
+            showFareModal(routeId) {
+                const r = Player.company.routes.find(ro => ro.id === routeId); if(!r) return;
+                const stdFare = Utils.getStandardFare(r.distance);
+                const currentPct = Math.round((r.fareMult || 1.0) * 100);
+                let html = `
+                    <div class="card-row" style="margin-bottom:15px;"><span>路線基準運賃 (100%):</span><span class="font-bold">${stdFare.toLocaleString()} 円</span></div>
+                    <div class="input-group">
+                        <label>運賃設定割合 (50% 〜 200%)</label>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="range" id="fare-slider" min="50" max="200" step="5" value="${currentPct}" style="flex:1;" oninput="document.getElementById('fare-val-disp').textContent = this.value + '%'; document.getElementById('fare-price-disp').textContent = Math.floor(${stdFare} * (this.value/100)).toLocaleString() + ' 円';">
+                            <span id="fare-val-disp" class="font-bold" style="width:50px; text-align:right;">${currentPct}%</span>
+                        </div>
+                        <div style="text-align:right; font-size:1.1rem; font-weight:bold; color:var(--col-primary); margin-top:5px;" id="fare-price-disp">${Math.floor(stdFare * (currentPct/100)).toLocaleString()} 円</div>
+                    </div>
+                    <p class="text-muted" style="font-size:0.8rem; margin-top:10px;">※運賃を下げると需要が増加しやすく、運賃を上げると需要が減少しやすくなります。設定は翌日の運航から適用されます。</p>
+                `;
+                const btns = `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="Logic.setFareMultiplier('${routeId}', document.getElementById('fare-slider').value / 100); UI.hideModal();">設定適用</button>`;
+                UI.showModal(`${routeId} 運賃設定`, '', html, btns);
+            },
 
-            showRouteCreateModal(presetFrom = null) {
-                let opts = '<option value="">選択してください</option>';
-                GameData.Airports.forEach(a => { opts += `<option value="${a.id}">${a.name} (${a.iata})</option>`; });
+            showRouteDetails(routeId) {
+                const r = Player.company.routes.find(ro => ro.id === routeId); if(!r) return;
+                const st = r.stats; const stdFare = Utils.getStandardFare(r.distance); const actualFare = Math.floor(stdFare * (r.fareMult||1.0));
+                
+                // Construct Bar Chart
+                const hist = st.lfHistory || [];
+                let bars = '';
+                if(hist.length === 0) { bars = '<div class="mini-chart-empty">データがありません</div>'; }
+                else {
+                    const maxDisp = 30; const dispHist = hist.slice(-maxDisp);
+                    bars = dispHist.map(v => `<div class="mini-chart-bar" style="height:${v}%" data-val="${v}"></div>`).join('');
+                }
+
+                let html = `
+                    <div class="data-grid" style="margin-bottom:15px;">
+                        <div class="card">
+                            <div class="card-header">基本情報</div>
+                            <div class="card-body">
+                                <div class="card-row"><span>路線距離</span><span>${r.distance} km</span></div>
+                                <div class="card-row"><span>割当機材</span><span>${r.assignedReg || '未割当'}</span></div>
+                                <div class="card-row"><span>直近運航便数</span><span>${st.lastFlights || 0}便/日</span></div>
+                                <div class="card-row"><span>現在設定運賃</span><span>${actualFare.toLocaleString()}円 (${Math.round((r.fareMult||1.0)*100)}%)</span></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">直近の運航実績 (1日)</div>
+                            <div class="card-body">
+                                <div class="card-row"><span>旅客数 / 提供座席</span><span>${(st.lastPax||0).toLocaleString()}人 / ${(st.lastFlights||0)>0?Math.floor((st.lastPax||0)/((st.lastLf||0)/100||1)):0}席</span></div>
+                                <div class="card-row"><span>搭乗率 (LF)</span><span>${Utils.getLoadFactorBadgeHtml(st.lastLf||0)}</span></div>
+                                <div class="card-row"><span>売上</span><span class="text-success">${Utils.formatMoney(st.lastRev||0)}</span></div>
+                                <div class="card-row"><span>費用 (燃/港/整/リ)</span><span class="text-danger">-${Utils.formatMoney((st.lastCost?.fuel||0)+(st.lastCost?.airport||0)+(st.lastCost?.maint||0)+(st.lastCost?.lease||0))}</span></div>
+                                <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                                <div class="card-row font-bold"><span>利益</span><span class="${(st.lastProfit||0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.lastProfit||0)}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-bottom:15px;">
+                        <div class="card-header">搭乗率推移 (過去最大30日)</div>
+                        <div class="mini-chart">${bars}</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">路線開設からの累計統計</div>
+                        <div class="card-body">
+                            <div class="card-row"><span>累計運航便数</span><span>${(st.flights||0).toLocaleString()} 便</span></div>
+                            <div class="card-row"><span>累計輸送旅客数</span><span>${(st.pax||0).toLocaleString()} 人</span></div>
+                            <div class="card-row"><span>累計売上</span><span class="text-success">${Utils.formatMoney(st.rev||0)}</span></div>
+                            <div class="card-row font-bold"><span>累計利益</span><span class="${(st.profit||0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.profit||0)}</span></div>
+                        </div>
+                    </div>
+                `;
+                UI.showModal(`路線詳細: ${routeId}`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+            },
+
+            showRouteCreateModal() { /* Reusing previous logic */
+                let opts = '<option value="">選択してください</option>'; GameData.Airports.forEach(a => { opts += `<option value="${a.id}">${a.name} (${a.iata})</option>`; });
                 let html = `
                     <div class="input-group"><label>出発空港</label><select id="rc-from" class="input-field" onchange="Views.calcRouteInfo()">${opts}</select></div>
                     <div class="input-group"><label>到着空港</label><select id="rc-to" class="input-field" onchange="Views.calcRouteInfo()">${opts}</select></div>
                     <div id="rc-info" class="card hidden" style="margin-bottom:15px; background:var(--col-bg-dark);"></div>
                 `;
-                let btns = `
-                    <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
-                    <button class="btn" id="btn-create-route" disabled onclick="Views.execRouteCreate()">開設実行</button>
-                `;
+                let btns = `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" id="btn-create-route" disabled onclick="Logic.createRoute(document.getElementById('rc-from').value, document.getElementById('rc-to').value)">開設実行</button>`;
                 UI.showModal('新規路線 開設申請', '', html, btns);
-                if (presetFrom) { document.getElementById('rc-from').value = presetFrom; }
             },
-
             calcRouteInfo() {
                 const f = document.getElementById('rc-from').value; const t = document.getElementById('rc-to').value;
                 const info = document.getElementById('rc-info'); const btn = document.getElementById('btn-create-route');
@@ -1015,47 +1127,97 @@
                 const from = GameData.Airports.find(a => a.id === f); const to = GameData.Airports.find(a => a.id === t);
                 const dist = Utils.haversine(from.lat, from.lon, to.lat, to.lon);
                 const cost = Math.floor(dist * 100000 + (from.scale + to.scale) * 5000000);
-                
-                info.innerHTML = `
-                    <div class="card-row"><span>路線距離</span><span>${dist} km</span></div>
-                    <div class="card-row"><span>両空港需要指数</span><span>${from.demand} + ${to.demand}</span></div>
-                    <hr style="margin:5px 0; border:0; border-top:1px solid var(--panel-border);">
-                    <div class="card-row font-bold"><span>路線開設免許費用</span><span class="text-danger">-${Utils.formatMoney(cost)}</span></div>
-                `;
+                info.innerHTML = `<div class="card-row"><span>路線距離</span><span>${dist} km</span></div><div class="card-row"><span>両空港需要指数</span><span>${from.demand} + ${to.demand}</span></div><hr style="margin:5px 0; border:0; border-top:1px solid var(--panel-border);"><div class="card-row font-bold"><span>路線開設免許費用</span><span class="text-danger">-${Utils.formatMoney(cost)}</span></div>`;
                 info.classList.remove('hidden'); btn.disabled = false;
             },
-            execRouteCreate() { Logic.createRoute(document.getElementById('rc-from').value, document.getElementById('rc-to').value); },
 
             showAssignModal(routeId) {
                 const route = Player.company.routes.find(r => r.id === routeId);
-                let html = `<p class="text-muted" style="margin-bottom:15px;">路線 <b>${routeId}</b> (距離: ${route.distance}km) に使用する機材を選択してください。</p>`;
-                html += `<div class="data-grid">`;
-                
-                if (route.assignedReg) {
-                     html += `<div class="card"><div class="card-body">現在の割当: <b>${route.assignedReg}</b></div><div class="card-footer"><button class="btn btn-sm btn-danger" onclick="Logic.assignAircraft('${routeId}', 'none')">割り当て解除</button></div></div>`;
-                }
-
+                let html = `<p class="text-muted" style="margin-bottom:15px;">路線 <b>${routeId}</b> (距離: ${route.distance}km) に使用する機材を選択してください。</p><div class="data-grid">`;
+                if (route.assignedReg) { html += `<div class="card"><div class="card-body">現在の割当: <b>${route.assignedReg}</b></div><div class="card-footer"><button class="btn btn-sm btn-danger" onclick="Logic.assignAircraft('${routeId}', 'none')">割り当て解除</button></div></div>`; }
                 const available = Player.company.fleet.filter(f => f.routeId === null || f.routeId === routeId);
                 if (available.length === 0) html += `<div class="text-muted" style="padding:10px;">割り当て可能なフリーの機材がありません。</div>`;
-                
                 available.forEach(f => {
-                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
-                    const canAssign = ac && ac.range >= route.distance;
+                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId); const canAssign = ac && ac.range >= route.distance;
                     html += `
                         <div class="card" style="opacity: ${canAssign ? 1 : 0.5}">
                             <div class="card-header">${f.reg} <span style="font-size:0.8rem; font-weight:normal;">${ac ? ac.name : ''}</span></div>
-                            <div class="card-body">
-                                航続距離: ${ac ? ac.range : 0}km / 座席数: ${ac ? ac.seats : 0}席
-                                ${!canAssign ? '<br><span class="text-danger font-bold">※航続距離不足のため割当不可</span>' : ''}
-                            </div>
-                            <div class="card-footer">
-                                ${canAssign ? `<button class="btn btn-sm" onclick="Logic.assignAircraft('${routeId}', '${f.reg}')">割り当てる</button>` : ''}
-                            </div>
-                        </div>
-                    `;
+                            <div class="card-body">航続距離: ${ac ? ac.range : 0}km / 座席数: ${ac ? ac.seats : 0}席 ${!canAssign ? '<br><span class="text-danger font-bold">※航続距離不足のため割当不可</span>' : ''}</div>
+                            <div class="card-footer">${canAssign ? `<button class="btn btn-sm" onclick="Logic.assignAircraft('${routeId}', '${f.reg}')">割り当てる</button>` : ''}</div>
+                        </div>`;
                 });
-                html += `</div>`;
-                UI.showModal('機材の割り当て設定', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+                html += `</div>`; UI.showModal('機材の割り当て設定', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+            },
+
+            showCustomAdvanceModal() {
+                document.getElementById('time-dropdown').classList.remove('show');
+                let html = `<div class="input-group"><label>進行する日数 (1〜365)</label><input type="number" id="custom-days-input" class="input-field" min="1" max="365" value="30"></div>`;
+                let btns = `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="const d=document.getElementById('custom-days-input').value; UI.hideModal(); Logic.advanceDays(d);">実行</button>`;
+                UI.showModal('任意日数の進行', '', html, btns);
+            },
+
+            renderFinance() {
+                const grid = document.getElementById('finance-grid');
+                const tbody = document.getElementById('finance-monthly-body');
+                if(!Player.company.finances) return;
+
+                const td = Player.company.finances.today;
+                const tm = Player.company.finances.thisMonth;
+                const tot = Player.company.finances.total;
+
+                const sumCost = (c) => c.fuel + c.airport + c.maint + c.lease + c.other;
+                const tdCost = sumCost(td.cost); const tmCost = sumCost(tm.cost); const totCost = sumCost(tot.cost);
+                
+                grid.innerHTML = `
+                    <div class="card">
+                        <div class="card-header">当日の収支 (運航費のみ)</div>
+                        <div class="card-body">
+                            <div class="card-row"><span>売上</span><span class="text-success">${Utils.formatMoney(td.rev)}</span></div>
+                            <div class="card-row"><span>費用合計</span><span class="text-danger">-${Utils.formatMoney(tdCost)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
+                            <div class="card-row font-bold"><span>当日損益</span><span class="${(td.rev-tdCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(td.rev-tdCost)}</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">今月の収支 (機材購入費等含む)</div>
+                        <div class="card-body">
+                            <div class="card-row"><span>売上</span><span class="text-success">${Utils.formatMoney(tm.rev)}</span></div>
+                            <div class="card-row"><span>運航費用合計</span><span class="text-danger">-${Utils.formatMoney(tmCost - tm.cost.other)}</span></div>
+                            <div class="card-row"><span>投資・その他</span><span class="text-danger">-${Utils.formatMoney(tm.cost.other)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
+                            <div class="card-row font-bold"><span>今月損益</span><span class="${(tm.rev-tmCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(tm.rev-tmCost)}</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">設立からの累計 (全期間)</div>
+                        <div class="card-body">
+                            <div class="card-row"><span>累計売上</span><span class="text-success">${Utils.formatMoney(tot.rev)}</span></div>
+                            <div class="card-row"><span>累計費用・投資</span><span class="text-danger">-${Utils.formatMoney(totCost)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
+                            <div class="card-row font-bold"><span>累計損益</span><span class="${(tot.rev-totCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(tot.rev-totCost)}</span></div>
+                        </div>
+                    </div>
+                `;
+
+                tbody.innerHTML = '';
+                if(Player.company.finances.monthlyRecords.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">月次履歴データがありません</td></tr>';
+                } else {
+                    Player.company.finances.monthlyRecords.forEach(m => {
+                        const mCost = sumCost(m.cost);
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="font-bold">${m.ym}</td>
+                                <td>${(m.flights||0).toLocaleString()}</td>
+                                <td>${(m.pax||0).toLocaleString()}</td>
+                                <td>${m.avgLf||0}%</td>
+                                <td class="text-success">${Utils.formatMoney(m.rev)}</td>
+                                <td class="text-danger">${Utils.formatMoney(mCost)}</td>
+                                <td class="${m.profit>=0?'text-success':'text-danger'} font-bold">${Utils.formatMoney(m.profit)}</td>
+                            </tr>
+                        `;
+                    });
+                }
             }
         };
 
@@ -1064,17 +1226,7 @@
         // ==========================================
         const MapSystem = {
             width: 1000, height: 1000, scale: 1.3, currentX: -50, currentY: -100,
-            
-            project(lat, lon) {
-                const x = ((lon - 127.0) / (146.5 - 127.0)) * this.width;
-                const r = Math.PI / 180;
-                const yLat = Math.log(Math.tan(Math.PI/4 + (lat * r)/2));
-                const yMin = Math.log(Math.tan(Math.PI/4 + (25.5 * r)/2));
-                const yMax = Math.log(Math.tan(Math.PI/4 + (46.0 * r)/2));
-                const y = this.height - ((yLat - yMin) / (yMax - yMin)) * this.height;
-                return { x, y };
-            },
-
+            project(lat, lon) { const x = ((lon - 127.0) / (146.5 - 127.0)) * this.width; const r = Math.PI / 180; const yLat = Math.log(Math.tan(Math.PI/4 + (lat * r)/2)); const yMin = Math.log(Math.tan(Math.PI/4 + (25.5 * r)/2)); const yMax = Math.log(Math.tan(Math.PI/4 + (46.0 * r)/2)); const y = this.height - ((yLat - yMin) / (yMax - yMin)) * this.height; return { x, y }; },
             initMap() {
                 const oGroup = document.getElementById('map-outline'); oGroup.innerHTML = '';
                 JapanPolygons.forEach(p => {
@@ -1083,94 +1235,60 @@
                     poly.setAttribute("points", pts); poly.setAttribute("fill", "var(--col-map-land)"); poly.setAttribute("stroke", "var(--col-map-border)"); poly.setAttribute("stroke-width", "2"); poly.setAttribute("stroke-linejoin", "round");
                     oGroup.appendChild(poly);
                 });
-
                 const mGroup = document.getElementById('map-markers'); mGroup.innerHTML = '';
                 [...GameData.Airports].sort((a,b) => a.scale - b.scale).forEach(ap => {
-                    const pt = this.project(ap.lat, ap.lon);
-                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                    g.setAttribute("class", `airport-marker ${ap.scale >= 4 ? 'is-major' : ''}`); g.setAttribute("data-id", ap.id);
+                    const pt = this.project(ap.lat, ap.lon); const g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.setAttribute("class", `airport-marker ${ap.scale >= 4 ? 'is-major' : ''}`); g.setAttribute("data-id", ap.id);
                     if(Player && Player.company.hq === ap.id) g.classList.add('always-show');
-                    
-                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                    hit.setAttribute("cx", pt.x); hit.setAttribute("cy", pt.y); hit.setAttribute("r", 15); hit.setAttribute("fill", "transparent");
-                    
-                    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                    c.setAttribute("cx", pt.x); c.setAttribute("cy", pt.y); c.setAttribute("r", 2.5 + (ap.scale * 0.7)); 
-                    c.setAttribute("fill", (Player && Player.company.hq===ap.id) ? Player.company.color : "var(--col-marker-default)");
-                    c.setAttribute("stroke", "var(--col-bg-dark)"); c.setAttribute("stroke-width", "1.5");
-                    
+                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle"); hit.setAttribute("cx", pt.x); hit.setAttribute("cy", pt.y); hit.setAttribute("r", 15); hit.setAttribute("fill", "transparent");
+                    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle"); c.setAttribute("cx", pt.x); c.setAttribute("cy", pt.y); c.setAttribute("r", 2.5 + (ap.scale * 0.7)); c.setAttribute("fill", (Player && Player.company.hq===ap.id) ? Player.company.color : "var(--col-marker-default)"); c.setAttribute("stroke", "var(--col-bg-dark)"); c.setAttribute("stroke-width", "1.5");
                     const lg = document.createElementNS("http://www.w3.org/2000/svg", "g"); lg.setAttribute("class", "label-group");
                     const ox = ap.labelOffset[0], oy = ap.labelOffset[1], d = (2.5 + ap.scale*0.7) + 3;
-                    let tx = pt.x + (ox*d), ty = pt.y + (oy*d) + (oy>0?6:(oy<0?-2:3));
-                    let ta = ox<0 ? "end" : (ox===0 ? "middle" : "start");
-                    
+                    let tx = pt.x + (ox*d), ty = pt.y + (oy*d) + (oy>0?6:(oy<0?-2:3)); let ta = ox<0 ? "end" : (ox===0 ? "middle" : "start");
                     const to = document.createElementNS("http://www.w3.org/2000/svg", "text"); to.setAttribute("x", tx); to.setAttribute("y", ty); to.setAttribute("text-anchor", ta); to.setAttribute("class", "airport-label airport-label-outline"); to.textContent = ap.name;
                     const tt = document.createElementNS("http://www.w3.org/2000/svg", "text"); tt.setAttribute("x", tx); tt.setAttribute("y", ty); tt.setAttribute("text-anchor", ta); tt.setAttribute("class", "airport-label"); tt.textContent = ap.name;
                     lg.appendChild(to); lg.appendChild(tt); g.appendChild(hit); g.appendChild(c); g.appendChild(lg); mGroup.appendChild(g);
                 });
-                
-                this.drawRoutes();
-                this.setupInteractions();
-                this.updateTransform();
+                this.drawRoutes(); this.setupInteractions(); this.updateTransform();
             },
-
             drawRoutes() {
                 if(!Player || !Player.company.routes) return;
                 const rg = document.getElementById('map-routes'); rg.innerHTML = '';
                 Player.company.routes.forEach(r => {
-                    const f = GameData.Airports.find(a=>a.id===r.from); const t = GameData.Airports.find(a=>a.id===r.to);
-                    if (!f || !t) return;
+                    const f = GameData.Airports.find(a=>a.id===r.from); const t = GameData.Airports.find(a=>a.id===r.to); if (!f || !t) return;
                     const pf = this.project(f.lat, f.lon); const pt = this.project(t.lat, t.lon);
                     const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    l.setAttribute("x1", pf.x); l.setAttribute("y1", pf.y); l.setAttribute("x2", pt.x); l.setAttribute("y2", pt.y);
-                    l.setAttribute("class", "route-line"); l.setAttribute("stroke", Player.company.color);
+                    l.setAttribute("x1", pf.x); l.setAttribute("y1", pf.y); l.setAttribute("x2", pt.x); l.setAttribute("y2", pt.y); l.setAttribute("class", "route-line"); l.setAttribute("stroke", Player.company.color);
                     rg.appendChild(l);
                 });
             },
-
             updateTransform() {
                 const maxPanX = this.width * this.scale * 1.2; const maxPanY = this.height * this.scale * 1.2;
                 this.currentX = Math.max(-maxPanX, Math.min(this.currentX, this.width)); this.currentY = Math.max(-maxPanY, Math.min(this.currentY, this.height));
                 document.getElementById('map-transform-group').setAttribute('transform', `translate(${this.currentX}, ${this.currentY}) scale(${this.scale})`);
-                const mg = document.getElementById('map-markers');
-                mg.className = this.scale >= 2.2 ? 'zoom-level-2' : (this.scale >= 1.4 ? 'zoom-level-1' : 'zoom-level-0');
+                const mg = document.getElementById('map-markers'); mg.className = this.scale >= 2.2 ? 'zoom-level-2' : (this.scale >= 1.4 ? 'zoom-level-1' : 'zoom-level-0');
             },
-
             applyZoom(f, cx, cy) {
                 let ns = Math.max(0.8, Math.min(this.scale * f, 10));
                 this.currentX = cx - (cx - this.currentX) * (ns / this.scale); this.currentY = cy - (cy - this.currentY) * (ns / this.scale);
                 this.scale = ns; this.updateTransform();
             },
-            zoomIn() { this.applyZoom(1.5, this.width/2, this.height/2); },
-            zoomOut() { this.applyZoom(1/1.5, this.width/2, this.height/2); },
+            zoomIn() { this.applyZoom(1.5, this.width/2, this.height/2); }, zoomOut() { this.applyZoom(1/1.5, this.width/2, this.height/2); },
             resetView() { const m = window.innerWidth<=768; this.scale = m?1.0:1.3; this.currentX = -50; this.currentY = m?-50:-100; this.updateTransform(); },
-            
-            getSVGCoords(cx, cy) {
-                const svg = document.getElementById('map-svg'); const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy;
-                const ctm = svg.getScreenCTM(); return ctm ? pt.matrixTransform(ctm.inverse()) : {x:0, y:0};
-            },
-
+            getSVGCoords(cx, cy) { const svg = document.getElementById('map-svg'); const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy; const ctm = svg.getScreenCTM(); return ctm ? pt.matrixTransform(ctm.inverse()) : {x:0, y:0}; },
             setupInteractions() {
-                const svg = document.getElementById('map-svg');
-                let pointers = new Map(), dragStart = null, isDrag = false, initDist = null, initScale = null;
-                
+                const svg = document.getElementById('map-svg'); let pointers = new Map(), dragStart = null, isDrag = false, initDist = null, initScale = null;
                 svg.onpointerdown = e => {
                     pointers.set(e.pointerId, e); svg.setPointerCapture(e.pointerId);
                     if(pointers.size===1) { isDrag = true; dragStart = {x:e.clientX, y:e.clientY}; svg.classList.add('dragging'); }
                     else if(pointers.size===2) { isDrag = false; const pts = Array.from(pointers.values()); initDist = Math.hypot(pts[0].clientX-pts[1].clientX, pts[0].clientY-pts[1].clientY); initScale = this.scale; }
                 };
                 svg.onpointermove = e => {
-                    if(!pointers.has(e.pointerId)) return;
-                    const prevE = pointers.get(e.pointerId); pointers.set(e.pointerId, e);
-                    if(pointers.size===1 && isDrag) {
-                        const ctm = svg.getScreenCTM();
-                        if(ctm) { this.currentX += (e.clientX-prevE.clientX)/ctm.a; this.currentY += (e.clientY-prevE.clientY)/ctm.d; this.updateTransform(); }
-                    } else if(pointers.size===2 && initDist>0) {
+                    if(!pointers.has(e.pointerId)) return; const prevE = pointers.get(e.pointerId); pointers.set(e.pointerId, e);
+                    if(pointers.size===1 && isDrag) { const ctm = svg.getScreenCTM(); if(ctm) { this.currentX += (e.clientX-prevE.clientX)/ctm.a; this.currentY += (e.clientY-prevE.clientY)/ctm.d; this.updateTransform(); } }
+                    else if(pointers.size===2 && initDist>0) {
                         const pts = Array.from(pointers.values()); const d = Math.hypot(pts[0].clientX-pts[1].clientX, pts[0].clientY-pts[1].clientY);
-                        const c = this.getSVGCoords((pts[0].clientX+pts[1].clientX)/2, (pts[0].clientY+pts[1].clientY)/2);
-                        let ns = Math.max(0.8, Math.min(initScale*(d/initDist), 10));
-                        this.currentX = c.x - (c.x - this.currentX)*(ns/this.scale); this.currentY = c.y - (c.y - this.currentY)*(ns/this.scale);
-                        this.scale = ns; this.updateTransform();
+                        const c = this.getSVGCoords((pts[0].clientX+pts[1].clientX)/2, (pts[0].clientY+pts[1].clientY)/2); let ns = Math.max(0.8, Math.min(initScale*(d/initDist), 10));
+                        this.currentX = c.x - (c.x - this.currentX)*(ns/this.scale); this.currentY = c.y - (c.y - this.currentY)*(ns/this.scale); this.scale = ns; this.updateTransform();
                     }
                 };
                 const end = e => {
@@ -1179,8 +1297,7 @@
                         const tgt = document.elementFromPoint(e.clientX, e.clientY); const mk = tgt ? tgt.closest('.airport-marker') : null;
                         if(mk) {
                             if(this.selId) { const p = document.querySelector(`.airport-marker[data-id="${this.selId}"]`); if(p) p.classList.remove('selected'); }
-                            this.selId = mk.getAttribute('data-id'); mk.classList.add('selected'); mk.parentNode.appendChild(mk);
-                            UI.showAirportDetails(this.selId);
+                            this.selId = mk.getAttribute('data-id'); mk.classList.add('selected'); mk.parentNode.appendChild(mk); UI.showAirportDetails(this.selId);
                         }
                     }
                     pointers.delete(e.pointerId);
@@ -1198,146 +1315,110 @@
         const Game = {
             init() {
                 ThemeManager.init();
-                
                 const hqSelect = document.getElementById('c-hq'); hqSelect.innerHTML = '';
                 GameData.Airports.forEach(ap => { hqSelect.innerHTML += `<option value="${ap.id}">${ap.name} (${ap.iata})</option>`; });
-
                 try {
                     const saved = localStorage.getItem(GameData.SAVE_KEY);
                     if (saved) {
                         const data = JSON.parse(saved);
                         if (this.validateSaveData(data)) {
-                            // Version comparison
                             if (this.compareVer(data.version, GameData.VERSION) > 0) {
-                                console.warn("Future save data detected.");
-                                document.getElementById('btn-continue').disabled = true;
-                                return;
+                                console.warn("Future save data detected."); document.getElementById('btn-continue').disabled = true; return;
                             }
-                            document.getElementById('btn-continue').disabled = false;
-                            document.getElementById('btn-continue').textContent = `CONTINUE (${data.company.name})`;
+                            document.getElementById('btn-continue').disabled = false; document.getElementById('btn-continue').textContent = `CONTINUE (${data.company.name})`;
                         }
                     }
-                } catch(e) {
-                    console.error("Initialization check error", e);
-                }
+                } catch(e) { console.error("Init check error", e); }
             },
-
             compareVer(v1, v2) {
                 if(!v1) return -1;
                 const p1 = v1.replace('v','').split('.').map(Number); const p2 = v2.replace('v','').split('.').map(Number);
-                for(let i=0; i<Math.max(p1.length, p2.length); i++) {
-                    const n1 = p1[i]||0, n2 = p2[i]||0;
-                    if(n1 > n2) return 1; if(n1 < n2) return -1;
-                }
+                for(let i=0; i<Math.max(p1.length, p2.length); i++) { const n1 = p1[i]||0, n2 = p2[i]||0; if(n1 > n2) return 1; if(n1 < n2) return -1; }
                 return 0;
             },
-
             validateSaveData(data) {
                 if (!data || typeof data !== 'object') return false;
                 if (!data.company || typeof data.company.name !== 'string') return false;
-                if (typeof data.company.funds !== 'number' || isNaN(data.company.funds)) return false;
+                if (typeof data.company.funds !== 'number' || !isFinite(data.company.funds)) return false;
                 if (!Array.isArray(data.company.fleet) || !Array.isArray(data.company.routes)) return false;
                 return true;
             },
-
             migrateSaveData(data) {
-                // Ensure all fields required for v0.1.3 exist
                 if (!data.version) data.version = GameData.VERSION;
                 if (data.company.reputation === undefined) data.company.reputation = 50;
                 if (data.company.awareness === undefined) data.company.awareness = 10;
+                
+                // v0.1.4 specific migrations
+                if (!data.company.finances) {
+                    data.company.finances = {
+                        today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0}
+                    };
+                }
                 
                 data.company.fleet.forEach(f => {
                     if (!f.stats) f.stats = { flights: 0, pax: 0, rev: 0 };
                     if (f.status === undefined) f.status = f.routeId ? 'active' : 'idle';
                 });
-
                 data.company.routes.forEach(r => {
-                    if (!r.stats) {
-                        r.stats = { flights: 0, pax: 0, rev: 0, profit: 0, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: 0, lastProfit: 0, lastFlights: 0 };
-                    }
+                    if (r.fareMult === undefined) r.fareMult = 1.0;
+                    if (!r.stats) r.stats = { flights: 0, pax: 0, rev: 0, profit: 0, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: {fuel:0,airport:0,maint:0,lease:0}, lastProfit: 0, lastFlights: 0, lfHistory: [] };
+                    if (!r.stats.lfHistory) r.stats.lfHistory = [];
+                    if (typeof r.stats.lastCost !== 'object') r.stats.lastCost = {fuel:0,airport:0,maint:0,lease:r.stats.lastCost||0}; // Convert old flat cost
                 });
-
                 data.version = GameData.VERSION;
                 return data;
             },
-
             startNewGame() { document.getElementById('form-setup').reset(); UI.switchScreen('screen-new-company'); },
-            
             submitNewCompany(e) {
                 e.preventDefault();
-                const name = document.getElementById('c-name').value.trim();
-                const iata = document.getElementById('c-iata').value.toUpperCase();
-                const icao = document.getElementById('c-icao').value.toUpperCase();
-                
+                const name = document.getElementById('c-name').value.trim(); const iata = document.getElementById('c-iata').value.toUpperCase(); const icao = document.getElementById('c-icao').value.toUpperCase();
                 Player = {
                     version: GameData.VERSION,
                     metadata: { createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString() },
                     company: {
                         name, iata, icao, color: document.getElementById('c-color').value, hq: document.getElementById('c-hq').value,
                         funds: GameData.START_FUNDS, reputation: 50, awareness: 10, date: GameData.START_DATE,
-                        fleet: [], routes: [], employees: 0, debt: 0
+                        fleet: [], routes: [], employees: 0, debt: 0,
+                        finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [] }
                     },
                     history: [{ date: GameData.START_DATE, msg: `${name} を設立しました。` }]
                 };
                 if (this.saveData(false)) this.enterHQ();
             },
-
             continueGame() {
                 try {
-                    const rawText = localStorage.getItem(GameData.SAVE_KEY);
-                    if (!rawText) return;
+                    const rawText = localStorage.getItem(GameData.SAVE_KEY); if (!rawText) return;
                     let rawData = JSON.parse(rawText);
-
-                    if (this.compareVer(rawData.version, GameData.VERSION) > 0) {
-                        UI.showModal('エラー', 'このセーブデータは現在のゲームより新しいバージョンで作成されています。データの破損を防ぐため読み込みを中止しました。');
-                        return;
-                    }
-
-                    if (!this.validateSaveData(rawData)) {
-                        UI.showModal('エラー', 'セーブデータの検証に失敗しました。');
-                        return;
-                    }
-
+                    if (this.compareVer(rawData.version, GameData.VERSION) > 0) { UI.showModal('エラー', 'このセーブデータは現在のゲームより新しいバージョンで作成されています。データの破損を防ぐため読み込みを中止しました。'); return; }
+                    if (!this.validateSaveData(rawData)) { UI.showModal('エラー', 'セーブデータの検証に失敗しました。'); return; }
                     Player = this.migrateSaveData(rawData);
                     this.enterHQ();
-                } catch(e) {
-                    console.error(e);
-                    UI.showModal('エラー', 'セーブデータのロードに失敗しました。');
-                }
+                } catch(e) { console.error(e); UI.showModal('エラー', 'セーブデータのロードに失敗しました。'); }
             },
-
             enterHQ() {
-                UI.switchScreen('screen-hq');
-                UI.updateHeader(); UI.updateNews();
-                MapSystem.initMap();
+                UI.switchScreen('screen-hq'); UI.updateHeader(); UI.updateNews(); MapSystem.initMap();
                 setTimeout(() => {
                     const hq = GameData.Airports.find(a => a.id === Player.company.hq);
                     if(hq) { const pt = MapSystem.project(hq.lat, hq.lon); MapSystem.applyZoom(1.8, pt.x, pt.y); }
                 }, 100);
             },
-
             saveData(isAuto = false) {
-                if (!Player) return false;
+                if (!Player || Logic.isAdvancing) return false;
                 try {
-                    // Prevent downgrading overwrite
                     const exist = localStorage.getItem(GameData.SAVE_KEY);
                     if (exist) {
                         const ed = JSON.parse(exist);
-                        if (this.compareVer(ed.version, GameData.VERSION) > 0) {
-                            console.error("Autosave blocked to prevent overwrite.");
-                            return false;
-                        }
+                        if (this.compareVer(ed.version, GameData.VERSION) > 0) { console.error("Autosave blocked to prevent overwrite."); return false; }
                     }
                     Player.metadata.lastPlayed = new Date().toISOString();
                     localStorage.setItem(GameData.SAVE_KEY, JSON.stringify(Player));
                     return true;
                 } catch(e) {
-                    if (isAuto) UI.showToast("自動セーブに失敗しました。ブラウザの保存領域を確認してください。", "error");
+                    if (isAuto) UI.showToast("自動セーブに失敗しました。ブラウザの保存領域を確認してください。", "warning");
                     else UI.showModal('エラー', 'セーブデータの保存に失敗しました。');
                     return false;
                 }
             },
-            
             manualSave() { if(this.saveData(false)) UI.showToast("ゲームをセーブしました", "success"); },
             returnToTitle() { this.saveData(true); Player = null; UI.switchScreen('screen-title'); this.init(); }
         };
