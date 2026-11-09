@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.1.4</title>
+    <title>AIRLINE TYCOON JAPAN v0.1.4.1</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -94,7 +94,7 @@
         .lf-badge { font-weight: bold; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; display: inline-block; }
         .lf-very-low { background-color: rgba(239, 68, 68, 0.15); color: var(--col-danger); }
         .lf-low { background-color: rgba(245, 158, 11, 0.15); color: var(--col-warning); }
-        .lf-normal { background-color: rgba(245, 158, 11, 0.15); color: var(--col-warning); } /* Adjusted based on requirements (yellowish) */
+        .lf-normal { background-color: rgba(245, 158, 11, 0.15); color: var(--col-warning); }
         .lf-high { background-color: rgba(16, 185, 129, 0.15); color: var(--col-success); }
         .lf-very-high { background-color: rgba(16, 185, 129, 0.3); color: var(--col-success); border: 1px solid var(--col-success); }
 
@@ -113,7 +113,7 @@
 
         /* Title Screen */
         #screen-title { align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--col-bg-panel) 0%, var(--col-bg-dark) 100%); }
-        .title-logo { font-size: 2.5rem; font-weight: 900; margin-bottom: 3rem; text-shadow: 0 4px 10px var(--shadow-color); letter-spacing: 2px;}
+        .title-logo { font-size: 2.5rem; font-weight: 900; margin-bottom: 3rem; text-shadow: 0 4px 10px var(--shadow-color); letter-spacing: 2px; text-align: center;}
         .title-logo span { color: var(--col-primary); }
         .title-menu { display: flex; flex-direction: column; gap: 1rem; width: 250px; }
 
@@ -208,27 +208,33 @@
         /* Modal System */
         #custom-modal, #progress-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background-color: var(--shadow-strong); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
         .modal-content { background-color: var(--col-bg-panel); width: 90%; max-width: 550px; max-height: 90vh; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px var(--shadow-strong); border: 1px solid var(--panel-border); }
-        .modal-header { padding: 15px 20px; background-color: var(--col-bg-dark); font-weight: bold; border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; }
+        .modal-header { padding: 15px 20px; background-color: var(--col-bg-dark); font-weight: bold; border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 20px; font-size: 0.95rem; line-height: 1.5; overflow-y: auto; flex: 1; }
         .modal-footer { padding: 15px 20px; background-color: var(--col-bg-hover); display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--panel-border); }
 
         /* Next Day / Time Control */
         .time-control { position: relative; display: flex; align-items: center; }
-        .time-control-dropdown { position: absolute; top: 100%; right: 0; margin-top: 5px; background: var(--col-bg-panel); border: 1px solid var(--panel-border); border-radius: 6px; box-shadow: 0 4px 12px var(--shadow-strong); display: none; flex-direction: column; min-width: 150px; z-index: 100; overflow: hidden; }
+        .time-control-dropdown { position: absolute; top: 100%; right: 0; margin-top: 5px; background: var(--col-bg-panel); border: 1px solid var(--panel-border); border-radius: 6px; box-shadow: 0 4px 12px var(--shadow-strong); display: none; flex-direction: column; min-width: 170px; z-index: 100; overflow: hidden; }
         .time-control-dropdown.show { display: flex; }
         .time-dropdown-btn { background: none; border: none; padding: 10px 15px; text-align: left; font-size: 0.9rem; color: var(--col-text-main); cursor: pointer; transition: 0.2s; border-bottom: 1px solid var(--panel-border); }
         .time-dropdown-btn:hover { background: var(--col-bg-hover); color: var(--col-primary); font-weight: bold; }
         .time-dropdown-btn:last-child { border-bottom: none; }
+        .btn-365 { background-color: rgba(16, 185, 129, 0.1); color: var(--col-success); font-weight: bold; }
+        .btn-365:hover { background-color: var(--col-success) !important; color: white !important; }
 
         /* Progress Bar */
         .progress-container { width: 100%; background-color: var(--col-bg-hover); border-radius: 8px; overflow: hidden; height: 20px; margin-top: 15px; }
         .progress-bar { height: 100%; background-color: var(--col-primary); width: 0%; transition: width 0.1s linear; }
 
         /* Mini Bar Chart */
-        .mini-chart { display: flex; align-items: flex-end; gap: 2px; height: 50px; padding: 5px; background: var(--col-bg-dark); border-radius: 4px; border: 1px solid var(--panel-border); }
+        .mini-chart { display: flex; align-items: flex-end; gap: 2px; height: 60px; padding: 5px; background: var(--col-bg-dark); border-radius: 4px; border: 1px solid var(--panel-border); }
         .mini-chart-bar { flex: 1; background-color: var(--col-primary); min-width: 4px; transition: height 0.3s; border-radius: 2px 2px 0 0; position: relative; }
-        .mini-chart-bar:hover::after { content: attr(data-val) "%"; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: var(--col-bg-panel); color: var(--col-text-main); font-size: 10px; padding: 2px 4px; border: 1px solid var(--panel-border); border-radius: 3px; z-index: 10; pointer-events: none; }
+        .mini-chart-bar:hover::after { content: attr(data-val) "%"; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: var(--col-bg-panel); color: var(--col-text-main); font-size: 10px; padding: 2px 4px; border: 1px solid var(--panel-border); border-radius: 3px; z-index: 10; pointer-events: none; white-space: nowrap; }
         .mini-chart-empty { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--col-text-muted); }
+
+        /* Graph Range Selector Buttons */
+        .chart-toggle-btn { padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--panel-border); background: var(--col-bg-dark); color: var(--col-text-muted); cursor: pointer; }
+        .chart-toggle-btn.active { background: var(--col-primary); color: white; border-color: var(--col-primary); font-weight: bold; }
 
         /* Mobile Adjustments */
         .routes-cards-mobile { display: none; }
@@ -272,13 +278,16 @@
 
     <!-- Progress Modal (Batch Processing) -->
     <div id="progress-modal" class="hidden">
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header"><span id="prog-title">日付を進めています...</span></div>
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header"><span id="prog-title">一括経営処理を実行中...</span></div>
             <div class="modal-body text-center">
-                <div id="prog-date" class="font-bold" style="font-size: 1.1rem; margin-bottom: 10px;">-</div>
-                <div id="prog-text" class="text-muted">進行状況: 0 / 0日</div>
+                <div id="prog-date" class="font-bold" style="font-size: 1.1rem; margin-bottom: 5px;">-</div>
+                <div id="prog-text" class="text-muted" style="font-size: 0.9rem;">進行状況: 0 / 0日</div>
                 <div class="progress-container">
                     <div id="prog-bar" class="progress-bar"></div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-danger btn-sm" id="btn-cancel-advance" onclick="Logic.requestCancelAdvance()">一括進行を中断</button>
                 </div>
             </div>
         </div>
@@ -292,13 +301,13 @@
             <button class="btn btn-outline" id="btn-continue" onclick="Game.continueGame()" disabled>CONTINUE</button>
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
-        <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center;">
-            Version 0.1.4<br>Economy, Route Management & Time Acceleration Update
+        <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
+            Version v0.1.4.1<br>Stability, Balance & Time Acceleration Update
         </div>
     </div>
 
     <!-- Screen 2: New Company -->
-    <div id="screen-new-company" class="screen hidden" style="justify-center; padding: 20px; overflow-y: auto;">
+    <div id="screen-new-company" class="screen hidden" style="justify-content: center; padding: 20px; overflow-y: auto;">
         <div class="form-container" style="margin-top: auto; margin-bottom: auto;">
             <h2 class="form-title">新規航空会社 設立申請</h2>
             <form id="form-setup" onsubmit="Game.submitNewCompany(event)">
@@ -354,10 +363,12 @@
                     <button class="btn" style="padding: 5px 15px; font-size: 0.9rem;" onclick="Logic.advanceDays(1)" id="btn-next-day">NEXT DAY ➔</button>
                     <button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.9rem; margin-left: 5px; border:none; background:var(--col-bg-hover);" onclick="UI.toggleTimeDropdown()" id="btn-time-opts">▼</button>
                     <div class="time-control-dropdown" id="time-dropdown">
+                        <button class="time-dropdown-btn" onclick="Logic.advanceDays(1)">1日進める</button>
                         <button class="time-dropdown-btn" onclick="Logic.advanceDays(3)">3日進める</button>
                         <button class="time-dropdown-btn" onclick="Logic.advanceDays(7)">7日進める</button>
                         <button class="time-dropdown-btn" onclick="Logic.advanceDays(14)">14日進める</button>
                         <button class="time-dropdown-btn" onclick="Logic.advanceDays(30)">30日進める</button>
+                        <button class="time-dropdown-btn btn-365" onclick="Logic.confirmAndAdvance365()">365日進める (1年)</button>
                         <button class="time-dropdown-btn" onclick="Views.showCustomAdvanceModal()">任意の日数を指定...</button>
                     </div>
                 </div>
@@ -449,7 +460,7 @@
                         <div class="table-container">
                             <table class="data-table">
                                 <thead>
-                                    <tr><th>年月</th><th>運航便数</th><th>旅客数</th><th>平均LF</th><th>売上合計</th><th>費用合計</th><th>月間損益</th></tr>
+                                    <tr><th>年月</th><th>運航便数</th><th>旅客数</th><th>平均LF</th><th>運航売上</th><th>運航費用</th><th>設備投資/他</th><th>当月純損益</th></tr>
                                 </thead>
                                 <tbody id="finance-monthly-body"></tbody>
                             </table>
@@ -467,8 +478,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.1.4
-         * ECONOMY, ROUTE MANAGEMENT & TIME ACCELERATION UPDATE
+         * AIRLINE TYCOON JAPAN v0.1.4.1
+         * STABILITY, BALANCE & TIME ACCELERATION UPDATE
          */
 
         const ThemeManager = {
@@ -494,13 +505,12 @@
         };
 
         const GameData = {
-            VERSION: "0.1.4",
+            VERSION: "0.1.4.1",
             SAVE_KEY: "atj_save_v1",
             START_DATE: "2026-04-01",
             START_FUNDS: 5000000000,
-            FUEL_UNIT_PRICE: 15, // 燃料単価
+            FUEL_UNIT_PRICE: 15,
             
-            // Airports
             Airports: [
                 { id: 'CTS', iata: 'CTS', icao: 'RJCC', name: '新千歳空港', pref: '北海道', scale: 5, demand: 85, lat: 42.775, lon: 141.692, labelOffset: [1, 1] },
                 { id: 'HKD', iata: 'HKD', icao: 'RJCH', name: '函館空港', pref: '北海道', scale: 3, demand: 35, lat: 41.770, lon: 140.822, labelOffset: [-1, 1] },
@@ -558,7 +568,7 @@
         // ==========================================
         const Utils = {
             formatMoney: (n) => {
-                if (n === null || n === undefined || isNaN(n)) return "0円";
+                if (n === null || n === undefined || isNaN(n) || !isFinite(n)) return "0円";
                 const isNeg = n < 0; const abs = Math.abs(Math.round(n));
                 return (isNeg ? "-" : "") + new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 }).format(abs);
             },
@@ -573,16 +583,24 @@
                 const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
                 return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
             },
-            genRegNum: () => `JA${String(Math.floor(Math.random()*900)+100)}${Player.company.iata}`,
+            genRegNum: () => {
+                const existing = new Set((Player?.company?.fleet || []).map(f => f.reg));
+                let reg = '';
+                do {
+                    reg = `JA${String(Math.floor(Math.random()*900)+100)}${Player?.company?.iata || 'JA'}`;
+                } while (existing.has(reg));
+                return reg;
+            },
             
             getLoadFactorBadgeHtml: (lf) => {
+                const safeLf = Math.max(0, Math.min(100, Math.round(lf || 0)));
                 let badgeClass = 'lf-normal'; let text = '普通';
-                if (lf < 40) { badgeClass = 'lf-very-low'; text = '非常に低い'; }
-                else if (lf < 60) { badgeClass = 'lf-low'; text = '低い'; }
-                else if (lf < 80) { badgeClass = 'lf-normal'; text = '普通'; }
-                else if (lf < 95) { badgeClass = 'lf-high'; text = '高い'; }
-                else { badgeClass = 'lf-very-high'; text = '非常に高い'; }
-                return `<span class="lf-badge ${badgeClass}">${lf}%</span>`;
+                if (safeLf < 40) { badgeClass = 'lf-very-low'; }
+                else if (safeLf < 60) { badgeClass = 'lf-low'; }
+                else if (safeLf < 80) { badgeClass = 'lf-normal'; }
+                else if (safeLf < 95) { badgeClass = 'lf-high'; }
+                else { badgeClass = 'lf-very-high'; }
+                return `<span class="lf-badge ${badgeClass}">${safeLf}%</span>`;
             },
             getStandardFare: (distance) => 3000 + (distance * 18)
         };
@@ -661,14 +679,18 @@
         };
 
         // ==========================================
-        // Logic (Core Gameplay System, Batch Advance & Finance)
+        // Logic System (Core Operations, Finance & Robust Batch Time Engine)
         // ==========================================
         const Logic = {
-            _resetFinanceObject() { return { rev: 0, cost: { fuel: 0, airport: 0, maint: 0, lease: 0, other: 0 } }; },
+            isAdvancing: false,
+            cancelRequested: false,
+
+            _resetFinanceObject() { return { rev: 0, cost: { fuel: 0, airport: 0, maint: 0, lease: 0 }, capEx: 0 }; },
+
             _logCapitalExpense(amount, desc) {
                 Player.company.funds -= amount;
-                Player.company.finances.thisMonth.cost.other += amount;
-                Player.company.finances.total.cost.other += amount;
+                Player.company.finances.thisMonth.capEx = (Player.company.finances.thisMonth.capEx || 0) + amount;
+                Player.company.finances.total.capEx = (Player.company.finances.total.capEx || 0) + amount;
             },
 
             buyAircraft(acId, isLease) {
@@ -711,7 +733,11 @@
                 this._logCapitalExpense(cost, "路線開設費");
                 Player.company.routes.push({
                     id: routeId, from: fromId, to: toId, distance: dist, assignedReg: null, fareMult: 1.0,
-                    stats: { flights: 0, pax: 0, rev: 0, profit: 0, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: {fuel:0, airport:0, maint:0, lease:0}, lastProfit: 0, lastFlights: 0, lfHistory: [] }
+                    stats: { 
+                        flights: 0, pax: 0, rev: 0, profit: 0, 
+                        costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 },
+                        lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] 
+                    }
                 });
                 Player.history.unshift({ date: Player.company.date, msg: `${from.name} - ${to.name} 線を開設しました。` });
                 UI.hideModal(); UI.updateHeader(); UI.showToast("路線を開設しました", "success");
@@ -727,6 +753,7 @@
                 }
                 const plane = Player.company.fleet.find(f => f.reg === reg);
                 const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
+                if (!plane || !acDef) { UI.showToast("指定された機体データに異常があります", "error"); return; }
                 if (plane.routeId && plane.routeId !== routeId) { UI.showToast("既に別路線に割り当てられています", "error"); return; }
                 if (acDef.range < route.distance) { UI.showToast("航続距離が不足しています", "error"); return; }
 
@@ -742,16 +769,48 @@
                 Views.renderRoutes(); Game.saveData(true);
             },
 
-            // --- BATCH TIME ADVANCE SYSTEM ---
-            isAdvancing: false,
-            async advanceDays(days) {
+            // --- Robust 365-Day & Batch Time Engine ---
+            confirmAndAdvance365() {
+                document.getElementById('time-dropdown').classList.remove('show');
+                const html = `
+                    <p style="margin-bottom:10px;">1年間（365日間）の航空経営を一括で進めます。</p>
+                    <p class="text-muted" style="font-size:0.85rem;">・処理中は安全のため数日ごとに自動セーブが行われます。<br>・途中でいつでも「中断」が可能です。<br>・大規模な収支変化や知名度の成長が計算されます。</p>
+                `;
+                const btns = `
+                    <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
+                    <button class="btn btn-365" onclick="UI.hideModal(); Logic.advanceDays(365);">365日進行をスタート</button>
+                `;
+                UI.showModal('365日一括進行の確認', '', html, btns);
+            },
+
+            requestCancelAdvance() {
+                this.cancelRequested = true;
+                const btn = document.getElementById('btn-cancel-advance');
+                if (btn) { btn.disabled = true; btn.textContent = "中断中..."; }
+            },
+
+            async advanceDays(daysInput) {
                 if (this.isAdvancing) return;
-                const dInt = parseInt(days, 10);
-                if (isNaN(dInt) || dInt < 1 || dInt > 365) { UI.showToast("1〜365日の間で指定してください。", "error"); return; }
-                
+
+                // Strict Validation (Rule 3-2)
+                if (typeof daysInput === 'string') daysInput = daysInput.trim();
+                const num = Number(daysInput);
+                if (daysInput === '' || daysInput === null || daysInput === undefined || 
+                    isNaN(num) || !isFinite(num) || !Number.isInteger(num) || num < 1 || num > 365) {
+                    UI.showToast("1〜365日の正の整数を入力してください。", "error");
+                    return;
+                }
+
+                const dInt = num;
                 document.getElementById('time-dropdown').classList.remove('show');
                 this.isAdvancing = true;
-                document.getElementById('btn-next-day').disabled = true; document.getElementById('btn-time-opts').disabled = true;
+                this.cancelRequested = false;
+
+                // UI Lockdown
+                document.getElementById('btn-next-day').disabled = true; 
+                document.getElementById('btn-time-opts').disabled = true;
+                const btnCancel = document.getElementById('btn-cancel-advance');
+                if (btnCancel) { btnCancel.disabled = false; btnCancel.textContent = "一括進行を中断"; }
                 
                 const progModal = document.getElementById('progress-modal');
                 const progBar = document.getElementById('prog-bar');
@@ -759,37 +818,74 @@
                 const progDate = document.getElementById('prog-date');
                 progModal.classList.remove('hidden');
 
-                let summary = { days: 0, rev: 0, fuel: 0, airport: 0, maint: 0, lease: 0, pax: 0, flights: 0, stopped: false };
+                let summary = { days: 0, rev: 0, fuel: 0, airport: 0, maint: 0, lease: 0, pax: 0, flights: 0, stopped: false, stopReason: '' };
                 const startDateStr = Player.company.date;
 
-                for (let i = 0; i < dInt; i++) {
-                    if (Player.company.funds < -1000000000) { 
-                        summary.stopped = true; summary.stopReason = "資金ショート (10億円以上の赤字)"; break; 
+                try {
+                    for (let i = 0; i < dInt; i++) {
+                        if (this.cancelRequested) {
+                            summary.stopped = true;
+                            summary.stopReason = "プレイヤーによる手動中断";
+                            break;
+                        }
+
+                        if (Player.company.funds < -1000000000) { 
+                            summary.stopped = true; 
+                            summary.stopReason = "資金ショート (10億円以上の赤字)"; 
+                            break; 
+                        }
+
+                        // Run standard single-day calculation
+                        const res = this._processOneDay();
+                        summary.days++; 
+                        summary.rev += res.rev; 
+                        summary.fuel += res.fuel; 
+                        summary.airport += res.airport; 
+                        summary.maint += res.maint; 
+                        summary.lease += res.lease; 
+                        summary.pax += res.pax; 
+                        summary.flights += res.flights;
+
+                        // Intermediate Auto-Save every 5 days
+                        if ((i + 1) % 5 === 0) {
+                            Game.saveData(true);
+                        }
+
+                        // Yield execution to unblock UI thread every day/few days
+                        if (i % 2 === 0 || i === dInt - 1) {
+                            progBar.style.width = `${((i + 1) / dInt) * 100}%`;
+                            progText.textContent = `進行状況: ${i + 1} / ${dInt}日`;
+                            progDate.textContent = Utils.formatDate(Player.company.date);
+                            await new Promise(resolve => setTimeout(resolve, 4));
+                        }
                     }
 
-                    const res = this._processOneDay();
-                    summary.days++; summary.rev += res.rev; summary.fuel += res.fuel; summary.airport += res.airport; summary.maint += res.maint; summary.lease += res.lease; summary.pax += res.pax; summary.flights += res.flights;
+                    // Final save after loop ends
+                    Game.saveData(true);
 
-                    if (i % 3 === 0 || i === dInt - 1) { // Yield and update UI every few days
-                        progBar.style.width = `${((i+1)/dInt)*100}%`;
-                        progText.textContent = `進行状況: ${i+1} / ${dInt}日`;
-                        progDate.textContent = Utils.formatDate(Player.company.date);
-                        await new Promise(resolve => setTimeout(resolve, 5));
-                    }
+                } catch (err) {
+                    console.error("Critical error during batch advance:", err);
+                    summary.stopped = true;
+                    summary.stopReason = "システム例外が発生したため安全停止しました";
+                    UI.showToast("処理中にエラーが発生しましたが、これまでの進行結果は保存されました。", "error");
+                } finally {
+                    // Safety Guard: ALWAYS restore UI state
+                    progModal.classList.add('hidden');
+                    this.isAdvancing = false;
+                    this.cancelRequested = false;
+                    document.getElementById('btn-next-day').disabled = false; 
+                    document.getElementById('btn-time-opts').disabled = false;
+                    UI.updateHeader();
                 }
 
-                progModal.classList.add('hidden');
-                this.isAdvancing = false;
-                document.getElementById('btn-next-day').disabled = false; document.getElementById('btn-time-opts').disabled = false;
-                
-                UI.updateHeader();
-                
-                // Show Batch Result Modal
+                // Show Detailed Batch Completion/Interruption Summary Report
                 const costSum = summary.fuel + summary.airport + summary.maint + summary.lease;
                 const profit = summary.rev - costSum;
                 let html = `
-                    ${summary.stopped ? `<div class="text-danger font-bold" style="margin-bottom:10px;">⚠️ 進行中断: ${summary.stopReason}</div>` : ''}
-                    <div class="card-row"><span>期間</span><span>${Utils.formatDate(startDateStr)} ～ ${Utils.formatDate(Player.company.date)} (${summary.days}日間)</span></div>
+                    ${summary.stopped ? `<div class="text-danger font-bold" style="margin-bottom:10px;">⚠️ 一括進行結果: ${summary.stopReason}</div>` : ''}
+                    <div class="card-row"><span>開始日</span><span>${Utils.formatDate(startDateStr)}</span></div>
+                    <div class="card-row"><span>終了日</span><span>${Utils.formatDate(Player.company.date)}</span></div>
+                    <div class="card-row"><span>予定 / 進行日数</span><span>${dInt}日中 ${summary.days}日間完了</span></div>
                     <hr style="margin:8px 0; border:0; border-top:1px solid var(--panel-border);">
                     <div class="data-grid" style="margin-bottom:15px;">
                         <div class="card">
@@ -797,21 +893,21 @@
                             <div class="card-row"><span>総搭乗旅客</span><span>${summary.pax.toLocaleString()}人</span></div>
                         </div>
                         <div class="card">
-                            <div class="card-row"><span>期間売上</span><span class="text-success">+${Utils.formatMoney(summary.rev)}</span></div>
-                            <div class="card-row"><span>期間費用</span><span class="text-danger">-${Utils.formatMoney(costSum)}</span></div>
+                            <div class="card-row"><span>期間運航売上</span><span class="text-success">+${Utils.formatMoney(summary.rev)}</span></div>
+                            <div class="card-row"><span>期間運航費用</span><span class="text-danger">-${Utils.formatMoney(costSum)}</span></div>
                             <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
-                            <div class="card-row font-bold"><span>期間損益</span><span class="${profit>=0?'text-success':'text-danger'}">${Utils.formatMoney(profit)}</span></div>
+                            <div class="card-row font-bold"><span>期間運航損益</span><span class="${profit>=0?'text-success':'text-danger'}">${Utils.formatMoney(profit)}</span></div>
                         </div>
                     </div>
                 `;
-                UI.showModal('一括進行 完了レポート', '', html);
+                UI.showModal(summary.stopped ? '一括進行 中断レポート' : '一括進行 完了レポート', '', html);
                 
                 if (document.getElementById('view-routes').classList.contains('active')) Views.renderRoutes();
                 if (document.getElementById('view-finance').classList.contains('active')) Views.renderFinance();
-                Game.saveData(true);
             },
 
             _processOneDay() {
+                // Safe date incrementation
                 const dateParts = Player.company.date.split('-').map(Number);
                 let y = dateParts[0], m = dateParts[1], d = dateParts[2] + 1;
                 const daysInMonth = new Date(y, m, 0).getDate();
@@ -826,109 +922,176 @@
 
                 let dayRes = { rev:0, fuel:0, airport:0, maint:0, lease:0, pax:0, flights:0 };
 
-                // Handle Month Roll-over for Finances
+                // Month Roll-over Financial Aggregation
                 if (monthChanged) {
                     const prevMonthStr = oldDateStr.substring(0,7);
                     const tm = Player.company.finances.thisMonth;
-                    const monthCostSum = tm.cost.fuel + tm.cost.airport + tm.cost.maint + tm.cost.lease + tm.cost.other;
+                    const monthCostSum = (tm.cost.fuel || 0) + (tm.cost.airport || 0) + (tm.cost.maint || 0) + (tm.cost.lease || 0);
+                    const monthCapEx = tm.capEx || 0;
+                    const operatingProfit = tm.rev - monthCostSum;
+                    
                     Player.company.finances.monthlyRecords.unshift({
-                        ym: prevMonthStr, rev: tm.rev, cost: tm.cost, profit: tm.rev - monthCostSum,
+                        ym: prevMonthStr, 
+                        rev: tm.rev, 
+                        cost: { ...tm.cost }, 
+                        opProfit: operatingProfit,
+                        capEx: monthCapEx,
+                        netProfit: operatingProfit - monthCapEx,
                         flights: Player.company.finances._tmStats ? Player.company.finances._tmStats.f : 0,
                         pax: Player.company.finances._tmStats ? Player.company.finances._tmStats.p : 0,
-                        avgLf: Player.company.finances._tmStats && Player.company.finances._tmStats.f>0 ? Math.round((Player.company.finances._tmStats.p / Player.company.finances._tmStats.seats)*100) : 0
+                        avgLf: (Player.company.finances._tmStats && Player.company.finances._tmStats.seats > 0) ? Math.round((Player.company.finances._tmStats.p / Player.company.finances._tmStats.seats)*100) : 0
                     });
                     if(Player.company.finances.monthlyRecords.length > 24) Player.company.finances.monthlyRecords.pop();
                     Player.company.finances.thisMonth = this._resetFinanceObject();
                     Player.company.finances._tmStats = { f: 0, p: 0, seats: 0 };
+                    
+                    // Subtle awareness growth over operating months
+                    Player.company.awareness = Math.min(100, (Player.company.awareness || 10) + 1);
                 }
 
-                // Track unallocated lease costs
+                // Sanity check fleet assignments
                 let unallocatedLease = 0;
                 Player.company.fleet.forEach(f => {
                     const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
                     if (!f.routeId) {
                         f.status = 'idle';
                         if (f.isLeased && ac) unallocatedLease += ac.leaseDaily;
+                    } else {
+                        const routeExists = Player.company.routes.some(r => r.id === f.routeId);
+                        if (!routeExists) { f.routeId = null; f.status = 'idle'; }
                     }
                 });
                 dayRes.lease += unallocatedLease;
 
-                // Process Routes
+                // Process Active Routes
                 Player.company.routes.forEach(route => {
                     let rRev = 0, rPax = 0, rFlights = 0, rLf = 0, rSeats = 0;
                     let rFuel = 0, rAirport = 0, rMaint = 0, rLease = 0;
 
+                    // Safety verification (Rule 4-1 & 4-2)
+                    let plane = null;
                     if (route.assignedReg) {
-                        const plane = Player.company.fleet.find(f => f.reg === route.assignedReg);
+                        plane = Player.company.fleet.find(f => f.reg === route.assignedReg);
+                        if (!plane) {
+                            console.warn(`Repairing invalid fleet assignment ${route.assignedReg} on route ${route.id}`);
+                            route.assignedReg = null;
+                        }
+                    }
+
+                    if (plane) {
                         const ac = GameData.Aircrafts.find(a => a.id === plane.typeId);
                         const from = GameData.Airports.find(a => a.id === route.from);
                         const to = GameData.Airports.find(a => a.id === route.to);
 
-                        if (plane && ac && from && to && ac.range >= route.distance) {
-                            const flightTimeH = route.distance / ac.speed; const blockTimeH = flightTimeH + 0.75;
-                            const maxTrips = Math.floor(14 / blockTimeH); const dailyFlights = Math.floor(maxTrips / 2) * 2;
+                        if (ac && from && to && (ac.range || 0) >= (route.distance || 0)) {
+                            const speed = ac.speed || 800;
+                            const flightTimeH = route.distance / speed; 
+                            const blockTimeH = flightTimeH + 0.75;
+                            const maxTrips = Math.floor(14 / blockTimeH); 
+                            const dailyFlights = Math.floor(maxTrips / 2) * 2;
 
                             if (dailyFlights > 0) {
                                 rSeats = dailyFlights * ac.seats;
-                                const baseDemand = Math.sqrt(from.demand * to.demand) * 2.8;
-                                const distFactor = Math.max(0.4, 1.2 - (route.distance / 2500));
-                                const repFactor = (Player.company.reputation || 50) / 50;
-                                const awFactor = (Player.company.awareness || 10) / 20;
 
-                                // Fare & Elasticity
+                                // Balanced Passenger Demand Calculation (Rule 5)
+                                const baseDemand = Math.sqrt(from.demand * to.demand) * 3.5;
+                                const distFactor = Math.max(0.5, 1.25 - (route.distance / 3000));
+                                const repFactor = Math.max(0.6, (Player.company.reputation || 50) / 50);
+                                const awFactor = Math.max(0.7, (Player.company.awareness || 10) / 40);
+
                                 const stdFare = Utils.getStandardFare(route.distance);
-                                const mult = route.fareMult || 1.0;
+                                const mult = Math.max(0.5, Math.min(2.0, route.fareMult || 1.0));
                                 const actualFare = Math.floor(stdFare * mult);
-                                // Demand Elasticity: If mult=0.5 -> 1.5. If mult=2.0 -> 0.5. Non-linear penalization for high fares.
-                                const fareElast = Math.max(0.1, 1.0 + (1.0 - mult) * (mult > 1.0 ? 1.5 : 1.0)); 
-                                const dailyFluc = 0.95 + (Math.random() * 0.1);
                                 
-                                const potentialPax = Math.floor(baseDemand * distFactor * repFactor * awFactor * fareElast * dailyFluc * 2.2);
+                                // Price elasticity curve
+                                const fareElast = mult <= 1.0 ? (1.0 + (1.0 - mult) * 0.8) : Math.max(0.1, 1.0 - (mult - 1.0) * 1.5);
+                                const dailyFluc = 0.94 + (Math.random() * 0.12);
+                                
+                                const potentialPax = Math.floor(baseDemand * distFactor * repFactor * awFactor * fareElast * dailyFluc * 2.8);
 
                                 rPax = Math.min(potentialPax, rSeats);
-                                rLf = Math.min(100, Math.round((rPax / rSeats) * 100));
+                                rLf = rSeats > 0 ? Math.min(100, Math.round((rPax / rSeats) * 100)) : 0;
                                 rRev = Math.floor(rPax * actualFare);
 
-                                rFuel = Math.floor(route.distance * ac.fuelRate * dailyFlights * GameData.FUEL_UNIT_PRICE);
+                                rFuel = Math.floor(route.distance * (ac.fuelRate || 1.5) * dailyFlights * GameData.FUEL_UNIT_PRICE);
                                 rAirport = Math.floor((from.scale + to.scale) * 25000 * dailyFlights);
-                                rMaint = ac.maint;
-                                rLease = plane.isLeased ? ac.leaseDaily : 0;
+                                rMaint = ac.maint || 500000;
+                                rLease = plane.isLeased ? (ac.leaseDaily || 0) : 0;
                                 rFlights = dailyFlights;
 
-                                route.stats.flights += rFlights; route.stats.pax += rPax; route.stats.rev += rRev; 
-                                route.stats.profit += (rRev - (rFuel+rAirport+rMaint+rLease));
-                                plane.stats.flights += rFlights; plane.stats.pax += rPax; plane.stats.rev += rRev; plane.status = 'active';
+                                // Cumulative Route Statistics
+                                route.stats.flights += rFlights; 
+                                route.stats.pax += rPax; 
+                                route.stats.rev += rRev; 
+                                const rDayCost = rFuel + rAirport + rMaint + rLease;
+                                route.stats.profit += (rRev - rDayCost);
+                                
+                                if (!route.stats.costBreakdown) route.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
+                                route.stats.costBreakdown.fuel += rFuel;
+                                route.stats.costBreakdown.airport += rAirport;
+                                route.stats.costBreakdown.maint += rMaint;
+                                route.stats.costBreakdown.lease += rLease;
+
+                                plane.stats.flights += rFlights; 
+                                plane.stats.pax += rPax; 
+                                plane.stats.rev += rRev; 
+                                plane.status = 'active';
                             } else {
-                                plane.status = 'idle'; if (plane.isLeased) rLease = ac.leaseDaily;
+                                plane.status = 'idle'; if (plane.isLeased) rLease = ac.leaseDaily || 0;
                             }
                         }
                     }
 
                     const rCostSum = rFuel + rAirport + rMaint + rLease;
-                    route.stats.lastLf = rLf; route.stats.lastPax = rPax; route.stats.lastRev = rRev; 
+                    route.stats.lastLf = rLf; 
+                    route.stats.lastPax = rPax; 
+                    route.stats.lastRev = rRev; 
                     route.stats.lastCost = { fuel: rFuel, airport: rAirport, maint: rMaint, lease: rLease }; 
-                    route.stats.lastProfit = rRev - rCostSum; route.stats.lastFlights = rFlights;
-                    if(!route.stats.lfHistory) route.stats.lfHistory = [];
-                    route.stats.lfHistory.push(rLf);
-                    if(route.stats.lfHistory.length > 30) route.stats.lfHistory.shift();
+                    route.stats.lastProfit = rRev - rCostSum; 
+                    route.stats.lastFlights = rFlights;
 
-                    dayRes.rev += rRev; dayRes.fuel += rFuel; dayRes.airport += rAirport; dayRes.maint += rMaint; dayRes.lease += rLease; dayRes.pax += rPax; dayRes.flights += rFlights;
+                    if (!route.stats.lfHistory) route.stats.lfHistory = [];
+                    route.stats.lfHistory.push(rLf);
+                    if (route.stats.lfHistory.length > 30) route.stats.lfHistory.shift();
+
+                    dayRes.rev += rRev; 
+                    dayRes.fuel += rFuel; 
+                    dayRes.airport += rAirport; 
+                    dayRes.maint += rMaint; 
+                    dayRes.lease += rLease; 
+                    dayRes.pax += rPax; 
+                    dayRes.flights += rFlights;
+
                     if (!Player.company.finances._tmStats) Player.company.finances._tmStats = { f:0, p:0, seats:0 };
-                    Player.company.finances._tmStats.f += rFlights; Player.company.finances._tmStats.p += rPax; Player.company.finances._tmStats.seats += rSeats;
+                    Player.company.finances._tmStats.f += rFlights; 
+                    Player.company.finances._tmStats.p += rPax; 
+                    Player.company.finances._tmStats.seats += rSeats;
                 });
 
-                // Update Finances
-                const dCost = dayRes.fuel + dayRes.airport + dayRes.maint + dayRes.lease;
-                const dProfit = dayRes.rev - dCost;
-                Player.company.funds += dProfit;
+                // Update Overall Cash Funds & Financial Registers
+                const dOperatingCost = dayRes.fuel + dayRes.airport + dayRes.maint + dayRes.lease;
+                const dOperatingProfit = dayRes.rev - dOperatingCost;
+                
+                Player.company.funds += dOperatingProfit; // Net Cash Flow
 
-                Player.company.finances.today = { rev: dayRes.rev, cost: { fuel: dayRes.fuel, airport: dayRes.airport, maint: dayRes.maint, lease: dayRes.lease, other: 0 } };
+                Player.company.finances.today = { 
+                    rev: dayRes.rev, 
+                    cost: { fuel: dayRes.fuel, airport: dayRes.airport, maint: dayRes.maint, lease: dayRes.lease } 
+                };
                 
                 const tm = Player.company.finances.thisMonth;
-                tm.rev += dayRes.rev; tm.cost.fuel += dayRes.fuel; tm.cost.airport += dayRes.airport; tm.cost.maint += dayRes.maint; tm.cost.lease += dayRes.lease;
+                tm.rev += dayRes.rev; 
+                tm.cost.fuel += dayRes.fuel; 
+                tm.cost.airport += dayRes.airport; 
+                tm.cost.maint += dayRes.maint; 
+                tm.cost.lease += dayRes.lease;
                 
                 const tot = Player.company.finances.total;
-                tot.rev += dayRes.rev; tot.cost.fuel += dayRes.fuel; tot.cost.airport += dayRes.airport; tot.cost.maint += dayRes.maint; tot.cost.lease += dayRes.lease;
+                tot.rev += dayRes.rev; 
+                tot.cost.fuel += dayRes.fuel; 
+                tot.cost.airport += dayRes.airport; 
+                tot.cost.maint += dayRes.maint; 
+                tot.cost.lease += dayRes.lease;
 
                 return dayRes;
             }
@@ -938,6 +1101,8 @@
         // Views & Renderers
         // ==========================================
         const Views = {
+            currentGraphDays: 30,
+
             renderFleet() {
                 const c = document.getElementById('fleet-list-container'); c.innerHTML = '';
                 if (!Player.company.fleet || Player.company.fleet.length === 0) { c.innerHTML = '<div class="text-muted">保有する機材はありません。</div>'; return; }
@@ -1057,18 +1222,26 @@
                 UI.showModal(`${routeId} 運賃設定`, '', html, btns);
             },
 
-            showRouteDetails(routeId) {
+            showRouteDetails(routeId, graphDays = 30) {
+                this.currentGraphDays = graphDays;
                 const r = Player.company.routes.find(ro => ro.id === routeId); if(!r) return;
-                const st = r.stats; const stdFare = Utils.getStandardFare(r.distance); const actualFare = Math.floor(stdFare * (r.fareMult||1.0));
+                const st = r.stats || {}; 
+                const stdFare = Utils.getStandardFare(r.distance); 
+                const actualFare = Math.floor(stdFare * (r.fareMult||1.0));
                 
-                // Construct Bar Chart
+                // Construct Bar Chart (7 vs 30 days toggleable)
                 const hist = st.lfHistory || [];
                 let bars = '';
-                if(hist.length === 0) { bars = '<div class="mini-chart-empty">データがありません</div>'; }
-                else {
-                    const maxDisp = 30; const dispHist = hist.slice(-maxDisp);
+                if(hist.length === 0) { 
+                    bars = '<div class="mini-chart-empty">データがありません</div>'; 
+                } else {
+                    const dispHist = hist.slice(-graphDays);
                     bars = dispHist.map(v => `<div class="mini-chart-bar" style="height:${v}%" data-val="${v}"></div>`).join('');
                 }
+
+                const cb = st.costBreakdown || { fuel: 0, airport: 0, maint: 0, lease: 0 };
+                const totalCost = (cb.fuel || 0) + (cb.airport || 0) + (cb.maint || 0) + (cb.lease || 0);
+                const calcProfit = (st.rev || 0) - totalCost;
 
                 let html = `
                     <div class="data-grid" style="margin-bottom:15px;">
@@ -1084,33 +1257,47 @@
                         <div class="card">
                             <div class="card-header">直近の運航実績 (1日)</div>
                             <div class="card-body">
-                                <div class="card-row"><span>旅客数 / 提供座席</span><span>${(st.lastPax||0).toLocaleString()}人 / ${(st.lastFlights||0)>0?Math.floor((st.lastPax||0)/((st.lastLf||0)/100||1)):0}席</span></div>
+                                <div class="card-row"><span>搭乗/座席</span><span>${(st.lastPax||0).toLocaleString()}人</span></div>
                                 <div class="card-row"><span>搭乗率 (LF)</span><span>${Utils.getLoadFactorBadgeHtml(st.lastLf||0)}</span></div>
                                 <div class="card-row"><span>売上</span><span class="text-success">${Utils.formatMoney(st.lastRev||0)}</span></div>
-                                <div class="card-row"><span>費用 (燃/港/整/リ)</span><span class="text-danger">-${Utils.formatMoney((st.lastCost?.fuel||0)+(st.lastCost?.airport||0)+(st.lastCost?.maint||0)+(st.lastCost?.lease||0))}</span></div>
+                                <div class="card-row"><span>費用</span><span class="text-danger">-${Utils.formatMoney((st.lastCost?.fuel||0)+(st.lastCost?.airport||0)+(st.lastCost?.maint||0)+(st.lastCost?.lease||0))}</span></div>
                                 <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
-                                <div class="card-row font-bold"><span>利益</span><span class="${(st.lastProfit||0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.lastProfit||0)}</span></div>
+                                <div class="card-row font-bold"><span>日次利益</span><span class="${(st.lastProfit||0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.lastProfit||0)}</span></div>
                             </div>
                         </div>
                     </div>
+
                     <div class="card" style="margin-bottom:15px;">
-                        <div class="card-header">搭乗率推移 (過去最大30日)</div>
-                        <div class="mini-chart">${bars}</div>
+                        <div class="card-header">
+                            <span>搭乗率推移</span>
+                            <div style="display:flex; gap:5px;">
+                                <button class="chart-toggle-btn ${graphDays===7?'active':''}" onclick="Views.showRouteDetails('${routeId}', 7)">過去7日間</button>
+                                <button class="chart-toggle-btn ${graphDays===30?'active':''}" onclick="Views.showRouteDetails('${routeId}', 30)">過去30日間</button>
+                            </div>
+                        </div>
+                        <div class="mini-chart" style="margin-top:10px;">${bars}</div>
                     </div>
+
                     <div class="card">
-                        <div class="card-header">路線開設からの累計統計</div>
+                        <div class="card-header">開設からの累計統計・費用内訳</div>
                         <div class="card-body">
-                            <div class="card-row"><span>累計運航便数</span><span>${(st.flights||0).toLocaleString()} 便</span></div>
-                            <div class="card-row"><span>累計輸送旅客数</span><span>${(st.pax||0).toLocaleString()} 人</span></div>
-                            <div class="card-row"><span>累計売上</span><span class="text-success">${Utils.formatMoney(st.rev||0)}</span></div>
-                            <div class="card-row font-bold"><span>累計利益</span><span class="${(st.profit||0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.profit||0)}</span></div>
+                            <div class="card-row"><span>累計運航便数 / 輸送数</span><span>${(st.flights||0).toLocaleString()}便 / ${(st.pax||0).toLocaleString()}人</span></div>
+                            <div class="card-row"><span>累計運航売上</span><span class="text-success">${Utils.formatMoney(st.rev||0)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ 累計燃料費</span><span>-${Utils.formatMoney(cb.fuel||0)}</span></div>
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ 累計空港使用料</span><span>-${Utils.formatMoney(cb.airport||0)}</span></div>
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ 累計整備費</span><span>-${Utils.formatMoney(cb.maint||0)}</span></div>
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ 累計リース費</span><span>-${Utils.formatMoney(cb.lease||0)}</span></div>
+                            <div class="card-row font-bold"><span>累計運航費用</span><span class="text-danger">-${Utils.formatMoney(totalCost)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                            <div class="card-row font-bold" style="font-size:1rem;"><span>累計純利益</span><span class="${calcProfit>=0?'text-success':'text-danger'}">${Utils.formatMoney(calcProfit)}</span></div>
                         </div>
                     </div>
                 `;
                 UI.showModal(`路線詳細: ${routeId}`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
             },
 
-            showRouteCreateModal() { /* Reusing previous logic */
+            showRouteCreateModal() {
                 let opts = '<option value="">選択してください</option>'; GameData.Airports.forEach(a => { opts += `<option value="${a.id}">${a.name} (${a.iata})</option>`; });
                 let html = `
                     <div class="input-group"><label>出発空港</label><select id="rc-from" class="input-field" onchange="Views.calcRouteInfo()">${opts}</select></div>
@@ -1151,9 +1338,17 @@
 
             showCustomAdvanceModal() {
                 document.getElementById('time-dropdown').classList.remove('show');
-                let html = `<div class="input-group"><label>進行する日数 (1〜365)</label><input type="number" id="custom-days-input" class="input-field" min="1" max="365" value="30"></div>`;
-                let btns = `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="const d=document.getElementById('custom-days-input').value; UI.hideModal(); Logic.advanceDays(d);">実行</button>`;
-                UI.showModal('任意日数の進行', '', html, btns);
+                let html = `
+                    <div class="input-group">
+                        <label>進行する日数 (1〜365日の整数)</label>
+                        <input type="number" id="custom-days-input" class="input-field" min="1" max="365" step="1" value="30">
+                    </div>
+                `;
+                let btns = `
+                    <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
+                    <button class="btn" onclick="const val = document.getElementById('custom-days-input').value; UI.hideModal(); Logic.advanceDays(val);">実行</button>
+                `;
+                UI.showModal('任意日数の指定進行', '', html, btns);
             },
 
             renderFinance() {
@@ -1161,50 +1356,54 @@
                 const tbody = document.getElementById('finance-monthly-body');
                 if(!Player.company.finances) return;
 
-                const td = Player.company.finances.today;
-                const tm = Player.company.finances.thisMonth;
-                const tot = Player.company.finances.total;
+                const td = Player.company.finances.today || Logic._resetFinanceObject();
+                const tm = Player.company.finances.thisMonth || Logic._resetFinanceObject();
+                const tot = Player.company.finances.total || Logic._resetFinanceObject();
 
-                const sumCost = (c) => c.fuel + c.airport + c.maint + c.lease + c.other;
-                const tdCost = sumCost(td.cost); const tmCost = sumCost(tm.cost); const totCost = sumCost(tot.cost);
+                const sumOpCost = (c) => (c.fuel||0) + (c.airport||0) + (c.maint||0) + (c.lease||0);
+                const tdCost = sumOpCost(td.cost); 
+                const tmCost = sumOpCost(tm.cost); 
+                const totCost = sumOpCost(tot.cost);
                 
                 grid.innerHTML = `
                     <div class="card">
-                        <div class="card-header">当日の収支 (運航費のみ)</div>
+                        <div class="card-header">当日の収支</div>
                         <div class="card-body">
-                            <div class="card-row"><span>売上</span><span class="text-success">${Utils.formatMoney(td.rev)}</span></div>
-                            <div class="card-row"><span>費用合計</span><span class="text-danger">-${Utils.formatMoney(tdCost)}</span></div>
+                            <div class="card-row"><span>運航売上</span><span class="text-success">${Utils.formatMoney(td.rev)}</span></div>
+                            <div class="card-row"><span>運航費用合計</span><span class="text-danger">-${Utils.formatMoney(tdCost)}</span></div>
                             <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
-                            <div class="card-row font-bold"><span>当日損益</span><span class="${(td.rev-tdCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(td.rev-tdCost)}</span></div>
+                            <div class="card-row font-bold"><span>当日運航損益</span><span class="${(td.rev-tdCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(td.rev-tdCost)}</span></div>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header">今月の収支 (機材購入費等含む)</div>
+                        <div class="card-header">今月の損益・投資</div>
                         <div class="card-body">
-                            <div class="card-row"><span>売上</span><span class="text-success">${Utils.formatMoney(tm.rev)}</span></div>
-                            <div class="card-row"><span>運航費用合計</span><span class="text-danger">-${Utils.formatMoney(tmCost - tm.cost.other)}</span></div>
-                            <div class="card-row"><span>投資・その他</span><span class="text-danger">-${Utils.formatMoney(tm.cost.other)}</span></div>
+                            <div class="card-row"><span>運航売上</span><span class="text-success">${Utils.formatMoney(tm.rev)}</span></div>
+                            <div class="card-row"><span>運航費用合計</span><span class="text-danger">-${Utils.formatMoney(tmCost)}</span></div>
+                            <div class="card-row"><span>設備投資 (機材・路線)</span><span class="text-danger">-${Utils.formatMoney(tm.capEx||0)}</span></div>
                             <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
-                            <div class="card-row font-bold"><span>今月損益</span><span class="${(tm.rev-tmCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(tm.rev-tmCost)}</span></div>
+                            <div class="card-row font-bold"><span>当月純キャッシュフロー</span><span class="${(tm.rev-tmCost-(tm.capEx||0))>=0?'text-success':'text-danger'}">${Utils.formatMoney(tm.rev-tmCost-(tm.capEx||0))}</span></div>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header">設立からの累計 (全期間)</div>
+                        <div class="card-header">全期間 累計損益</div>
                         <div class="card-body">
-                            <div class="card-row"><span>累計売上</span><span class="text-success">${Utils.formatMoney(tot.rev)}</span></div>
-                            <div class="card-row"><span>累計費用・投資</span><span class="text-danger">-${Utils.formatMoney(totCost)}</span></div>
+                            <div class="card-row"><span>累計運航売上</span><span class="text-success">${Utils.formatMoney(tot.rev)}</span></div>
+                            <div class="card-row"><span>累計運航費用</span><span class="text-danger">-${Utils.formatMoney(totCost)}</span></div>
+                            <div class="card-row"><span>累計設備投資</span><span class="text-danger">-${Utils.formatMoney(tot.capEx||0)}</span></div>
                             <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
-                            <div class="card-row font-bold"><span>累計損益</span><span class="${(tot.rev-totCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(tot.rev-totCost)}</span></div>
+                            <div class="card-row font-bold"><span>累計全純損益</span><span class="${(tot.rev-totCost-(tot.capEx||0))>=0?'text-success':'text-danger'}">${Utils.formatMoney(tot.rev-totCost-(tot.capEx||0))}</span></div>
                         </div>
                     </div>
                 `;
 
                 tbody.innerHTML = '';
-                if(Player.company.finances.monthlyRecords.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">月次履歴データがありません</td></tr>';
+                if(!Player.company.finances.monthlyRecords || Player.company.finances.monthlyRecords.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">月次履歴データがありません</td></tr>';
                 } else {
                     Player.company.finances.monthlyRecords.forEach(m => {
-                        const mCost = sumCost(m.cost);
+                        const mOpCost = sumOpCost(m.cost);
+                        const netProf = (m.netProfit !== undefined) ? m.netProfit : (m.rev - mOpCost - (m.capEx||0));
                         tbody.innerHTML += `
                             <tr>
                                 <td class="font-bold">${m.ym}</td>
@@ -1212,8 +1411,9 @@
                                 <td>${(m.pax||0).toLocaleString()}</td>
                                 <td>${m.avgLf||0}%</td>
                                 <td class="text-success">${Utils.formatMoney(m.rev)}</td>
-                                <td class="text-danger">${Utils.formatMoney(mCost)}</td>
-                                <td class="${m.profit>=0?'text-success':'text-danger'} font-bold">${Utils.formatMoney(m.profit)}</td>
+                                <td class="text-danger">${Utils.formatMoney(mOpCost)}</td>
+                                <td class="text-danger">${Utils.formatMoney(m.capEx||0)}</td>
+                                <td class="${netProf>=0?'text-success':'text-danger'} font-bold">${Utils.formatMoney(netProf)}</td>
                             </tr>
                         `;
                     });
@@ -1310,7 +1510,7 @@
         };
 
         // ==========================================
-        // Game Save/Load, Migration & Init
+        // Game Save/Load, Migration & Verification Engine
         // ==========================================
         const Game = {
             init() {
@@ -1343,28 +1543,57 @@
                 if (!Array.isArray(data.company.fleet) || !Array.isArray(data.company.routes)) return false;
                 return true;
             },
-            migrateSaveData(data) {
-                if (!data.version) data.version = GameData.VERSION;
-                if (data.company.reputation === undefined) data.company.reputation = 50;
-                if (data.company.awareness === undefined) data.company.awareness = 10;
+            migrateSaveData(rawData) {
+                // Defensive Copy - Never mutate raw data during migration
+                const data = JSON.parse(JSON.stringify(rawData));
                 
-                // v0.1.4 specific migrations
+                if (!data.version) data.version = GameData.VERSION;
+                if (data.company.reputation === undefined || !isFinite(data.company.reputation)) data.company.reputation = 50;
+                if (data.company.awareness === undefined || !isFinite(data.company.awareness)) data.company.awareness = 10;
+                
+                // Finances Structure Validation & Fallbacks
                 if (!data.company.finances) {
                     data.company.finances = {
-                        today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0}
+                        today: Logic._resetFinanceObject(), 
+                        thisMonth: Logic._resetFinanceObject(), 
+                        total: Logic._resetFinanceObject(), 
+                        monthlyRecords: [], 
+                        _tmStats: { f:0, p:0, seats:0 }
                     };
                 }
-                
+                if (data.company.finances.today.capEx === undefined) data.company.finances.today.capEx = 0;
+                if (data.company.finances.thisMonth.capEx === undefined) data.company.finances.thisMonth.capEx = 0;
+                if (data.company.finances.total.capEx === undefined) data.company.finances.total.capEx = 0;
+
+                // Fleet verification & auto-repair
+                const regSet = new Set();
                 data.company.fleet.forEach(f => {
                     if (!f.stats) f.stats = { flights: 0, pax: 0, rev: 0 };
                     if (f.status === undefined) f.status = f.routeId ? 'active' : 'idle';
+                    
+                    // Deduplicate aircraft registration if necessary
+                    if (regSet.has(f.reg)) {
+                        f.reg = Utils.genRegNum();
+                    }
+                    regSet.add(f.reg);
                 });
+
+                // Routes verification & cumulative fee structure completion
                 data.company.routes.forEach(r => {
-                    if (r.fareMult === undefined) r.fareMult = 1.0;
-                    if (!r.stats) r.stats = { flights: 0, pax: 0, rev: 0, profit: 0, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: {fuel:0,airport:0,maint:0,lease:0}, lastProfit: 0, lastFlights: 0, lfHistory: [] };
+                    if (r.fareMult === undefined || isNaN(r.fareMult)) r.fareMult = 1.0;
+                    if (!r.stats) {
+                        r.stats = { 
+                            flights: 0, pax: 0, rev: 0, profit: 0, 
+                            costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 },
+                            lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] 
+                        };
+                    }
+                    if (!r.stats.costBreakdown) {
+                        r.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
+                    }
                     if (!r.stats.lfHistory) r.stats.lfHistory = [];
-                    if (typeof r.stats.lastCost !== 'object') r.stats.lastCost = {fuel:0,airport:0,maint:0,lease:r.stats.lastCost||0}; // Convert old flat cost
                 });
+
                 data.version = GameData.VERSION;
                 return data;
             },
@@ -1403,7 +1632,7 @@
                 }, 100);
             },
             saveData(isAuto = false) {
-                if (!Player || Logic.isAdvancing) return false;
+                if (!Player) return false;
                 try {
                     const exist = localStorage.getItem(GameData.SAVE_KEY);
                     if (exist) {
@@ -1427,3 +1656,4 @@
     </script>
 </body>
 </html>
+```
