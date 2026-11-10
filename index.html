@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.3.0.1</title>
+    <title>AIRLINE TYCOON JAPAN v0.3.0.2</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -75,6 +75,7 @@
         .text-warning { color: var(--col-warning); }
         .text-muted { color: var(--col-text-muted); }
         .font-bold { font-weight: bold; }
+        .text-primary { color: var(--col-primary); }
         
         .btn { background-color: var(--col-primary); color: white; border: none; padding: 10px 20px; font-size: 0.9rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
         .btn:hover:not(:disabled) { background-color: var(--col-primary-hover); }
@@ -196,6 +197,7 @@
 
         /* Table Responsive Container */
         .table-container { width: 100%; overflow-x: auto; }
+        .schedule-table-container { width: 100%; overflow-x: auto; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; white-space: nowrap; }
         .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--panel-border); }
         .data-table th { background-color: var(--col-bg-hover); font-weight: bold; color: var(--col-text-muted); }
@@ -252,6 +254,7 @@
 
         /* Mobile Adjustments */
         .routes-cards-mobile { display: none; }
+        .schedule-cards-mobile { display: none; }
         @media (max-width: 768px) {
             .hq-header { flex-wrap: wrap; height: auto; padding: 10px; padding-top: 50px; gap: 10px; }
             .header-stats { width: 100%; justify-content: flex-start; padding-right: 0; gap: 10px;}
@@ -262,7 +265,9 @@
             .theme-toggle { top: 10px; right: 10px; padding: 6px 12px; }
 
             .table-container { display: none; }
+            .schedule-table-container { display: none; }
             .routes-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+            .schedule-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
         }
         .mobile-menu-btn { display: none; cursor: pointer; }
     </style>
@@ -316,7 +321,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.3.0.1<br>フライトスケジュール基盤構築
+            Version v0.3.0.2<br>フライトスケジュール画面追加
         </div>
     </div>
 
@@ -412,6 +417,7 @@
                 <div class="nav-item active" onclick="UI.switchMainView('view-map', this)">経営本部 (MAP)</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-fleet', this)">機材管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-routes', this)">路線管理</div>
+                <div class="nav-item" onclick="UI.switchMainView('view-schedules', this)">スケジュール</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-finance', this)">財務・統計</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-competitors', this)">競合他社 (AI)</div>
                 <div style="flex:1;"></div>
@@ -484,6 +490,79 @@
                     <div id="routes-cards-mobile" class="routes-cards-mobile"></div>
                 </div>
 
+                <!-- Schedule Management View (New v0.3.0.2) -->
+                <div id="view-schedules" class="mgmt-panel">
+                    <div class="panel-header-title">フライトスケジュール</div>
+                    <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9rem;">登録されている航空便の運航スケジュールを確認できます。</p>
+                    
+                    <div class="data-grid" style="margin-bottom: 20px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">表示中の会社</div>
+                            <select id="schedule-comp-select" class="input-field" style="margin-top: 5px;" onchange="Views.scheduleState.company = this.value; Views.updateScheduleGrid();"></select>
+                        </div>
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">登録便数 / 運航中</div>
+                            <div class="card-row font-bold" style="font-size: 1.2rem; margin-top: 5px;">
+                                <span id="schedule-stat-total">0</span> <span style="font-size: 0.9rem; font-weight: normal; color: var(--col-text-muted);">/ <span id="schedule-stat-active" class="text-success font-bold">0</span></span>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">運休中</div>
+                            <div class="card-row font-bold text-danger" style="font-size: 1.2rem; margin-top: 5px;" id="schedule-stat-inactive">0</div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--col-bg-dark); padding: 15px; border-radius: 8px; border: 1px solid var(--panel-border); margin-bottom: 15px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <input type="text" id="sched-filter-flight" class="input-field" placeholder="便名検索..." onkeyup="Views.scheduleState.search = this.value; Views.updateScheduleGrid();" style="flex: 1; min-width: 120px;">
+                            <select id="sched-filter-origin" class="input-field" onchange="Views.scheduleState.origin = this.value; Views.updateScheduleGrid();" style="flex: 1; min-width: 120px;">
+                                <option value="">出発空港 (すべて)</option>
+                            </select>
+                            <select id="sched-filter-dest" class="input-field" onchange="Views.scheduleState.dest = this.value; Views.updateScheduleGrid();" style="flex: 1; min-width: 120px;">
+                                <option value="">到着空港 (すべて)</option>
+                            </select>
+                            <select id="sched-filter-day" class="input-field" onchange="Views.scheduleState.day = this.value; Views.updateScheduleGrid();" style="flex: 1; min-width: 120px;">
+                                <option value="">運航曜日 (すべて)</option>
+                                <option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option>
+                                <option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option><option value="0">日曜日</option>
+                            </select>
+                            <select id="sched-filter-status" class="input-field" onchange="Views.scheduleState.status = this.value; Views.updateScheduleGrid();" style="flex: 1; min-width: 120px;">
+                                <option value="">運航状態 (すべて)</option>
+                                <option value="active">運航中</option>
+                                <option value="inactive">運休中</option>
+                            </select>
+                            <select id="sched-sort" class="input-field" onchange="Views.scheduleState.sort = this.value; Views.updateScheduleGrid();" style="flex: 1; min-width: 120px;">
+                                <option value="depTime">出発時刻順</option>
+                                <option value="arrTime">到着時刻順</option>
+                                <option value="flightNum">便名順</option>
+                                <option value="origin">出発空港順</option>
+                                <option value="dest">到着空港順</option>
+                            </select>
+                            <button class="btn btn-outline" onclick="Views.resetScheduleFilters()">条件リセット</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Desktop Table View -->
+                    <div class="card schedule-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>便名</th>
+                                    <th>出発</th>
+                                    <th>到着</th>
+                                    <th>運航曜日</th>
+                                    <th>使用機材</th>
+                                    <th>状態</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedules-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Cards View -->
+                    <div id="schedules-cards-mobile" class="schedule-cards-mobile"></div>
+                </div>
+
                 <!-- 4. Finance & Stats View -->
                 <div id="view-finance" class="mgmt-panel">
                     <div class="panel-header-title">財務・統計情報</div>
@@ -518,8 +597,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.3.0.1
-         * フライトスケジュール基盤構築
+         * AIRLINE TYCOON JAPAN v0.3.0.2
+         * フライトスケジュール画面追加
          */
 
         const ThemeManager = {
@@ -545,7 +624,7 @@
         };
 
         const GameData = {
-            VERSION: "0.3.0.1",
+            VERSION: "0.3.0.2",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -666,6 +745,13 @@
             genFlightId: (prefix = 'FLT') => {
                 return `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random()*100000).toString(36)}`;
             },
+
+            formatOperatingDays: (daysArray) => {
+                if (!Array.isArray(daysArray) || daysArray.length === 0) return '不明';
+                if (daysArray.length === 7) return '毎日';
+                const map = ['日','月','火','水','木','金','土'];
+                return daysArray.map(d => map[d] || '?').join('・');
+            },
             
             getLoadFactorBadgeHtml: (lf) => {
                 const safeLf = Math.max(0, Math.min(100, Math.round(lf || 0)));
@@ -693,6 +779,7 @@
                 if(window.innerWidth <= 768) this.toggleSidebar();
                 if(id === 'view-fleet') Views.renderFleet();
                 if(id === 'view-routes') Views.renderRoutes();
+                if(id === 'view-schedules') Views.renderSchedules();
                 if(id === 'view-finance') Views.renderFinance();
                 if(id === 'view-competitors') Views.renderCompetitors();
             },
@@ -978,6 +1065,7 @@
                         UI.showModal('進行 完了レポート', '', html);
                         
                         if (document.getElementById('view-routes').classList.contains('active')) Views.renderRoutes();
+                        if (document.getElementById('view-schedules').classList.contains('active')) Views.renderSchedules();
                         if (document.getElementById('view-finance').classList.contains('active')) Views.renderFinance();
                         if (document.getElementById('view-competitors').classList.contains('active')) Views.renderCompetitors();
                         if (document.getElementById('view-fleet').classList.contains('active')) Views.renderFleet();
@@ -1368,6 +1456,7 @@
         const Views = {
             currentGraphDays: 30,
             fleetStoreState: { maker: '', cat: '', sort: 'price', search: '' },
+            scheduleState: { company: 'player', search: '', origin: '', dest: '', day: '', status: '', sort: 'depTime' },
 
             renderFleet() {
                 const c = document.getElementById('fleet-list-container'); c.innerHTML = '';
@@ -1617,6 +1706,222 @@
                     </div>
                 `;
                 UI.showModal(`路線詳細: ${routeId}`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+            },
+
+            renderSchedules() {
+                // Initialize company selector
+                const compSelect = document.getElementById('schedule-comp-select');
+                let optionsHtml = `<option value="player">自社 (${Player.company.name})</option>`;
+                if (Player.settings?.competitionEnabled && Player.competitors) {
+                    Player.competitors.forEach(ai => {
+                        if (ai.status !== 'bankrupt') {
+                            optionsHtml += `<option value="${ai.id}">${ai.name}</option>`;
+                        }
+                    });
+                }
+                compSelect.innerHTML = optionsHtml;
+                compSelect.value = this.scheduleState.company;
+
+                // Populate Airport Filters if empty
+                const origSel = document.getElementById('sched-filter-origin');
+                const destSel = document.getElementById('sched-filter-dest');
+                if (origSel.options.length <= 1) {
+                    let apOpts = '<option value="">空港 (すべて)</option>';
+                    [...GameData.Airports].sort((a,b)=>a.name.localeCompare(b.name)).forEach(a => { apOpts += `<option value="${a.id}">${a.name}</option>`; });
+                    origSel.innerHTML = apOpts.replace('空港 (すべて)', '出発空港 (すべて)');
+                    destSel.innerHTML = apOpts.replace('空港 (すべて)', '到着空港 (すべて)');
+                }
+                
+                this.updateScheduleGrid();
+            },
+
+            resetScheduleFilters() {
+                this.scheduleState.search = '';
+                this.scheduleState.origin = '';
+                this.scheduleState.dest = '';
+                this.scheduleState.day = '';
+                this.scheduleState.status = '';
+                this.scheduleState.sort = 'depTime';
+                
+                document.getElementById('sched-filter-flight').value = '';
+                document.getElementById('sched-filter-origin').value = '';
+                document.getElementById('sched-filter-dest').value = '';
+                document.getElementById('sched-filter-day').value = '';
+                document.getElementById('sched-filter-status').value = '';
+                document.getElementById('sched-sort').value = 'depTime';
+                
+                this.updateScheduleGrid();
+            },
+
+            updateScheduleGrid() {
+                const tb = document.getElementById('schedules-table-body');
+                const mobCards = document.getElementById('schedules-cards-mobile');
+                tb.innerHTML = ''; mobCards.innerHTML = '';
+
+                let compData = Player.company;
+                if (this.scheduleState.company !== 'player') {
+                    compData = Player.competitors.find(c => c.id === this.scheduleState.company) || Player.company;
+                }
+
+                const schedules = compData.schedules || [];
+                
+                // Update stats
+                const total = schedules.length;
+                const active = schedules.filter(s => s.isActive).length;
+                document.getElementById('schedule-stat-total').textContent = total;
+                document.getElementById('schedule-stat-active').textContent = active;
+                document.getElementById('schedule-stat-inactive').textContent = total - active;
+
+                if (total === 0) {
+                    tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted">まだフライトスケジュールが登録されていません。</td></tr>';
+                    mobCards.innerHTML = '<div class="text-muted text-center" style="padding:20px;">まだフライトスケジュールが登録されていません。</div>';
+                    return;
+                }
+
+                // Filter
+                const st = this.scheduleState;
+                let list = schedules.filter(s => {
+                    if (st.search && !s.flightNumber.toLowerCase().includes(st.search.toLowerCase())) return false;
+                    if (st.origin && s.originAirportId !== st.origin) return false;
+                    if (st.dest && s.destinationAirportId !== st.dest) return false;
+                    if (st.status === 'active' && !s.isActive) return false;
+                    if (st.status === 'inactive' && s.isActive) return false;
+                    if (st.day !== '') {
+                        const targetDay = parseInt(st.day);
+                        if (!s.operatingDays.includes(targetDay)) return false;
+                    }
+                    return true;
+                });
+
+                // Sort
+                list.sort((a, b) => {
+                    if (st.sort === 'depTime') return a.departureTime.localeCompare(b.departureTime);
+                    if (st.sort === 'arrTime') return a.arrivalTime.localeCompare(b.arrivalTime);
+                    if (st.sort === 'flightNum') return a.flightNumber.localeCompare(b.flightNumber);
+                    if (st.sort === 'origin') return (a.originAirportId||'').localeCompare(b.originAirportId||'');
+                    if (st.sort === 'dest') return (a.destinationAirportId||'').localeCompare(b.destinationAirportId||'');
+                    return 0;
+                });
+
+                if (list.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted">条件に該当する便はありません。</td></tr>';
+                    mobCards.innerHTML = '<div class="text-muted text-center" style="padding:20px;">条件に該当する便はありません。</div>';
+                    return;
+                }
+
+                list.forEach(s => {
+                    const origAp = GameData.Airports.find(a => a.id === s.originAirportId);
+                    const destAp = GameData.Airports.find(a => a.id === s.destinationAirportId);
+                    const origName = origAp ? origAp.name : '不明';
+                    const destName = destAp ? destAp.name : '不明';
+                    
+                    let acName = '不明';
+                    if (s.aircraftId) {
+                        // Look up in company fleet
+                        const plane = compData.fleet.find(f => f.reg === s.aircraftId);
+                        if (plane) {
+                            const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
+                            acName = acDef ? `${acDef.name} (${plane.reg})` : plane.reg;
+                        } else {
+                            acName = s.aircraftId;
+                        }
+                    }
+
+                    const daysStr = Utils.formatOperatingDays(s.operatingDays);
+                    const statusHtml = s.isActive 
+                        ? '<span class="badge badge-active">運航中</span>' 
+                        : '<span class="badge badge-idle">運休中</span>';
+
+                    tb.innerHTML += `
+                        <tr style="cursor:pointer;" onclick="Views.showScheduleDetails('${s.flightId}', '${this.scheduleState.company}')">
+                            <td class="font-bold text-primary">${s.flightNumber}</td>
+                            <td>${origName} <span class="text-muted" style="font-size:0.75rem;">${s.departureTime}</span></td>
+                            <td>${destName} <span class="text-muted" style="font-size:0.75rem;">${s.arrivalTime}</span></td>
+                            <td>${daysStr}</td>
+                            <td>${acName}</td>
+                            <td>${statusHtml}</td>
+                        </tr>
+                    `;
+
+                    mobCards.innerHTML += `
+                        <div class="card comp-card" onclick="Views.showScheduleDetails('${s.flightId}', '${this.scheduleState.company}')">
+                            <div class="card-header">
+                                <span class="text-primary">${s.flightNumber}</span>
+                                <div>${statusHtml}</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="card-row font-bold">
+                                    <span>${origName}</span>
+                                    <span>➔</span>
+                                    <span>${destName}</span>
+                                </div>
+                                <div class="card-row text-muted" style="font-size:0.9rem; margin-bottom: 8px;">
+                                    <span>${s.departureTime} 発</span>
+                                    <span>${s.arrivalTime} 着</span>
+                                </div>
+                                <div class="card-row"><span>運航曜日</span><span>${daysStr}</span></div>
+                                <div class="card-row"><span>使用機材</span><span>${acName}</span></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            },
+
+            showScheduleDetails(flightId, compId) {
+                let compData = Player.company;
+                if (compId !== 'player') {
+                    compData = Player.competitors.find(c => c.id === compId) || Player.company;
+                }
+                
+                const s = compData.schedules.find(fs => fs.flightId === flightId);
+                if (!s) return;
+
+                const origAp = GameData.Airports.find(a => a.id === s.originAirportId);
+                const destAp = GameData.Airports.find(a => a.id === s.destinationAirportId);
+                const origName = origAp ? `${origAp.name} (${origAp.iata})` : '不明';
+                const destName = destAp ? `${destAp.name} (${destAp.iata})` : '不明';
+                
+                let acName = '未設定';
+                if (s.aircraftId) {
+                    const plane = compData.fleet.find(f => f.reg === s.aircraftId);
+                    if (plane) {
+                        const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
+                        acName = acDef ? `${acDef.name} [登録記号: ${plane.reg}]` : plane.reg;
+                    } else {
+                        acName = s.aircraftId;
+                    }
+                }
+
+                const daysStr = Utils.formatOperatingDays(s.operatingDays);
+
+                let html = `
+                    <div class="card" style="margin-bottom: 15px;">
+                        <div class="card-header">便情報: ${s.flightNumber}</div>
+                        <div class="card-body">
+                            <div class="card-row font-bold" style="font-size: 1.1rem; margin: 10px 0;">
+                                <span>${s.departureTime} <span style="font-size:0.8rem; font-weight:normal;">出発</span></span>
+                                <span>✈️</span>
+                                <span>${s.arrivalTime} <span style="font-size:0.8rem; font-weight:normal;">到着</span></span>
+                            </div>
+                            <div class="card-row"><span>出発地</span><span>${origName}</span></div>
+                            <div class="card-row"><span>到着地</span><span>${destName}</span></div>
+                            <hr style="border:0; border-top:1px solid var(--panel-border); margin:10px 0;">
+                            <div class="card-row"><span>運航曜日</span><span>${daysStr}</span></div>
+                            <div class="card-row"><span>運航状態</span><span>${s.isActive ? '<span class="text-success font-bold">運航中</span>' : '<span class="text-muted">運休中</span>'}</span></div>
+                            <div class="card-row"><span>使用機材</span><span>${acName}</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">システム情報</div>
+                        <div class="card-body text-muted" style="font-size: 0.8rem;">
+                            <div class="card-row"><span>内部路線ID</span><span>${s.routeId || '未設定'}</span></div>
+                            <div class="card-row"><span>便一意識別ID</span><span style="font-family: monospace;">${s.flightId}</span></div>
+                            <div class="card-row"><span>最終更新</span><span>${s.updatedAt ? new Date(s.updatedAt).toLocaleString() : '不明'}</span></div>
+                        </div>
+                    </div>
+                `;
+                
+                UI.showModal(`便詳細情報`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
             },
 
             renderCompetitors() {
@@ -1977,7 +2282,7 @@
                 return 0;
             },
             
-            // v0.3.0.1 厳格な検証ロジック (スケジュール検証追加)
+            // v0.3.0.2 厳格な検証ロジック (スケジュール検証維持)
             validateSaveData(data) {
                 if (!data || typeof data !== 'object') return false;
                 if (!data.company || typeof data.company !== 'object') return false;
@@ -2019,7 +2324,6 @@
                         if (typeof s.flightNumber !== 'string') return false;
                         if (typeof s.routeId !== 'string') return false;
                         if (typeof s.airlineId !== 'string') return false;
-                        // aircraftId, originAirportId, destinationAirportId はundefinedやnullを許容
                         if (s.aircraftId !== undefined && s.aircraftId !== null && typeof s.aircraftId !== 'string') return false;
                         if (s.originAirportId !== undefined && s.originAirportId !== null && typeof s.originAirportId !== 'string') return false;
                         if (s.destinationAirportId !== undefined && s.destinationAirportId !== null && typeof s.destinationAirportId !== 'string') return false;
@@ -2045,14 +2349,12 @@
 
                 // 競合設定と配列の整合性確認
                 if (data.settings && data.settings.competitionEnabled) {
-                    // 競合ONなのにcompetitors配列がないのは重大異常
                     if (!Array.isArray(data.competitors)) return false;
                 } else if ('competitors' in data) {
-                    // 競合OFFでも、プロパティが存在する場合は配列でなければならない
                     if (!Array.isArray(data.competitors)) return false;
                 }
 
-                // AI会社配列の構造チェック（存在する場合）
+                // AI会社配列の構造チェック
                 if (Array.isArray(data.competitors)) {
                     for (let ai of data.competitors) {
                         if (!Array.isArray(ai.fleet) || !Array.isArray(ai.routes)) return false;
@@ -2088,7 +2390,6 @@
                     initialRoutes = ['OKA', 'NGO']; initialAcType = 'b738';
                 }
                 
-                // Add initial fleet and routes safely
                 initialRoutes.forEach(dest => {
                     const fromAp = GameData.Airports.find(a => a.id === comp.hq);
                     const toAp = GameData.Airports.find(a => a.id === dest);
@@ -2114,7 +2415,6 @@
             },
 
             migrateSaveData(rawData) {
-                // Defensive Copy - Never mutate raw data during migration
                 const data = JSON.parse(JSON.stringify(rawData));
                 
                 data._repairLog = [];
@@ -2123,7 +2423,6 @@
                 if (!data.version) data.version = GameData.VERSION;
                 if (!data.settings) data.settings = { competitionEnabled: true, aiDifficulty: 'normal' };
                 
-                // --- 堅牢なデータ補正ヘルパー ---
                 const fixNum = (val, defaultVal = 0) => {
                     if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return defaultVal;
                     return val;
@@ -2132,13 +2431,11 @@
                 data.company.reputation = fixNum(data.company.reputation, 50);
                 data.company.awareness = fixNum(data.company.awareness, 10);
                 
-                // v0.2.1.8修正：競合会社データの誤再生成防止
-                // settingsで有効になっているのに存在しない場合は致命的エラー(バックアップに委ねる)
                 if (!('competitors' in data)) {
                     if (data.settings.competitionEnabled) {
                         throw new Error("競合会社データが欠損しています。自動生成を中止し、重大異常として扱います。");
                     } else {
-                        data.competitors = []; // 競合なしの場合は空で正常
+                        data.competitors = [];
                     }
                 } else if (!Array.isArray(data.competitors)) {
                     throw new Error("競合会社データが不正な形式です。");
@@ -2177,7 +2474,6 @@
                 };
 
                 const checkFleetAndRoutes = (companyObj, isPlayer) => {
-                    // v0.2.1.8修正：機材・路線データの誤初期化防止
                     if (!Array.isArray(companyObj.fleet)) {
                         throw new Error(`${isPlayer ? 'プレイヤー' : companyObj.name} の機材リストが破損または欠損しています。`);
                     }
@@ -2205,7 +2501,6 @@
                         f.stats.pax = Math.max(0, fixNum(f.stats.pax));
                         f.stats.rev = Math.max(0, fixNum(f.stats.rev));
                         
-                        // v0.2.1.8修正：isLeasedの誤変換防止 (安易な!!f.isLeased変換を削除)
                         if (typeof f.isLeased !== 'boolean') {
                             throw new Error(`機材 ${f.reg} のリース情報(isLeased)が欠損または不正です。誤変換を防ぐためロードを中止します。`);
                         }
@@ -2230,7 +2525,6 @@
 
                         if (r.assignedReg) {
                             const plane = companyObj.fleet.find(f => f.reg === r.assignedReg);
-                            // 機材未発見、既に他路線に割当済、または機材側のrouteIdが不一致なら解除
                             if (!plane || assignedRegSet.has(r.assignedReg) || plane.routeId !== r.id) {
                                 r.assignedReg = null;
                                 if (plane && plane.routeId === r.id) plane.routeId = null; 
@@ -2286,7 +2580,6 @@
                         return true;
                     });
 
-                    // 存在しない路線を参照している機材の補正
                     companyObj.fleet.forEach(f => {
                         if (f.routeId && !companyObj.routes.find(r => r.id === f.routeId)) {
                             f.routeId = null;
@@ -2397,10 +2690,8 @@
                 const compEnabled = document.getElementById('c-comp').value === 'yes';
                 const aiDiff = document.getElementById('c-diff').value;
                 
-                // Temporarily assign partial Player object so genRegNum works during AI init
                 Player = { company: { iata, fleet: [] }, competitors: [] }; 
 
-                // Init AI Competitors with established starting fleets
                 const initialCompetitors = compEnabled ? GameData.Competitors.map(c => this._generateAIInitialState(c, GameData.START_DATE)) : [];
 
                 Player = {
@@ -2430,7 +2721,6 @@
                         return; 
                     }
                     
-                    // 検証とバックアップ復元システム
                     if (!this.validateSaveData(rawData)) {
                         console.warn("セーブデータの検証に失敗。バックアップからの復元を試みます。");
                         const backupText = localStorage.getItem(GameData.SAVE_KEY_BACKUP);
@@ -2467,7 +2757,6 @@
             saveData(isAuto = false) {
                 if (!Player) return false;
 
-                // --- 保存前検証 ---
                 if (!this.validateSaveData(Player)) {
                     if (!isAuto) UI.showModal('保存エラー', 'セーブデータの整合性検証に失敗しました。不完全な状態での保存をブロックしました。');
                     console.error("Save aborted: Player data validation failed.");
@@ -2483,7 +2772,6 @@
                                 console.error("Autosave blocked to prevent overwrite."); 
                                 return false; 
                             }
-                            // 既存の正常なデータをバックアップとして退避
                             if (this.validateSaveData(ed)) {
                                 localStorage.setItem(GameData.SAVE_KEY_BACKUP, exist);
                             }
