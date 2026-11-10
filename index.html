@@ -316,7 +316,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1<br>AI COMPETITORS & GAME DIFFICULTY UPDATE
+            Version v0.2.1.1<br>STABILITY, FINANCE & AI MANAGEMENT UPDATE
         </div>
     </div>
 
@@ -518,8 +518,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1
-         * AI COMPETITORS & GAME DIFFICULTY UPDATE
+         * AIRLINE TYCOON JAPAN v0.2.1.1
+         * STABILITY, FINANCE & AI MANAGEMENT UPDATE
          */
 
         const ThemeManager = {
@@ -545,7 +545,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1",
+            VERSION: "0.2.1.1",
             SAVE_KEY: "atj_save_v1",
             START_DATE: "2026-04-01",
             START_FUNDS: 5000000000,
@@ -576,41 +576,41 @@
 
             Aircrafts: [
                 // Turboprops / Regional
-                { id: 'atr42', maker: 'ATR', name: 'ATR 42-600', cat: 'ターボプロップ', seats: 48, range: 1300, price: 2500000000, leaseInit: 250000000, leaseDaily: 500000, speed: 500, fuelRate: 0.6, maint: 200000 },
-                { id: 'atr72', maker: 'ATR', name: 'ATR 72-600', cat: 'ターボプロップ', seats: 70, range: 1500, price: 3500000000, leaseInit: 350000000, leaseDaily: 700000, speed: 500, fuelRate: 0.8, maint: 300000 },
-                { id: 'q400', maker: 'De Havilland', name: 'Dash 8 Q400', cat: 'ターボプロップ', seats: 78, range: 2000, price: 4000000000, leaseInit: 400000000, leaseDaily: 800000, speed: 660, fuelRate: 0.9, maint: 350000 },
-                { id: 'e170', maker: 'Embraer', name: 'Embraer E170', cat: 'リージョナル', seats: 72, range: 3900, price: 4500000000, leaseInit: 450000000, leaseDaily: 900000, speed: 800, fuelRate: 1.0, maint: 400000 },
-                { id: 'e175', maker: 'Embraer', name: 'Embraer E175', cat: 'リージョナル', seats: 78, range: 4000, price: 5000000000, leaseInit: 500000000, leaseDaily: 1000000, speed: 800, fuelRate: 1.1, maint: 420000 },
-                { id: 'e190', maker: 'Embraer', name: 'Embraer E190', cat: 'リージョナル', seats: 104, range: 4500, price: 6000000000, leaseInit: 600000000, leaseDaily: 1200000, speed: 800, fuelRate: 1.3, maint: 450000 },
-                { id: 'e195e2', maker: 'Embraer', name: 'Embraer E195-E2', cat: 'リージョナル', seats: 132, range: 4800, price: 7500000000, leaseInit: 750000000, leaseDaily: 1500000, speed: 820, fuelRate: 1.2, maint: 480000 },
-                { id: 'a220-100', maker: 'Airbus', name: 'Airbus A220-100', cat: '小型ジェット', seats: 110, range: 6300, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.1, maint: 480000 },
-                { id: 'a220', maker: 'Airbus', name: 'Airbus A220-300', cat: '小型ジェット', seats: 130, range: 6000, price: 10000000000, leaseInit: 1000000000, leaseDaily: 2000000, speed: 830, fuelRate: 1.2, maint: 500000 },
+                { id: 'atr42', maker: 'ATR', name: 'ATR 42-600', cat: 'ターボプロップ', size: '小型', seats: 48, range: 1300, price: 2500000000, leaseInit: 250000000, leaseDaily: 500000, speed: 500, fuelRate: 0.6, maint: 200000, desc: '極めて需要の少ない地方路線でも利益を出しやすい小型プロペラ機。' },
+                { id: 'atr72', maker: 'ATR', name: 'ATR 72-600', cat: 'ターボプロップ', size: '小型', seats: 70, range: 1500, price: 3500000000, leaseInit: 350000000, leaseDaily: 700000, speed: 500, fuelRate: 0.8, maint: 300000, desc: '地方路線向けの標準的なターボプロップ機。燃費が非常に良い。' },
+                { id: 'q400', maker: 'De Havilland', name: 'Dash 8 Q400', cat: 'ターボプロップ', size: '小型', seats: 78, range: 2000, price: 4000000000, leaseInit: 400000000, leaseDaily: 800000, speed: 660, fuelRate: 0.9, maint: 350000, desc: 'ジェット機に近い巡航速度を持つ高性能なターボプロップ機。' },
+                { id: 'e170', maker: 'Embraer', name: 'Embraer E170', cat: 'リージョナル', size: '小型', seats: 72, range: 3900, price: 4500000000, leaseInit: 450000000, leaseDaily: 900000, speed: 800, fuelRate: 1.0, maint: 400000, desc: '地方都市間をジェットの速度で結ぶ小型リージョナル機。' },
+                { id: 'e175', maker: 'Embraer', name: 'Embraer E175', cat: 'リージョナル', size: '小型', seats: 78, range: 4000, price: 5000000000, leaseInit: 500000000, leaseDaily: 1000000, speed: 800, fuelRate: 1.1, maint: 420000, desc: '高い経済性を誇るベストセラー・リージョナルジェット。' },
+                { id: 'e190', maker: 'Embraer', name: 'Embraer E190', cat: 'リージョナル', size: '小型', seats: 104, range: 4500, price: 6000000000, leaseInit: 600000000, leaseDaily: 1200000, speed: 800, fuelRate: 1.3, maint: 450000, desc: '中規模路線でも運用可能な、やや大型のリージョナルジェット。' },
+                { id: 'e195e2', maker: 'Embraer', name: 'Embraer E195-E2', cat: 'リージョナル', size: '小型', seats: 132, range: 4800, price: 7500000000, leaseInit: 750000000, leaseDaily: 1500000, speed: 820, fuelRate: 1.2, maint: 480000, desc: '次世代エンジンを搭載し、燃費効率を極限まで高めた最新鋭機。' },
+                { id: 'a220-100', maker: 'Airbus', name: 'Airbus A220-100', cat: '小型ジェット', size: '小型', seats: 110, range: 6300, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.1, maint: 480000, desc: '快適な客室と優れた低燃費を両立した次世代の小型ジェット機。' },
+                { id: 'a220', maker: 'Airbus', name: 'Airbus A220-300', cat: '小型ジェット', size: '中型', seats: 130, range: 6000, price: 10000000000, leaseInit: 1000000000, leaseDaily: 2000000, speed: 830, fuelRate: 1.2, maint: 500000, desc: 'A220の胴体延長型。小〜中規模の路線で極めて効率的。' },
                 // Narrowbodies
-                { id: 'a319ceo', maker: 'Airbus', name: 'Airbus A319ceo', cat: '単通路ジェット', seats: 124, range: 6900, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 830, fuelRate: 1.3, maint: 500000 },
-                { id: 'a319neo', maker: 'Airbus', name: 'Airbus A319neo', cat: '単通路ジェット', seats: 140, range: 6800, price: 9500000000, leaseInit: 950000000, leaseDaily: 1900000, speed: 830, fuelRate: 1.2, maint: 520000 },
-                { id: 'a320ceo', maker: 'Airbus', name: 'Airbus A320ceo', cat: '単通路ジェット', seats: 150, range: 6100, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.6, maint: 550000 },
-                { id: 'a320n', maker: 'Airbus', name: 'Airbus A320neo', cat: '単通路ジェット', seats: 165, range: 6300, price: 11000000000, leaseInit: 1100000000, leaseDaily: 2200000, speed: 830, fuelRate: 1.4, maint: 600000 },
-                { id: 'a321ceo', maker: 'Airbus', name: 'Airbus A321ceo', cat: '単通路ジェット', seats: 185, range: 5900, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 830, fuelRate: 1.9, maint: 620000 },
-                { id: 'a321n', maker: 'Airbus', name: 'Airbus A321neo', cat: '単通路ジェット', seats: 200, range: 7400, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 830, fuelRate: 1.6, maint: 700000 },
-                { id: 'b737-700', maker: 'Boeing', name: 'Boeing 737-700', cat: '単通路ジェット', seats: 126, range: 6300, price: 7000000000, leaseInit: 700000000, leaseDaily: 1400000, speed: 840, fuelRate: 1.4, maint: 550000 },
-                { id: 'b738', maker: 'Boeing', name: 'Boeing 737-800', cat: '単通路ジェット', seats: 162, range: 5400, price: 8500000000, leaseInit: 850000000, leaseDaily: 1700000, speed: 840, fuelRate: 1.6, maint: 600000 },
-                { id: 'b737-900er', maker: 'Boeing', name: 'Boeing 737-900ER', cat: '単通路ジェット', seats: 178, range: 5400, price: 9500000000, leaseInit: 950000000, leaseDaily: 1900000, speed: 840, fuelRate: 1.8, maint: 650000 },
-                { id: 'b73m8', maker: 'Boeing', name: 'Boeing 737 MAX 8', cat: '単通路ジェット', seats: 162, range: 6500, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 840, fuelRate: 1.4, maint: 600000 },
-                { id: 'b73m9', maker: 'Boeing', name: 'Boeing 737 MAX 9', cat: '単通路ジェット', seats: 178, range: 6500, price: 11500000000, leaseInit: 1150000000, leaseDaily: 2300000, speed: 840, fuelRate: 1.5, maint: 650000 },
-                { id: 'b73m10', maker: 'Boeing', name: 'Boeing 737 MAX 10', cat: '単通路ジェット', seats: 188, range: 6100, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 840, fuelRate: 1.6, maint: 680000 },
+                { id: 'a319ceo', maker: 'Airbus', name: 'Airbus A319ceo', cat: '単通路ジェット', size: '中型', seats: 124, range: 6900, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 830, fuelRate: 1.3, maint: 500000, desc: 'A320の短胴型。短い滑走路や少し需要の少ない路線向け。' },
+                { id: 'a319neo', maker: 'Airbus', name: 'Airbus A319neo', cat: '単通路ジェット', size: '中型', seats: 140, range: 6800, price: 9500000000, leaseInit: 950000000, leaseDaily: 1900000, speed: 830, fuelRate: 1.2, maint: 520000, desc: '新型エンジンによる低燃費を実現したA319の次世代モデル。' },
+                { id: 'a320ceo', maker: 'Airbus', name: 'Airbus A320ceo', cat: '単通路ジェット', size: '中型', seats: 150, range: 6100, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.6, maint: 550000, desc: '世界中で活躍するベストセラー機。汎用性が高い。' },
+                { id: 'a320n', maker: 'Airbus', name: 'Airbus A320neo', cat: '単通路ジェット', size: '中型', seats: 165, range: 6300, price: 11000000000, leaseInit: 1100000000, leaseDaily: 2200000, speed: 830, fuelRate: 1.4, maint: 600000, desc: '国内幹線や中距離路線で主軸となる次世代主力機。' },
+                { id: 'a321ceo', maker: 'Airbus', name: 'Airbus A321ceo', cat: '単通路ジェット', size: '中型', seats: 185, range: 5900, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 830, fuelRate: 1.9, maint: 620000, desc: 'A320の胴体延長型。より多くの乗客を運べる。' },
+                { id: 'a321n', maker: 'Airbus', name: 'Airbus A321neo', cat: '単通路ジェット', size: '中型', seats: 200, range: 7400, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 830, fuelRate: 1.6, maint: 700000, desc: 'A320neoより高需要の路線向け。座席あたりのコストが低い。' },
+                { id: 'b737-700', maker: 'Boeing', name: 'Boeing 737-700', cat: '単通路ジェット', size: '中型', seats: 126, range: 6300, price: 7000000000, leaseInit: 700000000, leaseDaily: 1400000, speed: 840, fuelRate: 1.4, maint: 550000, desc: '取り回しが良く、需要がやや少なめの路線に適した機体。' },
+                { id: 'b738', maker: 'Boeing', name: 'Boeing 737-800', cat: '単通路ジェット', size: '中型', seats: 162, range: 5400, price: 8500000000, leaseInit: 850000000, leaseDaily: 1700000, speed: 840, fuelRate: 1.6, maint: 600000, desc: '航空市場で最も普及している中距離路線向けの汎用機。' },
+                { id: 'b737-900er', maker: 'Boeing', name: 'Boeing 737-900ER', cat: '単通路ジェット', size: '中型', seats: 178, range: 5400, price: 9500000000, leaseInit: 950000000, leaseDaily: 1900000, speed: 840, fuelRate: 1.8, maint: 650000, desc: '737NGシリーズ最大の機体。高需要路線に対応。' },
+                { id: 'b73m8', maker: 'Boeing', name: 'Boeing 737 MAX 8', cat: '単通路ジェット', size: '中型', seats: 162, range: 6500, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 840, fuelRate: 1.4, maint: 600000, desc: '737-800の後継機。燃費が大幅に改善されている。' },
+                { id: 'b73m9', maker: 'Boeing', name: 'Boeing 737 MAX 9', cat: '単通路ジェット', size: '中型', seats: 178, range: 6500, price: 11500000000, leaseInit: 1150000000, leaseDaily: 2300000, speed: 840, fuelRate: 1.5, maint: 650000, desc: 'MAX 8より多くの乗客を運べるストレッチモデル。' },
+                { id: 'b73m10', maker: 'Boeing', name: 'Boeing 737 MAX 10', cat: '単通路ジェット', size: '中型', seats: 188, range: 6100, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 840, fuelRate: 1.6, maint: 680000, desc: '737MAXシリーズ最大。A321neoと競合する高需要向け機材。' },
                 // Widebodies / Long Haul
-                { id: 'b757', maker: 'Boeing', name: 'Boeing 757-200', cat: '単通路ジェット', seats: 200, range: 7200, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 850, fuelRate: 2.1, maint: 800000 },
-                { id: 'b767', maker: 'Boeing', name: 'Boeing 767-300ER', cat: 'ワイドボディ', seats: 218, range: 11000, price: 18000000000, leaseInit: 1800000000, leaseDaily: 3600000, speed: 850, fuelRate: 2.6, maint: 900000 },
-                { id: 'b777-200er', maker: 'Boeing', name: 'Boeing 777-200ER', cat: 'ワイドボディ', seats: 314, range: 13000, price: 25000000000, leaseInit: 2500000000, leaseDaily: 5000000, speed: 900, fuelRate: 3.2, maint: 1100000 },
-                { id: 'b777-300er', maker: 'Boeing', name: 'Boeing 777-300ER', cat: 'ワイドボディ', seats: 396, range: 13600, price: 32000000000, leaseInit: 3200000000, leaseDaily: 6400000, speed: 900, fuelRate: 3.5, maint: 1300000 },
-                { id: 'b788', maker: 'Boeing', name: 'Boeing 787-8', cat: 'ワイドボディ', seats: 242, range: 13600, price: 23000000000, leaseInit: 2300000000, leaseDaily: 4600000, speed: 900, fuelRate: 2.4, maint: 1000000 },
-                { id: 'b789', maker: 'Boeing', name: 'Boeing 787-9', cat: 'ワイドボディ', seats: 290, range: 14100, price: 27000000000, leaseInit: 2700000000, leaseDaily: 5400000, speed: 900, fuelRate: 2.6, maint: 1100000 },
-                { id: 'b7810', maker: 'Boeing', name: 'Boeing 787-10', cat: 'ワイドボディ', seats: 330, range: 11900, price: 30000000000, leaseInit: 3000000000, leaseDaily: 6000000, speed: 900, fuelRate: 2.8, maint: 1200000 },
-                { id: 'a330-300', maker: 'Airbus', name: 'Airbus A330-300', cat: 'ワイドボディ', seats: 277, range: 11700, price: 24000000000, leaseInit: 2400000000, leaseDaily: 4800000, speed: 870, fuelRate: 2.8, maint: 1050000 },
-                { id: 'a330-900', maker: 'Airbus', name: 'Airbus A330-900neo', cat: 'ワイドボディ', seats: 287, range: 13300, price: 28000000000, leaseInit: 2800000000, leaseDaily: 5600000, speed: 870, fuelRate: 2.5, maint: 1150000 },
-                { id: 'a359', maker: 'Airbus', name: 'Airbus A350-900', cat: 'ワイドボディ', seats: 315, range: 15000, price: 30000000000, leaseInit: 3000000000, leaseDaily: 6000000, speed: 900, fuelRate: 2.7, maint: 1200000 },
-                { id: 'a3510', maker: 'Airbus', name: 'Airbus A350-1000', cat: 'ワイドボディ', seats: 369, range: 16100, price: 35000000000, leaseInit: 3500000000, leaseDaily: 7000000, speed: 900, fuelRate: 3.0, maint: 1350000 },
-                { id: 'a380', maker: 'Airbus', name: 'Airbus A380-800', cat: '超大型機', seats: 525, range: 14800, price: 45000000000, leaseInit: 4500000000, leaseDaily: 9000000, speed: 900, fuelRate: 4.5, maint: 2000000 }
+                { id: 'b757', maker: 'Boeing', name: 'Boeing 757-200', cat: '単通路ジェット', size: '中型', seats: 200, range: 7200, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 850, fuelRate: 2.1, maint: 800000, desc: '強力な推力を持ち、中〜高需要の路線をカバーする名機。' },
+                { id: 'b767', maker: 'Boeing', name: 'Boeing 767-300ER', cat: 'ワイドボディ', size: '大型', seats: 218, range: 11000, price: 18000000000, leaseInit: 1800000000, leaseDaily: 3600000, speed: 850, fuelRate: 2.6, maint: 900000, desc: '国内幹線や国際線でも活躍する中型ワイドボディの定番。' },
+                { id: 'b777-200er', maker: 'Boeing', name: 'Boeing 777-200ER', cat: 'ワイドボディ', size: '大型', seats: 314, range: 13000, price: 25000000000, leaseInit: 2500000000, leaseDaily: 5000000, speed: 900, fuelRate: 3.2, maint: 1100000, desc: '大量輸送に特化。非常に大きな需要がある路線で活躍する。' },
+                { id: 'b777-300er', maker: 'Boeing', name: 'Boeing 777-300ER', cat: 'ワイドボディ', size: '大型', seats: 396, range: 13600, price: 32000000000, leaseInit: 3200000000, leaseDaily: 6400000, speed: 900, fuelRate: 3.5, maint: 1300000, desc: '圧倒的な輸送量を持つ大型長距離機。燃料費も高額。' },
+                { id: 'b788', maker: 'Boeing', name: 'Boeing 787-8', cat: 'ワイドボディ', size: '大型', seats: 242, range: 13600, price: 23000000000, leaseInit: 2300000000, leaseDaily: 4600000, speed: 900, fuelRate: 2.4, maint: 1000000, desc: 'カーボン複合材を使用し、中型機ながら長距離を低燃費で飛べる。' },
+                { id: 'b789', maker: 'Boeing', name: 'Boeing 787-9', cat: 'ワイドボディ', size: '大型', seats: 290, range: 14100, price: 27000000000, leaseInit: 2700000000, leaseDaily: 5400000, speed: 900, fuelRate: 2.6, maint: 1100000, desc: '787シリーズの主力。国内のドル箱路線や長距離路線向け。' },
+                { id: 'b7810', maker: 'Boeing', name: 'Boeing 787-10', cat: 'ワイドボディ', size: '大型', seats: 330, range: 11900, price: 30000000000, leaseInit: 3000000000, leaseDaily: 6000000, speed: 900, fuelRate: 2.8, maint: 1200000, desc: '787シリーズ最大。航続距離はやや短いが一度に大量の乗客を運べる。' },
+                { id: 'a330-300', maker: 'Airbus', name: 'Airbus A330-300', cat: 'ワイドボディ', size: '大型', seats: 277, range: 11700, price: 24000000000, leaseInit: 2400000000, leaseDaily: 4800000, speed: 870, fuelRate: 2.8, maint: 1050000, desc: '信頼性が高く、中〜長距離や高密度路線で広く利用される機体。' },
+                { id: 'a330-900', maker: 'Airbus', name: 'Airbus A330-900neo', cat: 'ワイドボディ', size: '大型', seats: 287, range: 13300, price: 28000000000, leaseInit: 2800000000, leaseDaily: 5600000, speed: 870, fuelRate: 2.5, maint: 1150000, desc: 'A330の次世代型。最新エンジンにより燃費が大幅に向上。' },
+                { id: 'a359', maker: 'Airbus', name: 'Airbus A350-900', cat: 'ワイドボディ', size: '大型', seats: 315, range: 15000, price: 30000000000, leaseInit: 3000000000, leaseDaily: 6000000, speed: 900, fuelRate: 2.7, maint: 1200000, desc: '最新技術を集結した新世代の大型機。国内幹線でも活躍。' },
+                { id: 'a3510', maker: 'Airbus', name: 'Airbus A350-1000', cat: 'ワイドボディ', size: '大型', seats: 369, range: 16100, price: 35000000000, leaseInit: 3500000000, leaseDaily: 7000000, speed: 900, fuelRate: 3.0, maint: 1350000, desc: 'A350の長胴型。巨大な需要を持つ市場において最高の性能を発揮。' },
+                { id: 'a380', maker: 'Airbus', name: 'Airbus A380-800', cat: '超大型機', size: '超大型', seats: 525, range: 14800, price: 45000000000, leaseInit: 4500000000, leaseDaily: 9000000, speed: 900, fuelRate: 4.5, maint: 2000000, desc: '世界最大の総2階建て旅客機。運用には莫大な維持費と巨大な需要が必要。' }
             ],
 
             Competitors: [
@@ -650,11 +650,15 @@
                 const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
                 return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
             },
-            genRegNum: () => {
-                const existing = new Set((Player?.company?.fleet || []).map(f => f.reg));
+            genRegNum: (customIata) => {
+                const existing = new Set();
+                if (Player?.company?.fleet) Player.company.fleet.forEach(f => existing.add(f.reg));
+                if (Player?.competitors) Player.competitors.forEach(c => c.fleet.forEach(f => existing.add(f.reg)));
+                
                 let reg = '';
+                const code = customIata || (Player?.company?.iata || 'JA');
                 do {
-                    reg = `JA${String(Math.floor(Math.random()*900)+100)}${Player?.company?.iata || 'JA'}`;
+                    reg = `JA${String(Math.floor(Math.random()*900)+100)}${code}`;
                 } while (existing.has(reg));
                 return reg;
             },
@@ -816,14 +820,18 @@
             },
 
             assignAircraft(routeId, reg) {
+                if (!Player || !Player.company || !Player.company.routes) return;
                 const route = Player.company.routes.find(r => r.id === routeId);
+                if (!route) { UI.showToast("指定された路線が存在しません", "error"); return; }
+                
                 if (reg === 'none') {
                     if (route.assignedReg) { const oldPlane = Player.company.fleet.find(f => f.reg === route.assignedReg); if (oldPlane) { oldPlane.routeId = null; oldPlane.status = 'idle'; } route.assignedReg = null; }
                     UI.hideModal(); Views.renderRoutes(); Views.renderFleet(); MapSystem.drawRoutes(); Game.saveData(true); return;
                 }
                 const plane = Player.company.fleet.find(f => f.reg === reg);
+                if (!plane) { UI.showToast("指定された機体が見つかりません", "error"); return; }
                 const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
-                if (!plane || !acDef) { UI.showToast("指定された機体データに異常があります", "error"); return; }
+                if (!acDef) { UI.showToast("機体のマスターデータに異常があります", "error"); return; }
                 if (plane.routeId && plane.routeId !== routeId) { UI.showToast("既に別路線に割り当てられています", "error"); return; }
                 if (acDef.range < route.distance) { UI.showToast("航続距離が不足しています", "error"); return; }
 
@@ -1000,6 +1008,16 @@
 
                 let dayRes = { rev:0, fuel:0, airport:0, maint:0, lease:0, pax:0, flights:0 };
                 const isAIEnabled = Player.settings?.competitionEnabled ?? true;
+
+                // Absolute MUST: Daily finances reset to avoid duplicate cumulative costs.
+                Player.company.finances.today = this._resetFinanceObject();
+                if (isAIEnabled && Player.competitors) {
+                    Player.competitors.forEach(ai => {
+                        if (ai.status !== 'bankrupt') {
+                            ai.finances.today = this._resetFinanceObject();
+                        }
+                    });
+                }
 
                 // Month Roll-over Financial Aggregation
                 if (monthChanged) {
@@ -1237,12 +1255,16 @@
                     if (ai.status === 'bankrupt') return;
                     
                     const diff = Player.settings?.aiDifficulty ?? 'normal';
-                    const bankruptThresh = diff === 'easy' ? -5000000000 : (diff === 'hard' ? -1500000000 : -3000000000);
+                    // 難易度による資金基準と許容赤字期間。難しいほど賢く耐える。
+                    let bankruptThresh = -2000000000;
+                    let graceMonths = 3;
+                    if (diff === 'easy') { bankruptThresh = -1000000000; graceMonths = 2; }
+                    if (diff === 'hard') { bankruptThresh = -5000000000; graceMonths = 6; }
 
-                    // Bankruptcy Check
+                    // Bankruptcy Check using deeper buffer and sustained timer
                     if (ai.funds < bankruptThresh) {
                         ai.bankruptTimer = (ai.bankruptTimer || 0) + 1;
-                        if (ai.bankruptTimer > 60) { // Gave them 2 months to recover
+                        if (ai.bankruptTimer > graceMonths * 30) {
                             ai.status = 'bankrupt';
                             this.addNews(`【倒産】${ai.name}が資金繰り悪化により経営破綻しました。全路線から撤退します。`, 'danger');
                             ai.routes.forEach(r => r.assignedReg = null);
@@ -1261,16 +1283,17 @@
             },
 
             _aiDecision(ai, diff) {
-                let expandThresh = 2500000000; let fareReact = 0.05; let cutMonths = 4; let maxRoutes = 20;
-                if (diff === 'easy') { expandThresh = 4000000000; fareReact = 0.02; cutMonths = 6; maxRoutes = 10; }
-                if (diff === 'hard') { expandThresh = 1500000000; fareReact = 0.08; cutMonths = 2; maxRoutes = 30; }
+                let expandThresh = 3000000000; let fareReact = 0.05; let cutMonths = 4; let maxRoutes = 15;
+                if (diff === 'easy') { expandThresh = 5000000000; fareReact = 0.02; cutMonths = 6; maxRoutes = 8; }
+                if (diff === 'hard') { expandThresh = 1500000000; fareReact = 0.10; cutMonths = 2; maxRoutes = 30; }
 
                 // Survival / Crisis Mode
                 if (ai.funds < 0) {
                     // Emergency loan if deeply in debt, once per crisis to prevent instant collapse
                     if (ai.funds < -500000000 && (!ai.lastLoan || Player.company.date > ai.lastLoan)) {
-                        ai.funds += 2000000000;
-                        ai.debt = (ai.debt || 0) + 2000000000;
+                        const loanAmt = diff === 'hard' ? 4000000000 : 2000000000;
+                        ai.funds += loanAmt;
+                        ai.debt = (ai.debt || 0) + loanAmt;
                         // Set 1-year cooldown on loans
                         const parts = Player.company.date.split('-');
                         ai.lastLoan = `${parseInt(parts[0])+1}-${parts[1]}-${parts[2]}`;
@@ -1344,7 +1367,7 @@
                             ai.finances.thisMonth.capEx = (ai.finances.thisMonth.capEx || 0) + cost + acDef.leaseInit;
                             ai.finances.total.capEx = (ai.finances.total.capEx || 0) + cost + acDef.leaseInit;
                             
-                            const reg = `JA${String(Math.floor(Math.random()*900)+100)}${ai.iata}`;
+                            const reg = Utils.genRegNum(ai.iata);
                             const routeId = [ai.hq, target.id].sort().join('-');
                             
                             ai.fleet.push({ reg: reg, typeId: acDef.id, status: 'active', routeId: routeId, isLeased: true, age: 0, stats: { flights:0, pax:0, rev:0 } });
@@ -1454,10 +1477,11 @@
                         <div class="card">
                             <div class="card-header">${ac.name} <span class="text-muted" style="font-size:0.8rem; font-weight:normal;">${ac.maker}</span></div>
                             <div class="card-body" style="margin-bottom:10px;">
-                                <div class="card-row"><span>カテゴリー</span><span>${ac.cat} (${ac.seats}席)</span></div>
+                                <div class="card-row"><span>カテゴリー</span><span>${ac.cat} / ${ac.size} (${ac.seats}席)</span></div>
                                 <div class="card-row"><span>航続/速度</span><span>${ac.range}km / ${ac.speed}km/h</span></div>
                                 <div class="card-row"><span>燃費係数</span><span>${ac.fuelRate}</span></div>
                                 <hr style="border:0; border-top:1px solid var(--panel-border); margin:5px 0;">
+                                <div class="text-muted" style="font-size:0.75rem; margin-bottom:10px;">${ac.desc||''}</div>
                                 <div class="card-row"><span>一括購入価格</span><span class="font-bold">${Utils.formatMoney(ac.price)}</span></div>
                                 <div class="card-row"><span>リース初期/日次</span><span>${Utils.formatMoney(ac.leaseInit)} / ${Utils.formatMoney(ac.leaseDaily)}</span></div>
                             </div>
@@ -1977,6 +2001,54 @@
                 if (!Array.isArray(data.company.fleet) || !Array.isArray(data.company.routes)) return false;
                 return true;
             },
+            
+            _generateAIInitialState(c, dateStr) {
+                const comp = {
+                    id: c.iata, name: c.name, iata: c.iata, icao: c.icao, color: '#64748b', hq: c.hq,
+                    funds: 0, reputation: 60, awareness: 50, date: dateStr, status: 'active',
+                    fleet: [], routes: [],
+                    finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} }
+                };
+                
+                let initialRoutes = [];
+                let initialAcType = '';
+                
+                if (c.iata === 'SA') {
+                    comp.color = '#e11d48'; comp.funds = 12000000000;
+                    initialRoutes = ['CTS', 'FUK']; initialAcType = 'a320n';
+                } else if (c.iata === 'NR') {
+                    comp.color = '#16a34a'; comp.funds = 6000000000;
+                    initialRoutes = ['KOJ', 'SDJ']; initialAcType = 'e190';
+                } else if (c.iata === 'PW') {
+                    comp.color = '#0284c7'; comp.funds = 7000000000;
+                    initialRoutes = ['OKA', 'NGO']; initialAcType = 'b738';
+                }
+                
+                // Add initial fleet and routes safely
+                initialRoutes.forEach(dest => {
+                    const fromAp = GameData.Airports.find(a => a.id === comp.hq);
+                    const toAp = GameData.Airports.find(a => a.id === dest);
+                    const acDef = GameData.Aircrafts.find(a => a.id === initialAcType);
+                    if (fromAp && toAp && acDef) {
+                        const dist = Utils.haversine(fromAp.lat, fromAp.lon, toAp.lat, toAp.lon);
+                        const cost = Math.floor(dist * 100000 + (fromAp.scale + toAp.scale) * 5000000);
+                        const reg = Utils.genRegNum(comp.iata);
+                        const routeId = [comp.hq, dest].sort().join('-');
+                        
+                        comp.funds -= (cost + acDef.leaseInit);
+                        comp.finances.total.capEx += (cost + acDef.leaseInit);
+                        
+                        comp.fleet.push({ reg: reg, typeId: acDef.id, status: 'active', routeId: routeId, isLeased: true, age: 0, stats: { flights:0, pax:0, rev:0 } });
+                        comp.routes.push({
+                            id: routeId, from: comp.hq, to: dest, distance: dist, assignedReg: reg, fareMult: 1.0, deficitCount: 0,
+                            stats: { flights:0, pax:0, rev:0, profit:0, costBreakdown:{fuel:0,airport:0,maint:0,lease:0}, lastLf:0, lastPax:0, lastRev:0, lastCost:{fuel:0,airport:0,maint:0,lease:0}, lastProfit:0, lastFlights:0, lfHistory:[] }
+                        });
+                    }
+                });
+                
+                return comp;
+            },
+
             migrateSaveData(rawData) {
                 // Defensive Copy - Never mutate raw data during migration
                 const data = JSON.parse(JSON.stringify(rawData));
@@ -1986,21 +2058,9 @@
                 if (data.company.reputation === undefined || !isFinite(data.company.reputation)) data.company.reputation = 50;
                 if (data.company.awareness === undefined || !isFinite(data.company.awareness)) data.company.awareness = 10;
                 
-                // Initialize Competitors and News for v0.2.1
+                // Initialize Competitors and News for v0.2.1/v0.2.1.1
                 if (!data.competitors) {
-                    data.competitors = GameData.Competitors.map(c => {
-                        const comp = {
-                            id: c.iata, name: c.name, iata: c.iata, icao: c.icao, color: '#64748b', hq: c.hq,
-                            funds: c.iata === 'SA' ? 8000000000 : (c.iata === 'PW' ? 4000000000 : 2500000000),
-                            reputation: 60, awareness: 50, date: data.company.date, status: 'active',
-                            fleet: [], routes: [],
-                            finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} }
-                        };
-                        if (c.iata === 'SA') comp.color = '#e11d48';
-                        if (c.iata === 'NR') comp.color = '#16a34a';
-                        if (c.iata === 'PW') comp.color = '#0284c7';
-                        return comp;
-                    });
+                    data.competitors = GameData.Competitors.map(c => this._generateAIInitialState(c, data.company.date));
                 }
                 
                 if (!data.news) {
@@ -2067,20 +2127,11 @@
                 const compEnabled = document.getElementById('c-comp').value === 'yes';
                 const aiDiff = document.getElementById('c-diff').value;
                 
-                // Init AI Competitors
-                const initialCompetitors = GameData.Competitors.map(c => {
-                    const comp = {
-                        id: c.iata, name: c.name, iata: c.iata, icao: c.icao, color: '#64748b', hq: c.hq,
-                        funds: c.iata === 'SA' ? 8000000000 : (c.iata === 'PW' ? 4000000000 : 2500000000),
-                        reputation: 60, awareness: 40, date: GameData.START_DATE, status: 'active',
-                        fleet: [], routes: [],
-                        finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} }
-                    };
-                    if (c.iata === 'SA') comp.color = '#e11d48';
-                    if (c.iata === 'NR') comp.color = '#16a34a';
-                    if (c.iata === 'PW') comp.color = '#0284c7';
-                    return comp;
-                });
+                // Temporarily assign partial Player object so genRegNum works during AI init
+                Player = { company: { iata, fleet: [] }, competitors: [] }; 
+
+                // Init AI Competitors with established starting fleets
+                const initialCompetitors = GameData.Competitors.map(c => this._generateAIInitialState(c, GameData.START_DATE));
 
                 Player = {
                     version: GameData.VERSION,
@@ -2141,4 +2192,3 @@
 </body>
 </html>
 ```
-
