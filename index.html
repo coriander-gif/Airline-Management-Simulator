@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.8</title>
+    <title>AIRLINE TYCOON JAPAN v0.3.0.1</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -316,7 +316,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.8<br>セーブデータ保護・整合性検証 強化アップデート
+            Version v0.3.0.1<br>フライトスケジュール基盤構築
         </div>
     </div>
 
@@ -518,8 +518,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.8
-         * セーブデータ保護・整合性検証 強化アップデート
+         * AIRLINE TYCOON JAPAN v0.3.0.1
+         * フライトスケジュール基盤構築
          */
 
         const ThemeManager = {
@@ -545,7 +545,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.8",
+            VERSION: "0.3.0.1",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -662,6 +662,9 @@
                     reg = `JA${String(Math.floor(Math.random()*900)+100)}${code}`;
                 } while (existing.has(reg));
                 return reg;
+            },
+            genFlightId: (prefix = 'FLT') => {
+                return `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random()*100000).toString(36)}`;
             },
             
             getLoadFactorBadgeHtml: (lf) => {
@@ -1974,7 +1977,7 @@
                 return 0;
             },
             
-            // v0.2.1.8 厳格な検証ロジック
+            // v0.3.0.1 厳格な検証ロジック (スケジュール検証追加)
             validateSaveData(data) {
                 if (!data || typeof data !== 'object') return false;
                 if (!data.company || typeof data.company !== 'object') return false;
@@ -2002,6 +2005,44 @@
                     if (typeof f.isLeased !== 'boolean') return false;
                 }
 
+                // スケジュールデータの検証
+                const validateSchedules = (comp) => {
+                    if (!('schedules' in comp)) return true; // 旧セーブデータ用
+                    if (!Array.isArray(comp.schedules)) return false;
+                    const fIds = new Set();
+                    for (let s of comp.schedules) {
+                        if (!s || typeof s !== 'object') return false;
+                        if (typeof s.flightId !== 'string' || s.flightId === '') return false;
+                        if (fIds.has(s.flightId)) return false;
+                        fIds.add(s.flightId);
+                        
+                        if (typeof s.flightNumber !== 'string') return false;
+                        if (typeof s.routeId !== 'string') return false;
+                        if (typeof s.airlineId !== 'string') return false;
+                        // aircraftId, originAirportId, destinationAirportId はundefinedやnullを許容
+                        if (s.aircraftId !== undefined && s.aircraftId !== null && typeof s.aircraftId !== 'string') return false;
+                        if (s.originAirportId !== undefined && s.originAirportId !== null && typeof s.originAirportId !== 'string') return false;
+                        if (s.destinationAirportId !== undefined && s.destinationAirportId !== null && typeof s.destinationAirportId !== 'string') return false;
+
+                        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+                        if (typeof s.departureTime !== 'string' || !timeRegex.test(s.departureTime)) return false;
+                        if (typeof s.arrivalTime !== 'string' || !timeRegex.test(s.arrivalTime)) return false;
+                        
+                        if (!Array.isArray(s.operatingDays)) return false;
+                        const dSet = new Set();
+                        for (let d of s.operatingDays) {
+                            if (typeof d !== 'number' || d < 0 || d > 6) return false;
+                            if (dSet.has(d)) return false;
+                            dSet.add(d);
+                        }
+                        
+                        if (typeof s.isActive !== 'boolean') return false;
+                    }
+                    return true;
+                };
+
+                if (!validateSchedules(data.company)) return false;
+
                 // 競合設定と配列の整合性確認
                 if (data.settings && data.settings.competitionEnabled) {
                     // 競合ONなのにcompetitors配列がないのは重大異常
@@ -2018,6 +2059,7 @@
                         for (let f of ai.fleet) {
                             if (typeof f.isLeased !== 'boolean') return false;
                         }
+                        if (!validateSchedules(ai)) return false;
                     }
                 }
 
@@ -2028,7 +2070,7 @@
                 const comp = {
                     id: c.iata, name: c.name, iata: c.iata, icao: c.icao, color: '#64748b', hq: c.hq,
                     funds: 0, reputation: 60, awareness: 50, date: dateStr, status: 'active',
-                    fleet: [], routes: [],
+                    fleet: [], routes: [], schedules: [],
                     finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} }
                 };
                 
@@ -2255,6 +2297,55 @@
                     });
                 };
 
+                const checkSchedulesAndMigrate = (companyObj, isPlayer) => {
+                    if (!Array.isArray(companyObj.schedules)) {
+                        companyObj.schedules = [];
+                        if (isPlayer) logRepair("スケジュールデータが欠損していたため初期化しました。");
+                    } else {
+                        const validFIds = new Set();
+                        
+                        companyObj.schedules = companyObj.schedules.filter(s => {
+                            if (!s || typeof s !== 'object') return false;
+                            if (typeof s.flightId !== 'string' || s.flightId === '') {
+                                logRepair(`不正な flightId を持つ便を削除しました。`);
+                                return false;
+                            }
+                            if (validFIds.has(s.flightId)) {
+                                logRepair(`重複する flightId (${s.flightId}) を持つ便を削除しました。`);
+                                return false;
+                            }
+                            validFIds.add(s.flightId);
+                            
+                            if (typeof s.flightNumber !== 'string') s.flightNumber = 'UNKNOWN';
+                            if (typeof s.routeId !== 'string') s.routeId = '';
+                            if (typeof s.airlineId !== 'string') s.airlineId = companyObj.iata;
+                            if (s.aircraftId === undefined) s.aircraftId = null;
+                            if (s.originAirportId === undefined) s.originAirportId = null;
+                            if (s.destinationAirportId === undefined) s.destinationAirportId = null;
+                            
+                            const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+                            if (typeof s.departureTime !== 'string' || !timeRegex.test(s.departureTime)) s.departureTime = '00:00';
+                            if (typeof s.arrivalTime !== 'string' || !timeRegex.test(s.arrivalTime)) s.arrivalTime = '00:00';
+                            
+                            if (!Array.isArray(s.operatingDays)) {
+                                s.operatingDays = [0,1,2,3,4,5,6];
+                            } else {
+                                const dSet = new Set();
+                                s.operatingDays.forEach(d => {
+                                    if (typeof d === 'number' && d >= 0 && d <= 6) dSet.add(d);
+                                });
+                                s.operatingDays = Array.from(dSet).sort();
+                            }
+                            
+                            if (typeof s.isActive !== 'boolean') s.isActive = false;
+                            if (typeof s.createdAt !== 'string') s.createdAt = new Date().toISOString();
+                            if (typeof s.updatedAt !== 'string') s.updatedAt = new Date().toISOString();
+                            
+                            return true;
+                        });
+                    }
+                };
+
                 // Playerの財務・機材補正
                 if (!data.company.finances) data.company.finances = {};
                 fixFinances(data.company.finances, 'today');
@@ -2272,6 +2363,7 @@
                     data.company.finances.monthlyRecords = [];
                 }
                 checkFleetAndRoutes(data.company, true);
+                checkSchedulesAndMigrate(data.company, true);
 
                 // AIの財務・機材補正
                 data.competitors = data.competitors.filter(ai => {
@@ -2292,6 +2384,7 @@
                     fixFinances(ai.finances, 'total');
                     fixTmStats(ai, ai.name);
                     checkFleetAndRoutes(ai, false);
+                    checkSchedulesAndMigrate(ai, false);
                 });
 
                 data.version = GameData.VERSION;
@@ -2316,7 +2409,7 @@
                     company: {
                         name, iata, icao, color: document.getElementById('c-color').value, hq: document.getElementById('c-hq').value,
                         funds: GameData.START_FUNDS, reputation: 50, awareness: 10, date: GameData.START_DATE,
-                        fleet: [], routes: [], employees: 0, debt: 0,
+                        fleet: [], routes: [], schedules: [], employees: 0, debt: 0,
                         finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [] }
                     },
                     settings: { competitionEnabled: compEnabled, aiDifficulty: aiDiff },
