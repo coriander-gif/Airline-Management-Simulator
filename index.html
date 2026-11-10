@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>AIRLINE TYCOON JAPAN v0.1.4.1</title>
     <style>
         /* ==========================================================================
@@ -236,6 +236,16 @@
         .chart-toggle-btn { padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--panel-border); background: var(--col-bg-dark); color: var(--col-text-muted); cursor: pointer; }
         .chart-toggle-btn.active { background: var(--col-primary); color: white; border-color: var(--col-primary); font-weight: bold; }
 
+        /* Competitors & News Table */
+        .comp-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .comp-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px var(--shadow-color); border-color: var(--col-primary); }
+        .news-item { padding: 10px 15px; border-bottom: 1px solid var(--panel-border); font-size: 0.9rem; }
+        .news-item:last-child { border-bottom: none; }
+        .news-item.danger { border-left: 4px solid var(--col-danger); }
+        .news-item.warning { border-left: 4px solid var(--col-warning); }
+        .news-item.info { border-left: 4px solid var(--col-primary); }
+        .news-date { font-size: 0.75rem; color: var(--col-text-muted); margin-bottom: 3px; }
+
         /* Mobile Adjustments */
         .routes-cards-mobile { display: none; }
         @media (max-width: 768px) {
@@ -302,7 +312,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.1.4.1<br>Stability, Balance & Time Acceleration Update
+            Version v0.2.0<br>AI COMPETITORS & GAME DIFFICULTY UPDATE
         </div>
     </div>
 
@@ -382,7 +392,9 @@
                 <div class="nav-item" onclick="UI.switchMainView('view-fleet', this)">機材管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-routes', this)">路線管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-finance', this)">財務・統計</div>
+                <div class="nav-item" onclick="UI.switchMainView('view-competitors', this)">競合他社 (AI)</div>
                 <div style="flex:1;"></div>
+                <div class="nav-item" onclick="Views.showNewsModal()">📰 ニュース履歴</div>
                 <div class="nav-item" onclick="Game.manualSave()">💾 セーブ</div>
                 <div class="nav-item text-danger" onclick="Game.returnToTitle()">ログアウト</div>
             </aside>
@@ -467,10 +479,17 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 5. Competitors View -->
+                <div id="view-competitors" class="mgmt-panel">
+                    <div class="panel-header-title">競合航空会社</div>
+                    <p class="text-muted" style="margin-bottom: 20px;">日本市場で競合するAI航空会社の経営状況を確認できます。</p>
+                    <div id="competitors-grid" class="data-grid"></div>
+                </div>
             </div>
         </div>
 
-        <footer class="news-ticker">
+        <footer class="news-ticker" style="cursor: pointer;" onclick="Views.showNewsModal()">
             <span class="news-label">NEWS</span>
             <span id="news-ticker-text">-</span>
         </footer>
@@ -478,8 +497,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.1.4.1
-         * STABILITY, BALANCE & TIME ACCELERATION UPDATE
+         * AIRLINE TYCOON JAPAN v0.2.0
+         * AI COMPETITORS & GAME DIFFICULTY UPDATE
          */
 
         const ThemeManager = {
@@ -505,7 +524,7 @@
         };
 
         const GameData = {
-            VERSION: "0.1.4.1",
+            VERSION: "0.2.0",
             SAVE_KEY: "atj_save_v1",
             START_DATE: "2026-04-01",
             START_FUNDS: 5000000000,
@@ -619,6 +638,7 @@
                 if(id === 'view-fleet') Views.renderFleet();
                 if(id === 'view-routes') Views.renderRoutes();
                 if(id === 'view-finance') Views.renderFinance();
+                if(id === 'view-competitors') Views.renderCompetitors();
             },
             showModal(title, msg, contentHtml = null, btnsHtml = null) {
                 document.getElementById('modal-title').textContent = title;
@@ -647,7 +667,9 @@
                 else document.getElementById('hq-funds').classList.replace('text-danger', 'text-success');
             },
             updateNews() {
-                if (Player && Player.history && Player.history.length > 0) {
+                if (Player && Player.news && Player.news.length > 0) {
+                    document.getElementById('news-ticker-text').textContent = `${Utils.formatDate(Player.news[0].date)} - ${Player.news[0].msg}`;
+                } else if (Player && Player.history && Player.history.length > 0) {
                     document.getElementById('news-ticker-text').textContent = `${Utils.formatDate(Player.history[0].date)} - ${Player.history[0].msg}`;
                 }
             },
@@ -769,6 +791,14 @@
                 Views.renderRoutes(); Game.saveData(true);
             },
 
+            addNews(msg, type = 'info') {
+                if (!Player) return;
+                if (!Player.news) Player.news = [];
+                Player.news.unshift({ date: Player.company.date, msg, type });
+                if (Player.news.length > 200) Player.news.pop();
+                UI.updateNews();
+            },
+
             // --- Robust 365-Day & Batch Time Engine ---
             confirmAndAdvance365() {
                 document.getElementById('time-dropdown').classList.remove('show');
@@ -829,9 +859,9 @@
                             break;
                         }
 
-                        if (Player.company.funds < -1000000000) { 
+                        if (Player.company.funds < -3000000000) { 
                             summary.stopped = true; 
-                            summary.stopReason = "資金ショート (10億円以上の赤字)"; 
+                            summary.stopReason = "深刻な資金ショート (30億円以上の赤字)"; 
                             break; 
                         }
 
@@ -925,175 +955,328 @@
                 // Month Roll-over Financial Aggregation
                 if (monthChanged) {
                     const prevMonthStr = oldDateStr.substring(0,7);
-                    const tm = Player.company.finances.thisMonth;
-                    const monthCostSum = (tm.cost.fuel || 0) + (tm.cost.airport || 0) + (tm.cost.maint || 0) + (tm.cost.lease || 0);
-                    const monthCapEx = tm.capEx || 0;
-                    const operatingProfit = tm.rev - monthCostSum;
                     
-                    Player.company.finances.monthlyRecords.unshift({
-                        ym: prevMonthStr, 
-                        rev: tm.rev, 
-                        cost: { ...tm.cost }, 
-                        opProfit: operatingProfit,
-                        capEx: monthCapEx,
-                        netProfit: operatingProfit - monthCapEx,
-                        flights: Player.company.finances._tmStats ? Player.company.finances._tmStats.f : 0,
-                        pax: Player.company.finances._tmStats ? Player.company.finances._tmStats.p : 0,
-                        avgLf: (Player.company.finances._tmStats && Player.company.finances._tmStats.seats > 0) ? Math.round((Player.company.finances._tmStats.p / Player.company.finances._tmStats.seats)*100) : 0
-                    });
-                    if(Player.company.finances.monthlyRecords.length > 24) Player.company.finances.monthlyRecords.pop();
-                    Player.company.finances.thisMonth = this._resetFinanceObject();
-                    Player.company.finances._tmStats = { f: 0, p: 0, seats: 0 };
+                    // Process for Player
+                    this._processMonthRollover(Player.company, prevMonthStr);
                     
-                    // Subtle awareness growth over operating months
+                    // Process for AI Competitors
+                    if (Player.competitors) {
+                        Player.competitors.forEach(ai => {
+                            if (ai.status !== 'bankrupt') this._processMonthRollover(ai, prevMonthStr);
+                        });
+                    }
+                    
+                    // Subtle awareness growth over operating months for Player
                     Player.company.awareness = Math.min(100, (Player.company.awareness || 10) + 1);
                 }
 
-                // Sanity check fleet assignments
-                let unallocatedLease = 0;
-                Player.company.fleet.forEach(f => {
-                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
-                    if (!f.routeId) {
-                        f.status = 'idle';
-                        if (f.isLeased && ac) unallocatedLease += ac.leaseDaily;
-                    } else {
-                        const routeExists = Player.company.routes.some(r => r.id === f.routeId);
-                        if (!routeExists) { f.routeId = null; f.status = 'idle'; }
-                    }
-                });
-                dayRes.lease += unallocatedLease;
-
-                // Process Active Routes
-                Player.company.routes.forEach(route => {
-                    let rRev = 0, rPax = 0, rFlights = 0, rLf = 0, rSeats = 0;
-                    let rFuel = 0, rAirport = 0, rMaint = 0, rLease = 0;
-
-                    // Safety verification (Rule 4-1 & 4-2)
-                    let plane = null;
-                    if (route.assignedReg) {
-                        plane = Player.company.fleet.find(f => f.reg === route.assignedReg);
-                        if (!plane) {
-                            console.warn(`Repairing invalid fleet assignment ${route.assignedReg} on route ${route.id}`);
-                            route.assignedReg = null;
+                // 1. Gather all active routes from all companies (Player + AIs)
+                const marketRoutes = [];
+                const processFleetIdle = (comp) => {
+                    let unallocatedLease = 0;
+                    comp.fleet.forEach(f => {
+                        const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
+                        if (!f.routeId) {
+                            f.status = 'idle';
+                            if (f.isLeased && ac) unallocatedLease += ac.leaseDaily;
+                        } else {
+                            const routeExists = comp.routes.some(r => r.id === f.routeId);
+                            if (!routeExists) { f.routeId = null; f.status = 'idle'; }
                         }
-                    }
-
-                    if (plane) {
-                        const ac = GameData.Aircrafts.find(a => a.id === plane.typeId);
-                        const from = GameData.Airports.find(a => a.id === route.from);
-                        const to = GameData.Airports.find(a => a.id === route.to);
-
-                        if (ac && from && to && (ac.range || 0) >= (route.distance || 0)) {
-                            const speed = ac.speed || 800;
-                            const flightTimeH = route.distance / speed; 
-                            const blockTimeH = flightTimeH + 0.75;
-                            const maxTrips = Math.floor(14 / blockTimeH); 
-                            const dailyFlights = Math.floor(maxTrips / 2) * 2;
-
-                            if (dailyFlights > 0) {
-                                rSeats = dailyFlights * ac.seats;
-
-                                // Balanced Passenger Demand Calculation (Rule 5)
-                                const baseDemand = Math.sqrt(from.demand * to.demand) * 3.5;
-                                const distFactor = Math.max(0.5, 1.25 - (route.distance / 3000));
-                                const repFactor = Math.max(0.6, (Player.company.reputation || 50) / 50);
-                                const awFactor = Math.max(0.7, (Player.company.awareness || 10) / 40);
-
-                                const stdFare = Utils.getStandardFare(route.distance);
-                                const mult = Math.max(0.5, Math.min(2.0, route.fareMult || 1.0));
-                                const actualFare = Math.floor(stdFare * mult);
-                                
-                                // Price elasticity curve
-                                const fareElast = mult <= 1.0 ? (1.0 + (1.0 - mult) * 0.8) : Math.max(0.1, 1.0 - (mult - 1.0) * 1.5);
-                                const dailyFluc = 0.94 + (Math.random() * 0.12);
-                                
-                                const potentialPax = Math.floor(baseDemand * distFactor * repFactor * awFactor * fareElast * dailyFluc * 2.8);
-
-                                rPax = Math.min(potentialPax, rSeats);
-                                rLf = rSeats > 0 ? Math.min(100, Math.round((rPax / rSeats) * 100)) : 0;
-                                rRev = Math.floor(rPax * actualFare);
-
-                                rFuel = Math.floor(route.distance * (ac.fuelRate || 1.5) * dailyFlights * GameData.FUEL_UNIT_PRICE);
-                                rAirport = Math.floor((from.scale + to.scale) * 25000 * dailyFlights);
-                                rMaint = ac.maint || 500000;
-                                rLease = plane.isLeased ? (ac.leaseDaily || 0) : 0;
-                                rFlights = dailyFlights;
-
-                                // Cumulative Route Statistics
-                                route.stats.flights += rFlights; 
-                                route.stats.pax += rPax; 
-                                route.stats.rev += rRev; 
-                                const rDayCost = rFuel + rAirport + rMaint + rLease;
-                                route.stats.profit += (rRev - rDayCost);
-                                
-                                if (!route.stats.costBreakdown) route.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
-                                route.stats.costBreakdown.fuel += rFuel;
-                                route.stats.costBreakdown.airport += rAirport;
-                                route.stats.costBreakdown.maint += rMaint;
-                                route.stats.costBreakdown.lease += rLease;
-
-                                plane.stats.flights += rFlights; 
-                                plane.stats.pax += rPax; 
-                                plane.stats.rev += rRev; 
-                                plane.status = 'active';
-                            } else {
-                                plane.status = 'idle'; if (plane.isLeased) rLease = ac.leaseDaily || 0;
-                            }
-                        }
-                    }
-
-                    const rCostSum = rFuel + rAirport + rMaint + rLease;
-                    route.stats.lastLf = rLf; 
-                    route.stats.lastPax = rPax; 
-                    route.stats.lastRev = rRev; 
-                    route.stats.lastCost = { fuel: rFuel, airport: rAirport, maint: rMaint, lease: rLease }; 
-                    route.stats.lastProfit = rRev - rCostSum; 
-                    route.stats.lastFlights = rFlights;
-
-                    if (!route.stats.lfHistory) route.stats.lfHistory = [];
-                    route.stats.lfHistory.push(rLf);
-                    if (route.stats.lfHistory.length > 30) route.stats.lfHistory.shift();
-
-                    dayRes.rev += rRev; 
-                    dayRes.fuel += rFuel; 
-                    dayRes.airport += rAirport; 
-                    dayRes.maint += rMaint; 
-                    dayRes.lease += rLease; 
-                    dayRes.pax += rPax; 
-                    dayRes.flights += rFlights;
-
-                    if (!Player.company.finances._tmStats) Player.company.finances._tmStats = { f:0, p:0, seats:0 };
-                    Player.company.finances._tmStats.f += rFlights; 
-                    Player.company.finances._tmStats.p += rPax; 
-                    Player.company.finances._tmStats.seats += rSeats;
-                });
-
-                // Update Overall Cash Funds & Financial Registers
-                const dOperatingCost = dayRes.fuel + dayRes.airport + dayRes.maint + dayRes.lease;
-                const dOperatingProfit = dayRes.rev - dOperatingCost;
-                
-                Player.company.funds += dOperatingProfit; // Net Cash Flow
-
-                Player.company.finances.today = { 
-                    rev: dayRes.rev, 
-                    cost: { fuel: dayRes.fuel, airport: dayRes.airport, maint: dayRes.maint, lease: dayRes.lease } 
+                    });
+                    return unallocatedLease;
                 };
+
+                // Player idle leases
+                dayRes.lease += processFleetIdle(Player.company);
+
+                // Build market routes
+                Player.company.routes.forEach(r => {
+                    if (r.assignedReg) marketRoutes.push({ owner: Player.company, route: r, isPlayer: true });
+                });
                 
-                const tm = Player.company.finances.thisMonth;
-                tm.rev += dayRes.rev; 
-                tm.cost.fuel += dayRes.fuel; 
-                tm.cost.airport += dayRes.airport; 
-                tm.cost.maint += dayRes.maint; 
-                tm.cost.lease += dayRes.lease;
+                if (Player.competitors) {
+                    Player.competitors.forEach(ai => {
+                        if (ai.status === 'bankrupt') return;
+                        ai.finances.today.cost.lease += processFleetIdle(ai); // AI idle leases
+                        ai.routes.forEach(r => {
+                            if (r.assignedReg) marketRoutes.push({ owner: ai, route: r, isPlayer: false });
+                        });
+                    });
+                }
+
+                // 2. Group by Route Pair (e.g. "CTS-HND") for market competition
+                const pairs = {};
+                marketRoutes.forEach(mr => {
+                    const fromId = mr.route.from; const toId = mr.route.to;
+                    const pairKey = [fromId, toId].sort().join('-');
+                    if (!pairs[pairKey]) pairs[pairKey] = [];
+                    pairs[pairKey].push(mr);
+                });
+
+                // 3. Process Market Demand and Distribution
+                for (const pairKey in pairs) {
+                    const group = pairs[pairKey];
+                    const apA = GameData.Airports.find(a => a.id === group[0].route.from);
+                    const apB = GameData.Airports.find(a => a.id === group[0].route.to);
+                    if (!apA || !apB) continue;
+
+                    const dist = group[0].route.distance;
+                    // Global Market Demand for this route pair
+                    const distFactorGlobal = Math.max(0.5, 1.25 - (dist / 3000));
+                    const baseMarketDemand = Math.sqrt(apA.demand * apB.demand) * 4.0 * distFactorGlobal;
+
+                    let totalScore = 0;
+                    
+                    // Evaluate each flight
+                    group.forEach(mr => {
+                        const plane = mr.owner.fleet.find(f => f.reg === mr.route.assignedReg);
+                        mr.valid = false;
+                        if (!plane) return;
+                        const ac = GameData.Aircrafts.find(a => a.id === plane.typeId);
+                        if (!ac || ac.range < mr.route.distance) return;
+
+                        const speed = ac.speed || 800;
+                        const blockTimeH = (mr.route.distance / speed) + 0.75;
+                        const dailyFlights = Math.floor(Math.floor(14 / blockTimeH) / 2) * 2;
+                        if (dailyFlights <= 0) return;
+
+                        mr.valid = true;
+                        mr.ac = ac;
+                        mr.plane = plane;
+                        mr.dailyFlights = dailyFlights;
+                        mr.seats = dailyFlights * ac.seats;
+
+                        // Competition Score (Pricing & Brand)
+                        const stdFare = Utils.getStandardFare(dist);
+                        const mult = Math.max(0.5, Math.min(2.0, mr.route.fareMult || 1.0));
+                        mr.actualFare = Math.floor(stdFare * mult);
+
+                        // Harder penalty for high fares
+                        const fareElast = mult <= 1.0 
+                            ? (1.0 + (1.0 - mult) * 1.0) 
+                            : Math.max(0.05, 1.0 - Math.pow(mult - 1.0, 1.3) * 2.0);
+                            
+                        const repFactor = Math.max(0.6, (mr.owner.reputation || 50) / 50);
+                        const awFactor = Math.max(0.5, (mr.owner.awareness || 10) / 40);
+                        const dailyFluc = 0.94 + (Math.random() * 0.12);
+
+                        mr.score = fareElast * repFactor * awFactor * dailyFluc;
+                        totalScore += mr.score;
+                    });
+
+                    // Distribute passengers based on market share
+                    group.forEach(mr => {
+                        if (!mr.valid) {
+                            if(mr.plane) { mr.plane.status = 'idle'; mr.owner.finances.today.cost.lease += (mr.plane.isLeased ? (mr.ac?.leaseDaily||0) : 0); }
+                            return;
+                        }
+
+                        // Distribution Logic
+                        const marketSize = baseMarketDemand * 2.8; 
+                        const share = (totalScore > 0) ? (mr.score / totalScore) : 0;
+                        
+                        // Cap potential by absolute brand strength to avoid 100% share of empty market
+                        const absolutePotential = baseMarketDemand * mr.score * 2.5;
+                        const actualPotential = Math.min(marketSize * share, absolutePotential);
+                        
+                        const rPax = Math.floor(Math.min(actualPotential, mr.seats));
+                        const rLf = mr.seats > 0 ? Math.min(100, Math.round((rPax / mr.seats) * 100)) : 0;
+                        const rRev = Math.floor(rPax * mr.actualFare);
+
+                        const rFuel = Math.floor(mr.route.distance * (mr.ac.fuelRate || 1.5) * mr.dailyFlights * GameData.FUEL_UNIT_PRICE);
+                        const rAirport = Math.floor((apA.scale + apB.scale) * 25000 * mr.dailyFlights);
+                        const rMaint = mr.ac.maint || 500000;
+                        const rLease = mr.plane.isLeased ? (mr.ac.leaseDaily || 0) : 0;
+
+                        // Update Route Stats
+                        const rDayCost = rFuel + rAirport + rMaint + rLease;
+                        mr.route.stats.flights += mr.dailyFlights; 
+                        mr.route.stats.pax += rPax; 
+                        mr.route.stats.rev += rRev; 
+                        mr.route.stats.profit += (rRev - rDayCost);
+                        
+                        if (!mr.route.stats.costBreakdown) mr.route.stats.costBreakdown = { fuel:0, airport:0, maint:0, lease:0 };
+                        mr.route.stats.costBreakdown.fuel += rFuel;
+                        mr.route.stats.costBreakdown.airport += rAirport;
+                        mr.route.stats.costBreakdown.maint += rMaint;
+                        mr.route.stats.costBreakdown.lease += rLease;
+
+                        mr.plane.stats.flights += mr.dailyFlights; 
+                        mr.plane.stats.pax += rPax; 
+                        mr.plane.stats.rev += rRev; 
+                        mr.plane.status = 'active';
+
+                        mr.route.stats.lastLf = rLf; 
+                        mr.route.stats.lastPax = rPax; 
+                        mr.route.stats.lastRev = rRev; 
+                        mr.route.stats.lastCost = { fuel: rFuel, airport: rAirport, maint: rMaint, lease: rLease }; 
+                        mr.route.stats.lastProfit = rRev - rDayCost; 
+                        mr.route.stats.lastFlights = mr.dailyFlights;
+
+                        if (!mr.route.stats.lfHistory) mr.route.stats.lfHistory = [];
+                        mr.route.stats.lfHistory.push(rLf);
+                        if (mr.route.stats.lfHistory.length > 30) mr.route.stats.lfHistory.shift();
+
+                        // Accumulate to Owner
+                        mr.owner.funds += (rRev - rDayCost);
+                        mr.owner.finances.today.rev += rRev;
+                        mr.owner.finances.today.cost.fuel += rFuel;
+                        mr.owner.finances.today.cost.airport += rAirport;
+                        mr.owner.finances.today.cost.maint += rMaint;
+                        mr.owner.finances.today.cost.lease += rLease;
+
+                        const tm = mr.owner.finances.thisMonth;
+                        tm.rev += rRev; tm.cost.fuel += rFuel; tm.cost.airport += rAirport; tm.cost.maint += rMaint; tm.cost.lease += rLease;
+                        
+                        const tot = mr.owner.finances.total;
+                        tot.rev += rRev; tot.cost.fuel += rFuel; tot.cost.airport += rAirport; tot.cost.maint += rMaint; tot.cost.lease += rLease;
+
+                        if (!mr.owner.finances._tmStats) mr.owner.finances._tmStats = { f:0, p:0, seats:0 };
+                        mr.owner.finances._tmStats.f += mr.dailyFlights; 
+                        mr.owner.finances._tmStats.p += rPax; 
+                        mr.owner.finances._tmStats.seats += mr.seats;
+
+                        if (mr.isPlayer) {
+                            dayRes.rev += rRev; dayRes.fuel += rFuel; dayRes.airport += rAirport; dayRes.maint += rMaint; dayRes.lease += rLease; dayRes.pax += rPax; dayRes.flights += mr.dailyFlights;
+                        }
+                    });
+                }
                 
-                const tot = Player.company.finances.total;
-                tot.rev += dayRes.rev; 
-                tot.cost.fuel += dayRes.fuel; 
-                tot.cost.airport += dayRes.airport; 
-                tot.cost.maint += dayRes.maint; 
-                tot.cost.lease += dayRes.lease;
+                // Subtract idle lease costs from funds
+                Player.company.funds -= dayRes.lease;
+                Player.company.finances.today.cost.lease += dayRes.lease;
+                Player.company.finances.thisMonth.cost.lease += dayRes.lease;
+                Player.company.finances.total.cost.lease += dayRes.lease;
+                
+                if (Player.competitors) {
+                    Player.competitors.forEach(ai => {
+                        if (ai.status === 'bankrupt') return;
+                        ai.funds -= ai.finances.today.cost.lease;
+                        ai.finances.thisMonth.cost.lease += ai.finances.today.cost.lease;
+                        ai.finances.total.cost.lease += ai.finances.today.cost.lease;
+                    });
+                }
+
+                // AI Strategic Decisions
+                this._processAIs(d);
 
                 return dayRes;
+            },
+
+            _processMonthRollover(comp, prevMonthStr) {
+                const tm = comp.finances.thisMonth;
+                const monthCostSum = (tm.cost.fuel || 0) + (tm.cost.airport || 0) + (tm.cost.maint || 0) + (tm.cost.lease || 0);
+                const monthCapEx = tm.capEx || 0;
+                const operatingProfit = tm.rev - monthCostSum;
+                
+                comp.finances.monthlyRecords.unshift({
+                    ym: prevMonthStr, rev: tm.rev, cost: { ...tm.cost }, opProfit: operatingProfit, capEx: monthCapEx, netProfit: operatingProfit - monthCapEx,
+                    flights: comp.finances._tmStats ? comp.finances._tmStats.f : 0, pax: comp.finances._tmStats ? comp.finances._tmStats.p : 0,
+                    avgLf: (comp.finances._tmStats && comp.finances._tmStats.seats > 0) ? Math.round((comp.finances._tmStats.p / comp.finances._tmStats.seats)*100) : 0
+                });
+                if(comp.finances.monthlyRecords.length > 24) comp.finances.monthlyRecords.pop();
+                comp.finances.thisMonth = this._resetFinanceObject();
+                comp.finances._tmStats = { f: 0, p: 0, seats: 0 };
+            },
+
+            _processAIs(dayOfMonth) {
+                if (!Player.competitors) return;
+                Player.competitors.forEach((ai, idx) => {
+                    if (ai.status === 'bankrupt') return;
+                    
+                    // Bankruptcy Check
+                    if (ai.funds < -3000000000) {
+                        ai.bankruptTimer = (ai.bankruptTimer || 0) + 1;
+                        if (ai.bankruptTimer > 30) {
+                            ai.status = 'bankrupt';
+                            this.addNews(`【倒産】${ai.name}が資金繰り悪化により経営破綻しました。全路線から撤退します。`, 'danger');
+                            ai.routes.forEach(r => r.assignedReg = null);
+                            ai.fleet.forEach(f => { f.routeId = null; f.status = 'idle'; });
+                            return;
+                        }
+                    } else {
+                        ai.bankruptTimer = 0;
+                    }
+
+                    // Weekly Decision Making per AI
+                    if (dayOfMonth % 7 === (idx + 1) % 7) {
+                        this._aiDecision(ai);
+                    }
+                });
+            },
+
+            _aiDecision(ai) {
+                // 1. Adjust Fares & Withdraw from heavy loss routes
+                for (let i = ai.routes.length - 1; i >= 0; i--) {
+                    let r = ai.routes[i];
+                    if (r.stats.flights > 30) { 
+                        if (r.stats.lastProfit < 0) {
+                            if (r.stats.lastLf < 55 && r.fareMult > 0.7) r.fareMult = Math.max(0.7, r.fareMult - 0.1);
+                            r.deficitCount = (r.deficitCount || 0) + 1;
+                            if (r.deficitCount > 4) { // About a month of consecutive weekly losses
+                                this.addNews(`${ai.name}が採算悪化のため ${r.from}-${r.to} 線から撤退しました。`, 'warning');
+                                const plane = ai.fleet.find(f => f.reg === r.assignedReg);
+                                if(plane) { plane.routeId = null; plane.status = 'idle'; }
+                                ai.routes.splice(i, 1);
+                                continue;
+                            }
+                        } else {
+                            r.deficitCount = 0;
+                            if (r.stats.lastLf > 85 && r.fareMult < 1.5) r.fareMult = Math.min(1.5, r.fareMult + 0.05);
+                        }
+                    }
+                }
+
+                // 2. Return Idle Leases
+                for (let i = ai.fleet.length - 1; i >= 0; i--) {
+                    let f = ai.fleet[i];
+                    if (!f.routeId && f.isLeased) {
+                        f.idleCount = (f.idleCount || 0) + 1;
+                        if (f.idleCount > 2) ai.fleet.splice(i, 1);
+                    } else {
+                        f.idleCount = 0;
+                    }
+                }
+
+                // 3. Expand Operations if wealthy
+                if (ai.funds > 2000000000 && ai.routes.length < 20) {
+                    const hqAp = GameData.Airports.find(a => a.id === ai.hq);
+                    if (!hqAp) return;
+                    const candidates = GameData.Airports.filter(a => a.id !== ai.hq && !ai.routes.some(r => r.from === ai.hq && r.to === a.id || r.to === ai.hq && r.from === a.id));
+                    
+                    // Sort by demand and some AI flavor bias
+                    candidates.sort((a,b) => b.demand - a.demand);
+                    
+                    if (candidates.length > 0) {
+                        const target = candidates[Math.floor(Math.random() * Math.min(3, candidates.length))];
+                        const dist = Utils.haversine(hqAp.lat, hqAp.lon, target.lat, target.lon);
+                        const cost = Math.floor(dist * 100000 + (hqAp.scale + target.scale) * 5000000);
+                        
+                        let planeType = ai.iata === 'SA' ? 'b738' : (ai.iata === 'NR' ? 'atr72' : 'a220');
+                        const acDef = GameData.Aircrafts.find(a => a.id === planeType);
+                        
+                        if (acDef && acDef.range >= dist && ai.funds > cost + acDef.leaseInit * 2) {
+                            ai.funds -= (cost + acDef.leaseInit);
+                            ai.finances.thisMonth.capEx = (ai.finances.thisMonth.capEx || 0) + cost + acDef.leaseInit;
+                            ai.finances.total.capEx = (ai.finances.total.capEx || 0) + cost + acDef.leaseInit;
+                            
+                            const reg = `JA${String(Math.floor(Math.random()*900)+100)}${ai.iata}`;
+                            const routeId = [ai.hq, target.id].sort().join('-');
+                            
+                            ai.fleet.push({ reg: reg, typeId: planeType, status: 'active', routeId: routeId, isLeased: true, age: 0, stats: { flights:0, pax:0, rev:0 } });
+                            ai.routes.push({
+                                id: routeId, from: ai.hq, to: target.id, distance: dist, assignedReg: reg, fareMult: 1.0,
+                                stats: { flights:0, pax:0, rev:0, profit:0, costBreakdown:{fuel:0,airport:0,maint:0,lease:0}, lastLf:0, lastPax:0, lastRev:0, lastCost:{fuel:0,airport:0,maint:0,lease:0}, lastProfit:0, lastFlights:0, lfHistory:[] }
+                            });
+                            
+                            this.addNews(`【新規路線】${ai.name}が ${hqAp.name}-${target.name} 線の運航を開始しました。`, 'info');
+                            
+                            // Increase brand awareness slightly
+                            ai.awareness = Math.min(100, (ai.awareness || 10) + 2);
+                        }
+                    }
+                }
             }
         };
 
@@ -1295,6 +1478,89 @@
                     </div>
                 `;
                 UI.showModal(`路線詳細: ${routeId}`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+            },
+
+            renderCompetitors() {
+                const grid = document.getElementById('competitors-grid');
+                grid.innerHTML = '';
+                if (!Player.competitors || Player.competitors.length === 0) {
+                    grid.innerHTML = '<div class="text-muted">競合データがありません。</div>'; return;
+                }
+
+                Player.competitors.forEach(ai => {
+                    const statusText = ai.status === 'bankrupt' ? '<span class="text-danger font-bold">経営破綻</span>' : (ai.funds < 0 ? '<span class="text-warning">経営注意</span>' : '<span class="text-success">安定</span>');
+                    const totProfit = (ai.finances?.total?.rev || 0) - ((ai.finances?.total?.cost?.fuel||0)+(ai.finances?.total?.cost?.airport||0)+(ai.finances?.total?.cost?.maint||0)+(ai.finances?.total?.cost?.lease||0)) - (ai.finances?.total?.capEx||0);
+                    
+                    grid.innerHTML += `
+                        <div class="card comp-card" style="border-top: 4px solid ${ai.color};" onclick="Views.showCompetitorDetails('${ai.id}')">
+                            <div class="card-header">
+                                <span style="font-size: 1.2rem;">${ai.name}</span>
+                                <div>${statusText}</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="card-row"><span>コード / 拠点</span><span>${ai.iata} / ${ai.hq}</span></div>
+                                <div class="card-row"><span>保有資金</span><span class="${ai.funds>=0?'text-success':'text-danger'} font-bold">${Utils.formatMoney(ai.funds)}</span></div>
+                                <div class="card-row"><span>機材 / 路線</span><span>${ai.fleet.length}機 / ${ai.routes.length}路線</span></div>
+                                <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                                <div class="card-row text-muted" style="font-size:0.8rem;"><span>知名度 / 評判</span><span>${ai.awareness} / ${ai.reputation}</span></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            },
+
+            showCompetitorDetails(aiId) {
+                const ai = Player.competitors.find(c => c.id === aiId); if(!ai) return;
+                
+                const cb = ai.finances.total.cost;
+                const opCost = (cb.fuel||0) + (cb.airport||0) + (cb.maint||0) + (cb.lease||0);
+                const calcProfit = ai.finances.total.rev - opCost - (ai.finances.total.capEx||0);
+                
+                let routesHtml = ai.routes.length === 0 ? '<div class="text-muted">運航路線はありません。</div>' : '';
+                ai.routes.slice(0, 5).forEach(r => {
+                    const actFare = Math.floor(Utils.getStandardFare(r.distance) * (r.fareMult||1.0));
+                    routesHtml += `<div class="card-row" style="font-size:0.8rem; border-bottom:1px solid var(--col-bg-dark); padding:2px 0;"><span>${r.id} (運賃: ${actFare}円)</span><span>LF: ${r.stats.lastLf||0}%</span></div>`;
+                });
+                if (ai.routes.length > 5) routesHtml += `<div class="text-muted" style="font-size:0.8rem; text-align:right;">他 ${ai.routes.length - 5} 路線...</div>`;
+
+                let html = `
+                    <div class="data-grid">
+                        <div class="card">
+                            <div class="card-header">財務・統計情報</div>
+                            <div class="card-body">
+                                <div class="card-row"><span>現在の資金</span><span class="${ai.funds>=0?'text-success':'text-danger'} font-bold">${Utils.formatMoney(ai.funds)}</span></div>
+                                <div class="card-row"><span>累計売上</span><span class="text-success">${Utils.formatMoney(ai.finances.total.rev)}</span></div>
+                                <div class="card-row"><span>累計費用・投資</span><span class="text-danger">-${Utils.formatMoney(opCost + (ai.finances.total.capEx||0))}</span></div>
+                                <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                                <div class="card-row font-bold"><span>累計純利益</span><span class="${calcProfit>=0?'text-success':'text-danger'}">${Utils.formatMoney(calcProfit)}</span></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">主要運航路線</div>
+                            <div class="card-body">${routesHtml}</div>
+                        </div>
+                    </div>
+                `;
+                UI.showModal(`${ai.name} 企業詳細`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+            },
+
+            showNewsModal() {
+                let html = '<div style="display:flex; flex-direction:column;">';
+                const list = (Player.news && Player.news.length > 0) ? Player.news : (Player.history || []);
+                if (list.length === 0) {
+                    html += '<div class="text-muted text-center" style="padding: 20px;">ニュースはありません。</div>';
+                } else {
+                    list.slice(0, 50).forEach(n => {
+                        html += `
+                            <div class="news-item ${n.type || 'info'}">
+                                <div class="news-date">${Utils.formatDate(n.date)}</div>
+                                <div>${n.msg}</div>
+                            </div>
+                        `;
+                    });
+                }
+                html += '</div>';
+                UI.showModal('最新ニュース・履歴', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
             },
 
             showRouteCreateModal() {
@@ -1551,6 +1817,34 @@
                 if (data.company.reputation === undefined || !isFinite(data.company.reputation)) data.company.reputation = 50;
                 if (data.company.awareness === undefined || !isFinite(data.company.awareness)) data.company.awareness = 10;
                 
+                // Initialize Competitors and News for v0.2.0
+                if (!data.competitors) {
+                    data.competitors = GameData.Competitors.map(c => {
+                        const comp = {
+                            id: c.iata, name: c.name, iata: c.iata, icao: c.icao, color: '#64748b', hq: c.hq,
+                            funds: c.iata === 'SA' ? 8000000000 : (c.iata === 'PW' ? 4000000000 : 2500000000),
+                            reputation: 60, awareness: 50, date: data.company.date, status: 'active',
+                            fleet: [], routes: [],
+                            finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} }
+                        };
+                        if (c.iata === 'SA') comp.color = '#e11d48';
+                        if (c.iata === 'NR') comp.color = '#16a34a';
+                        if (c.iata === 'PW') comp.color = '#0284c7';
+                        return comp;
+                    });
+                }
+                
+                if (!data.news) {
+                    data.news = (data.history || []).map(h => ({ date: h.date, msg: h.msg, type: 'info' }));
+                }
+
+                // Verify AI Data
+                data.competitors.forEach(ai => {
+                    if (ai.funds === null || isNaN(ai.funds)) ai.funds = 1000000000;
+                    if (!ai.finances) ai.finances = { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} };
+                    ai.routes.forEach(r => { if (!r.stats.costBreakdown) r.stats.costBreakdown = {fuel:0,airport:0,maint:0,lease:0}; });
+                });
+
                 // Finances Structure Validation & Fallbacks
                 if (!data.company.finances) {
                     data.company.finances = {
@@ -1601,6 +1895,22 @@
             submitNewCompany(e) {
                 e.preventDefault();
                 const name = document.getElementById('c-name').value.trim(); const iata = document.getElementById('c-iata').value.toUpperCase(); const icao = document.getElementById('c-icao').value.toUpperCase();
+                
+                // Init AI Competitors
+                const initialCompetitors = GameData.Competitors.map(c => {
+                    const comp = {
+                        id: c.iata, name: c.name, iata: c.iata, icao: c.icao, color: '#64748b', hq: c.hq,
+                        funds: c.iata === 'SA' ? 8000000000 : (c.iata === 'PW' ? 4000000000 : 2500000000),
+                        reputation: 60, awareness: 40, date: GameData.START_DATE, status: 'active',
+                        fleet: [], routes: [],
+                        finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} }
+                    };
+                    if (c.iata === 'SA') comp.color = '#e11d48';
+                    if (c.iata === 'NR') comp.color = '#16a34a';
+                    if (c.iata === 'PW') comp.color = '#0284c7';
+                    return comp;
+                });
+
                 Player = {
                     version: GameData.VERSION,
                     metadata: { createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString() },
@@ -1610,6 +1920,8 @@
                         fleet: [], routes: [], employees: 0, debt: 0,
                         finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [] }
                     },
+                    competitors: initialCompetitors,
+                    news: [{ date: GameData.START_DATE, msg: `${name} を設立しました。市場への参入を果たしました。`, type: 'success' }],
                     history: [{ date: GameData.START_DATE, msg: `${name} を設立しました。` }]
                 };
                 if (this.saveData(false)) this.enterHQ();
