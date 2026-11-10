@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.4</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.6</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -316,7 +316,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.5<br>セーブデータ検証・保護強化アップデート
+            Version v0.2.1.6<br>セーブデータ検証・保護強化アップデート
         </div>
     </div>
 
@@ -518,7 +518,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.5
+         * AIRLINE TYCOON JAPAN v0.2.1.6
          * 財務整合性・データ保護強化アップデート
          */
 
@@ -545,7 +545,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.5",
+            VERSION: "0.2.1.6",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -1975,7 +1975,8 @@
             },
             validateSaveData(data) {
                 if (!data || typeof data !== 'object') return false;
-                if (!data.company || typeof data.company.name !== 'string') return false;
+                if (!data.company || typeof data.company !== 'object') return false;
+                if (typeof data.company.name !== 'string' || data.company.name.trim() === '') return false;
                 
                 // 資金のNaNチェック
                 if (typeof data.company.funds !== 'number' || isNaN(data.company.funds) || !isFinite(data.company.funds)) return false;
@@ -1993,6 +1994,9 @@
 
                 // 必須配列
                 if (!Array.isArray(data.company.fleet) || !Array.isArray(data.company.routes)) return false;
+
+                // AI会社配列の構造チェック（存在する場合）
+                if (data.competitors && !Array.isArray(data.competitors)) return false;
 
                 return true;
             },
@@ -2067,15 +2071,34 @@
                 if (!data.competitors) data.competitors = GameData.Competitors.map(c => this._generateAIInitialState(c, data.company.date));
                 if (!data.news) data.news = (data.history || []).map(h => ({ date: h.date, msg: h.msg, type: 'info' }));
 
-                const fixFinances = (fin) => {
-                    if (!fin) return;
+                const fixFinances = (finParent, key) => {
+                    if (!finParent[key] || typeof finParent[key] !== 'object') {
+                        finParent[key] = { rev: 0, cost: { fuel: 0, airport: 0, maint: 0, lease: 0 }, capEx: 0 };
+                        logRepair(`財務データ(${key})が欠損していたため初期化しました。`);
+                    }
+                    const fin = finParent[key];
                     fin.rev = Math.max(0, fixNum(fin.rev));
-                    if(!fin.cost) fin.cost = {fuel:0, airport:0, maint:0, lease:0};
+                    if (!fin.cost || typeof fin.cost !== 'object') {
+                        fin.cost = { fuel: 0, airport: 0, maint: 0, lease: 0 };
+                        logRepair(`財務費用データ(${key}.cost)が欠損していたため初期化しました。`);
+                    }
                     fin.cost.fuel = Math.max(0, fixNum(fin.cost.fuel));
                     fin.cost.airport = Math.max(0, fixNum(fin.cost.airport));
                     fin.cost.maint = Math.max(0, fixNum(fin.cost.maint));
                     fin.cost.lease = Math.max(0, fixNum(fin.cost.lease));
                     fin.capEx = Math.max(0, fixNum(fin.capEx));
+                };
+
+                const fixTmStats = (obj, ownerName) => {
+                    if (!obj.finances) obj.finances = {};
+                    if (!obj.finances._tmStats || typeof obj.finances._tmStats !== 'object') {
+                        obj.finances._tmStats = { f: 0, p: 0, seats: 0 };
+                        logRepair(`${ownerName} の月次統計データ(_tmStats)が欠損していたため初期化しました。`);
+                    } else {
+                        obj.finances._tmStats.f = Math.max(0, fixNum(obj.finances._tmStats.f));
+                        obj.finances._tmStats.p = Math.max(0, fixNum(obj.finances._tmStats.p));
+                        obj.finances._tmStats.seats = Math.max(0, fixNum(obj.finances._tmStats.seats));
+                    }
                 };
 
                 const checkFleetAndRoutes = (companyObj, isPlayer) => {
@@ -2143,11 +2166,45 @@
                         r.fareMult = fixNum(r.fareMult, 1.0);
                         if (r.fareMult < 0.1 || r.fareMult > 5.0) r.fareMult = 1.0;
 
-                        if (!r.stats) {
+                        if (!r.stats || typeof r.stats !== 'object') {
                             r.stats = { flights: 0, pax: 0, rev: 0, profit: 0, costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 }, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] };
+                            logRepair(`路線 ${r.id} の統計データが欠損していたため初期化しました。`);
+                        } else {
+                            r.stats.flights = fixNum(r.stats.flights);
+                            r.stats.pax = fixNum(r.stats.pax);
+                            r.stats.rev = fixNum(r.stats.rev);
+                            r.stats.profit = fixNum(r.stats.profit);
+                            
+                            if (!r.stats.costBreakdown || typeof r.stats.costBreakdown !== 'object') {
+                                r.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
+                            } else {
+                                r.stats.costBreakdown.fuel = fixNum(r.stats.costBreakdown.fuel);
+                                r.stats.costBreakdown.airport = fixNum(r.stats.costBreakdown.airport);
+                                r.stats.costBreakdown.maint = fixNum(r.stats.costBreakdown.maint);
+                                r.stats.costBreakdown.lease = fixNum(r.stats.costBreakdown.lease);
+                            }
+                            
+                            if (!r.stats.lastCost || typeof r.stats.lastCost !== 'object') {
+                                r.stats.lastCost = { fuel: 0, airport: 0, maint: 0, lease: 0 };
+                            } else {
+                                r.stats.lastCost.fuel = fixNum(r.stats.lastCost.fuel);
+                                r.stats.lastCost.airport = fixNum(r.stats.lastCost.airport);
+                                r.stats.lastCost.maint = fixNum(r.stats.lastCost.maint);
+                                r.stats.lastCost.lease = fixNum(r.stats.lastCost.lease);
+                            }
+                            
+                            r.stats.lastLf = fixNum(r.stats.lastLf);
+                            r.stats.lastPax = fixNum(r.stats.lastPax);
+                            r.stats.lastRev = fixNum(r.stats.lastRev);
+                            r.stats.lastProfit = fixNum(r.stats.lastProfit);
+                            r.stats.lastFlights = fixNum(r.stats.lastFlights);
+                            
+                            if (!Array.isArray(r.stats.lfHistory)) {
+                                r.stats.lfHistory = [];
+                            } else {
+                                r.stats.lfHistory = r.stats.lfHistory.map(v => fixNum(v));
+                            }
                         }
-                        if (!r.stats.costBreakdown) r.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
-                        if (!Array.isArray(r.stats.lfHistory)) r.stats.lfHistory = [];
                         return true;
                     });
 
@@ -2163,10 +2220,12 @@
                 };
 
                 // Playerの財務・機材補正
-                if (!data.company.finances) data.company.finances = { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: { f:0, p:0, seats:0 } };
-                fixFinances(data.company.finances.today);
-                fixFinances(data.company.finances.thisMonth);
-                fixFinances(data.company.finances.total);
+                if (!data.company.finances) data.company.finances = {};
+                fixFinances(data.company.finances, 'today');
+                fixFinances(data.company.finances, 'thisMonth');
+                fixFinances(data.company.finances, 'total');
+                fixTmStats(data.company, 'プレイヤー');
+
                 if (Array.isArray(data.company.finances.monthlyRecords)) {
                     data.company.finances.monthlyRecords.forEach(m => {
                         m.rev = Math.max(0, fixNum(m.rev));
@@ -2192,11 +2251,11 @@
                     ai.funds = fixNum(ai.funds, 1000000000);
                     ai.reputation = fixNum(ai.reputation, 50);
                     ai.awareness = fixNum(ai.awareness, 10);
-                    if (!ai.finances) ai.finances = { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} };
-                    fixFinances(ai.finances.today);
-                    fixFinances(ai.finances.thisMonth);
-                    fixFinances(ai.finances.total);
-                    if(!ai.finances._tmStats) ai.finances._tmStats = {f:0,p:0,seats:0};
+                    if (!ai.finances) ai.finances = {};
+                    fixFinances(ai.finances, 'today');
+                    fixFinances(ai.finances, 'thisMonth');
+                    fixFinances(ai.finances, 'total');
+                    fixTmStats(ai, ai.name);
                     checkFleetAndRoutes(ai, false);
                 });
 
@@ -2279,6 +2338,14 @@
             },
             saveData(isAuto = false) {
                 if (!Player) return false;
+
+                // --- 保存前検証 (v0.2.1.6 重点実装) ---
+                if (!this.validateSaveData(Player)) {
+                    if (!isAuto) UI.showModal('保存エラー', 'セーブデータの整合性検証に失敗しました。不完全な状態での保存をブロックしました。');
+                    console.error("Save aborted: Player data validation failed.");
+                    return false;
+                }
+
                 try {
                     const exist = localStorage.getItem(GameData.SAVE_KEY);
                     if (exist) {
