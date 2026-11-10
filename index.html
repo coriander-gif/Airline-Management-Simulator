@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.3.0.3</title>
+    <title>AIRLINE TYCOON JAPAN v0.3.0.4</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -133,7 +133,7 @@
         .stat-value { font-weight: bold; font-family: monospace; font-size: 1.05rem;}
 
         .hq-body { display: flex; flex: 1; overflow: hidden; position: relative; }
-        .hq-sidebar { width: 200px; background-color: var(--col-bg-panel); border-right: 1px solid var(--panel-border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 20; }
+        .hq-sidebar { width: 200px; background-color: var(--col-bg-panel); border-right: 1px solid var(--panel-border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 20; overflow-y: auto; }
         .nav-item { padding: 15px 20px; color: var(--col-text-main); cursor: pointer; border-bottom: 1px solid var(--panel-border); transition: background-color 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
         .nav-item:hover { background-color: var(--col-bg-hover); }
         .nav-item.active { background-color: var(--col-primary); color: white; font-weight: bold; border-left: 4px solid var(--col-primary-hover); }
@@ -252,6 +252,17 @@
         .share-bar-container { width: 100%; height: 24px; background: var(--col-bg-dark); border-radius: 6px; overflow: hidden; display: flex; margin-bottom: 20px; border: 1px solid var(--panel-border); }
         .share-bar-segment { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: width 0.3s; }
 
+        /* Rotation View Styles */
+        .rotation-container { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .rot-node { display: flex; align-items: center; gap: 15px; }
+        .rot-airport { font-weight: bold; background: var(--col-bg-panel); border: 2px solid var(--col-primary); color: var(--col-primary); padding: 5px 15px; border-radius: 20px; text-align: center; min-width: 140px; box-shadow: 0 2px 4px var(--shadow-color); }
+        .rot-flight { flex: 1; background: var(--col-bg-panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px var(--shadow-color); border-left: 4px solid var(--col-primary); }
+        .rot-flight.error { border-left-color: var(--col-danger); background-color: rgba(239, 68, 68, 0.05); }
+        .rot-flight.warning { border-left-color: var(--col-warning); background-color: rgba(245, 158, 11, 0.05); }
+        .rot-arrow-line { width: 2px; height: 100%; min-height: 30px; background-color: var(--panel-border); }
+        .rot-conn-info { font-size: 0.8rem; color: var(--col-text-muted); background: var(--col-bg-dark); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--panel-border); margin: 5px 0; display: inline-block; }
+        .rot-conn-info.error { color: var(--col-danger); border-color: var(--col-danger); background-color: rgba(239, 68, 68, 0.1); }
+
         /* Mobile Adjustments */
         .routes-cards-mobile { display: none; }
         .schedule-cards-mobile { display: none; }
@@ -268,6 +279,11 @@
             .schedule-table-container { display: none; }
             .routes-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
             .schedule-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+            
+            .rot-node { flex-direction: column; align-items: stretch; gap: 5px; }
+            .rot-airport { align-self: center; margin: 10px 0; }
+            .rot-arrow-line { min-height: 20px; align-self: center; }
+            .rot-node > div:first-child { align-self: center; text-align: center; width: auto !important; flex-direction: row !important; gap: 10px; }
         }
         .mobile-menu-btn { display: none; cursor: pointer; }
     </style>
@@ -321,7 +337,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.3.0.3<br>フライトスケジュールの作成・編集・削除
+            Version v0.3.0.4<br>航空機ローテーションシステムの実装
         </div>
     </div>
 
@@ -418,6 +434,7 @@
                 <div class="nav-item" onclick="UI.switchMainView('view-fleet', this)">機材管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-routes', this)">路線管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-schedules', this)">スケジュール</div>
+                <div class="nav-item" onclick="UI.switchMainView('view-rotation', this)">航空機ローテーション</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-finance', this)">財務・統計</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-competitors', this)">競合他社 (AI)</div>
                 <div style="flex:1;"></div>
@@ -567,6 +584,27 @@
                     <div id="schedules-cards-mobile" class="schedule-cards-mobile"></div>
                 </div>
 
+                <!-- Aircraft Rotation View (NEW) -->
+                <div id="view-rotation" class="mgmt-panel">
+                    <div class="panel-header-title">航空機ローテーション</div>
+                    <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9rem;">航空機がどの便をどの順番で担当するか、スケジュール的な成立状況を確認します。</p>
+                    
+                    <div class="card" style="margin-bottom: 20px;">
+                        <div class="card-body" style="display:flex; flex-direction:column; gap:10px;">
+                            <label for="rot-aircraft-select" style="font-size:0.85rem; color:var(--col-text-muted);">対象機材を選択</label>
+                            <select id="rot-aircraft-select" class="input-field" onchange="Views.renderRotation()"></select>
+                        </div>
+                    </div>
+
+                    <div id="rot-summary-card" class="card hidden" style="margin-bottom: 20px;">
+                        <!-- 概要情報 -->
+                    </div>
+
+                    <div id="rot-timeline-container" style="padding-bottom: 40px;">
+                        <!-- タイムライン -->
+                    </div>
+                </div>
+
                 <!-- 4. Finance & Stats View -->
                 <div id="view-finance" class="mgmt-panel">
                     <div class="panel-header-title">財務・統計情報</div>
@@ -601,8 +639,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.3.0.3
-         * フライトスケジュールの作成・編集・削除
+         * AIRLINE TYCOON JAPAN v0.3.0.4
+         * 航空機ローテーションシステムの実装
          */
 
         const ThemeManager = {
@@ -628,7 +666,7 @@
         };
 
         const GameData = {
-            VERSION: "0.3.0.3",
+            VERSION: "0.3.0.4",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -659,7 +697,6 @@
             ],
 
             Aircrafts: [
-                // Turboprops / Regional
                 { id: 'atr42', maker: 'ATR', name: 'ATR 42-600', cat: 'ターボプロップ', size: '小型', seats: 48, range: 1300, price: 2500000000, leaseInit: 250000000, leaseDaily: 500000, speed: 500, fuelRate: 0.6, maint: 200000, desc: '極めて需要の少ない地方路線でも利益を出しやすい小型プロペラ機。' },
                 { id: 'atr72', maker: 'ATR', name: 'ATR 72-600', cat: 'ターボプロップ', size: '小型', seats: 70, range: 1500, price: 3500000000, leaseInit: 350000000, leaseDaily: 700000, speed: 500, fuelRate: 0.8, maint: 300000, desc: '地方路線向けの標準的なターボプロップ機。燃費が非常に良い。' },
                 { id: 'q400', maker: 'De Havilland', name: 'Dash 8 Q400', cat: 'ターボプロップ', size: '小型', seats: 78, range: 2000, price: 4000000000, leaseInit: 400000000, leaseDaily: 800000, speed: 660, fuelRate: 0.9, maint: 350000, desc: 'ジェット機に近い巡航速度を持つ高性能なターボプロップ機。' },
@@ -669,7 +706,6 @@
                 { id: 'e195e2', maker: 'Embraer', name: 'Embraer E195-E2', cat: 'リージョナル', size: '小型', seats: 132, range: 4800, price: 7500000000, leaseInit: 750000000, leaseDaily: 1500000, speed: 820, fuelRate: 1.2, maint: 480000, desc: '次世代エンジンを搭載し、燃費効率を極限まで高めた最新鋭機。' },
                 { id: 'a220-100', maker: 'Airbus', name: 'Airbus A220-100', cat: '小型ジェット', size: '小型', seats: 110, range: 6300, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.1, maint: 480000, desc: '快適な客室と優れた低燃費を両立した次世代の小型ジェット機。' },
                 { id: 'a220', maker: 'Airbus', name: 'Airbus A220-300', cat: '小型ジェット', size: '中型', seats: 130, range: 6000, price: 10000000000, leaseInit: 1000000000, leaseDaily: 2000000, speed: 830, fuelRate: 1.2, maint: 500000, desc: 'A220の胴体延長型。小〜中規模の路線で極めて効率的。' },
-                // Narrowbodies
                 { id: 'a319ceo', maker: 'Airbus', name: 'Airbus A319ceo', cat: '単通路ジェット', size: '中型', seats: 124, range: 6900, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 830, fuelRate: 1.3, maint: 500000, desc: 'A320の短胴型。短い滑走路や少し需要の少ない路線向け。' },
                 { id: 'a319neo', maker: 'Airbus', name: 'Airbus A319neo', cat: '単通路ジェット', size: '中型', seats: 140, range: 6800, price: 9500000000, leaseInit: 950000000, leaseDaily: 1900000, speed: 830, fuelRate: 1.2, maint: 520000, desc: '新型エンジンによる低燃費を実現したA319の次世代モデル。' },
                 { id: 'a320ceo', maker: 'Airbus', name: 'Airbus A320ceo', cat: '単通路ジェット', size: '中型', seats: 150, range: 6100, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.6, maint: 550000, desc: '世界中で活躍するベストセラー機。汎用性が高い。' },
@@ -682,7 +718,6 @@
                 { id: 'b73m8', maker: 'Boeing', name: 'Boeing 737 MAX 8', cat: '単通路ジェット', size: '中型', seats: 162, range: 6500, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 840, fuelRate: 1.4, maint: 600000, desc: '737-800の後継機。燃費が大幅に改善されている。' },
                 { id: 'b73m9', maker: 'Boeing', name: 'Boeing 737 MAX 9', cat: '単通路ジェット', size: '中型', seats: 178, range: 6500, price: 11500000000, leaseInit: 1150000000, leaseDaily: 2300000, speed: 840, fuelRate: 1.5, maint: 650000, desc: 'MAX 8より多くの乗客を運べるストレッチモデル。' },
                 { id: 'b73m10', maker: 'Boeing', name: 'Boeing 737 MAX 10', cat: '単通路ジェット', size: '中型', seats: 188, range: 6100, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 840, fuelRate: 1.6, maint: 680000, desc: '737MAXシリーズ最大。A321neoと競合する高需要向け機材。' },
-                // Widebodies / Long Haul
                 { id: 'b757', maker: 'Boeing', name: 'Boeing 757-200', cat: '単通路ジェット', size: '中型', seats: 200, range: 7200, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 850, fuelRate: 2.1, maint: 800000, desc: '強力な推力を持ち、中〜高需要の路線をカバーする名機。' },
                 { id: 'b767', maker: 'Boeing', name: 'Boeing 767-300ER', cat: 'ワイドボディ', size: '大型', seats: 218, range: 11000, price: 18000000000, leaseInit: 1800000000, leaseDaily: 3600000, speed: 850, fuelRate: 2.6, maint: 900000, desc: '国内幹線や国際線でも活躍する中型ワイドボディの定番。' },
                 { id: 'b777-200er', maker: 'Boeing', name: 'Boeing 777-200ER', cat: 'ワイドボディ', size: '大型', seats: 314, range: 13000, price: 25000000000, leaseInit: 2500000000, leaseDaily: 5000000, speed: 900, fuelRate: 3.2, maint: 1100000, desc: '大量輸送に特化。非常に大きな需要がある路線で活躍する。' },
@@ -771,6 +806,137 @@
         };
 
         // ==========================================
+        // Rotation System (NEW)
+        // ==========================================
+        const RotationSystem = {
+            DAY_MAP: ['日','月','火','水','木','金','土'],
+            
+            timeToMins(timeStr) {
+                if (!timeStr) return 0;
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+            },
+            
+            getDayOffset(dayNum) {
+                // 0(日曜)〜6(土曜) を 月曜(0)〜日曜(6) の並びに変更
+                return dayNum === 0 ? 6 : dayNum - 1; 
+            },
+
+            checkRotationBySchedules(aircraftId, schedulesList) {
+                let result = {
+                    status: '便なし',
+                    errors: [],
+                    warnings: [],
+                    events: [],
+                    plannedPosition: null
+                };
+
+                if (!aircraftId) return result;
+
+                let mySchedules = schedulesList.filter(s => s.aircraftId === aircraftId);
+                if (mySchedules.length === 0) {
+                    return result;
+                }
+
+                let events = [];
+                let hasInactive = false;
+                let dataError = false;
+
+                mySchedules.forEach(s => {
+                    if (!s.isActive) hasInactive = true;
+                    
+                    const origAp = GameData.Airports.find(a => a.id === s.originAirportId);
+                    const destAp = GameData.Airports.find(a => a.id === s.destinationAirportId);
+                    if (!origAp || !destAp) {
+                        result.errors.push(`便 ${s.flightNumber} の必要な空港データが存在しません。`);
+                        dataError = true;
+                        return;
+                    }
+
+                    s.operatingDays.forEach(day => {
+                        let dayOffset = this.getDayOffset(day);
+                        let depMins = this.timeToMins(s.departureTime);
+                        let arrMins = this.timeToMins(s.arrivalTime);
+                        
+                        let isNextDayArrival = arrMins < depMins;
+                        if (isNextDayArrival) arrMins += 24 * 60;
+
+                        let absDepMins = dayOffset * 24 * 60 + depMins;
+                        let absArrMins = dayOffset * 24 * 60 + arrMins;
+
+                        events.push({
+                            originalDay: day,
+                            dayOffset: dayOffset,
+                            dayName: this.DAY_MAP[day],
+                            s: s,
+                            depMins: absDepMins,
+                            arrMins: absArrMins,
+                            isNextDayArrival: isNextDayArrival,
+                            flightId: s.flightId,
+                            origName: origAp.name,
+                            destName: destAp.name
+                        });
+                    });
+                });
+
+                if (dataError || events.length === 0) {
+                    result.status = '不成立';
+                    return result;
+                }
+
+                events.sort((a, b) => a.depMins - b.depMins);
+
+                for (let i = 0; i < events.length; i++) {
+                    let curr = events[i];
+                    let next = events[(i + 1) % events.length];
+                    let isWrapAround = (i === events.length - 1);
+
+                    let nextDepMins = next.depMins;
+                    if (isWrapAround) {
+                        nextDepMins += 7 * 24 * 60; // 翌週へ
+                    }
+
+                    let turnaround = nextDepMins - curr.arrMins;
+                    curr.turnaroundMins = turnaround;
+
+                    if (turnaround < 0) {
+                        result.errors.push(`${curr.dayName}曜日の便 ${curr.s.flightNumber} と、次便 ${next.dayName}曜日の ${next.s.flightNumber} の時間が重複しています。`);
+                    } else if (turnaround < 45) {
+                        result.errors.push(`${curr.dayName}曜日の便 ${curr.s.flightNumber} から次便 ${next.dayName}曜日の ${next.s.flightNumber} への折り返し時間が不足しています（${turnaround}分 / 最低45分）。`);
+                    }
+
+                    if (curr.s.destinationAirportId !== next.s.originAirportId) {
+                        result.errors.push(`便 ${curr.s.flightNumber} の到着空港(${curr.destName})と、次便 ${next.s.flightNumber} の出発空港(${next.origName})が一致しません。`);
+                    }
+                }
+
+                if (hasInactive) result.warnings.push('運休中の便が含まれています。');
+                if (mySchedules.length < 2) result.warnings.push('構成する便が少ないため、ローテーション運用上の判断が難しい状態です。');
+
+                if (result.errors.length > 0) result.status = '不成立';
+                else if (result.warnings.length > 0) result.status = '警告あり';
+                else result.status = '成立';
+
+                result.events = events;
+
+                if (events.length > 0) {
+                    let firstEv = events[0];
+                    let lastEv = events[events.length - 1];
+                    result.plannedPosition = {
+                        startAirport: firstEv.origName,
+                        nextFlight: firstEv.s.flightNumber,
+                        nextDepAp: firstEv.origName,
+                        nextDepTime: `${firstEv.dayName}曜日 ${firstEv.s.departureTime}`,
+                        prevArrAp: lastEv.destName,
+                        prevArrTime: `${lastEv.dayName}曜日 ${lastEv.s.arrivalTime}${lastEv.isNextDayArrival?'(翌日)':''}`
+                    };
+                }
+
+                return result;
+            }
+        };
+
+        // ==========================================
         // UI Manager
         // ==========================================
         const UI = {
@@ -781,11 +947,13 @@
                 document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
                 if(navElem) navElem.classList.add('active');
                 if(window.innerWidth <= 768) this.toggleSidebar();
+                
                 if(id === 'view-fleet') Views.renderFleet();
                 if(id === 'view-routes') Views.renderRoutes();
                 if(id === 'view-schedules') Views.renderSchedules();
                 if(id === 'view-finance') Views.renderFinance();
                 if(id === 'view-competitors') Views.renderCompetitors();
+                if(id === 'view-rotation') Views.renderRotation();
             },
             showModal(title, msg, contentHtml = null, btnsHtml = null) {
                 document.getElementById('modal-title').textContent = title;
@@ -884,9 +1052,21 @@
                 const idx = Player.company.fleet.findIndex(f => f.reg === reg); if (idx === -1) return;
                 const plane = Player.company.fleet[idx];
                 if (plane.routeId) { UI.showToast("路線に割り当て中のため返却できません。", "error"); return; }
+                
+                // フライトスケジュールからの割り当ても確認して解除
+                const hasSchedules = Player.company.schedules.some(s => s.aircraftId === reg);
+                if (hasSchedules) {
+                    Player.company.schedules.forEach(s => {
+                        if (s.aircraftId === reg) s.aircraftId = null;
+                    });
+                    UI.showToast("この機材に関連する便の機材割り当てを解除しました。", "warning");
+                }
+
                 Player.company.fleet.splice(idx, 1);
                 Player.history.unshift({ date: Player.company.date, msg: `リース機 ${reg} を返却しました。` });
-                UI.showToast(`${reg} を返却しました。`); Views.renderFleet(); UI.updateHeader(); Game.saveData(true);
+                UI.showToast(`${reg} を返却しました。`); 
+                Views.renderFleet(); UI.updateHeader(); 
+                Game.saveData(true);
             },
 
             createRoute(fromId, toId) {
@@ -916,6 +1096,7 @@
             },
 
             assignAircraft(routeId, reg) {
+                // これは従来の「路線単位での機材割り当て」。今回のスケジュール単位割り当てには干渉しない。
                 if (!Player || !Player.company || !Player.company.routes) return;
                 const route = Player.company.routes.find(r => r.id === routeId);
                 if (!route) { UI.showToast("指定された路線が存在しません", "error"); return; }
@@ -964,7 +1145,6 @@
                 const operatingDays = [];
                 dayCbs.forEach(cb => { if(cb.checked) operatingDays.push(parseInt(cb.value)); });
 
-                // バリデーション
                 if (flightNum.length < 2 || flightNum.length > 12) {
                     UI.showToast("便名は2〜12文字で入力してください", "error"); return;
                 }
@@ -994,47 +1174,71 @@
                 }
 
                 const now = new Date().toISOString();
+                const newId = flightId || Utils.genFlightId();
+                let existS = flightId ? Player.company.schedules.find(s=>s.flightId === flightId) : null;
 
-                if (flightId) {
-                    // 編集更新
-                    const s = Player.company.schedules.find(fs => fs.flightId === flightId);
-                    if (s) {
-                        s.flightNumber = flightNum;
-                        s.routeId = routeId;
-                        s.originAirportId = route.from;
-                        s.destinationAirportId = route.to;
-                        s.departureTime = depTime;
-                        s.arrivalTime = arrTime;
-                        s.operatingDays = operatingDays.sort();
-                        s.aircraftId = aircraftId;
-                        s.isActive = (isActiveStr === 'true');
-                        s.updatedAt = now;
-                        UI.showToast("便情報を更新しました", "success");
+                const newSchedule = {
+                    flightId: newId,
+                    flightNumber: flightNum,
+                    routeId: routeId,
+                    airlineId: Player.company.iata,
+                    aircraftId: aircraftId,
+                    originAirportId: route.from,
+                    destinationAirportId: route.to,
+                    departureTime: depTime,
+                    arrivalTime: arrTime,
+                    operatingDays: operatingDays.sort(),
+                    isActive: (isActiveStr === 'true'),
+                    createdAt: existS ? existS.createdAt : now,
+                    updatedAt: now
+                };
+
+                // 機材が割り当てられた場合、ローテーションの不成立チェックを行う
+                if (aircraftId) {
+                    const tempSchedules = Player.company.schedules.filter(x => x.flightId !== flightId);
+                    tempSchedules.push(newSchedule);
+                    const rot = RotationSystem.checkRotationBySchedules(aircraftId, tempSchedules);
+                    
+                    if (rot.status === '不成立') {
+                        window.__tempNewSchedule = newSchedule;
+                        window.__tempIsEdit = !!flightId;
+                        const errList = rot.errors.map(e => `<li>${e}</li>`).join('');
+                        const html = `
+                            <p class="text-danger font-bold">この便を保存すると、機材(${aircraftId})のローテーションが不成立になります。</p>
+                            <ul style="font-size:0.85rem; margin-top:10px; margin-bottom:10px; padding-left:20px; color:var(--col-text-main);">
+                                ${errList}
+                            </ul>
+                            <p class="text-muted" style="font-size:0.85rem;">※運用上の重大な矛盾があるため、そのままでは正常に運航できません。それでも保存しますか？</p>
+                        `;
+                        const btns = `
+                            <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
+                            <button class="btn btn-danger" onclick="Logic._forceSaveSchedule(window.__tempNewSchedule, window.__tempIsEdit)">保存を強行する</button>
+                        `;
+                        UI.showModal('ローテーション不成立の警告', '', html, btns);
+                        return;
                     }
-                } else {
-                    // 新規作成
-                    const newId = Utils.genFlightId();
-                    Player.company.schedules.push({
-                        flightId: newId,
-                        flightNumber: flightNum,
-                        routeId: routeId,
-                        airlineId: Player.company.iata,
-                        aircraftId: aircraftId,
-                        originAirportId: route.from,
-                        destinationAirportId: route.to,
-                        departureTime: depTime,
-                        arrivalTime: arrTime,
-                        operatingDays: operatingDays.sort(),
-                        isActive: (isActiveStr === 'true'),
-                        createdAt: now,
-                        updatedAt: now
-                    });
-                    UI.showToast("新しい便を作成しました", "success");
                 }
 
+                this._forceSaveSchedule(newSchedule, !!flightId);
+            },
+
+            _forceSaveSchedule(newSchedule, isEdit) {
+                if (isEdit) {
+                    const idx = Player.company.schedules.findIndex(s => s.flightId === newSchedule.flightId);
+                    if (idx !== -1) Player.company.schedules[idx] = newSchedule;
+                } else {
+                    Player.company.schedules.push(newSchedule);
+                }
+                
+                UI.showToast("便情報を保存しました", "success");
                 Game.saveData(true);
                 UI.hideModal();
                 Views.renderSchedules();
+                
+                // ローテーション画面が開かれている場合は更新
+                if (document.getElementById('view-rotation').classList.contains('active')) {
+                    Views.renderRotation();
+                }
             },
 
             deleteSchedule(flightId) {
@@ -1046,6 +1250,9 @@
                 }
                 UI.hideModal();
                 Views.renderSchedules();
+                if (document.getElementById('view-rotation').classList.contains('active')) {
+                    Views.renderRotation();
+                }
             },
 
             // --- Robust 365-Day & Batch Time Engine ---
@@ -1097,7 +1304,6 @@
                 const startDateStr = Player.company.date;
 
                 try {
-                    // ** DAILY ENGINE LOOP **
                     for (let step = 0; step < num; step++) {
                         if (this.cancelRequested) {
                             summary.stopped = true;
@@ -1108,7 +1314,6 @@
                             summary.stopped = true; summary.stopReason = "深刻な資金ショート (50億円以上の赤字)"; break; 
                         }
 
-                        // トランザクション化された日次処理を呼び出し
                         const res = this._processOneDay();
                         
                         summary.days++; 
@@ -1120,13 +1325,12 @@
                         summary.pax += res.pax; 
                         summary.flights += res.flights;
 
-                        // Yield and update UI every 5 days or at the end
                         if (step % 5 === 0 || step === num - 1) { 
                             progBar.style.width = `${((step+1)/num)*100}%`;
                             progText.textContent = `進行状況: ${step+1} / ${num}日`;
                             progDate.textContent = Utils.formatDate(Player.company.date);
                             await new Promise(resolve => setTimeout(resolve, 5));
-                            Game.saveData(true); // intermediate save
+                            Game.saveData(true);
                         }
                     }
                 } catch (e) {
@@ -1143,7 +1347,6 @@
                     UI.updateHeader();
                     
                     if (summary.days > 0) {
-                        // Show Batch Result Modal
                         const opCostSum = summary.fuel + summary.airport + summary.maint + summary.lease;
                         const profit = summary.rev - opCostSum;
                         let html = `
@@ -1175,13 +1378,12 @@
                 }
             },
 
-            // トランザクション管理ラッパー
             _processOneDay() {
-                const backup = JSON.stringify(Player); // 状態スナップショット作成
+                const backup = JSON.stringify(Player);
                 try {
                     return this._calculateOneDayImpl();
                 } catch (error) {
-                    Player = JSON.parse(backup); // エラー時はスナップショットからロールバック
+                    Player = JSON.parse(backup);
                     throw error;
                 }
             },
@@ -1197,15 +1399,13 @@
                     Player.competitors.forEach(ai => { if (ai.status !== 'bankrupt') allCompanies.push(ai); });
                 }
 
-                // 1. 当日の財務初期化（毎日の開始時にリセット）
                 allCompanies.forEach(comp => {
                     comp.finances.today = this._resetFinanceObject();
                 });
 
                 let dayRes = { rev: 0, fuel: 0, airport: 0, maint: 0, lease: 0, pax: 0, flights: 0 };
 
-                // 2. Centralized Lease Processing & Fleet Status Validation (RULE: DEDUCT LEASE ONCE)
-                const marketRoutes = []; // Collect valid flights
+                const marketRoutes = [];
                 allCompanies.forEach(comp => {
                     comp.fleet.forEach(f => {
                         const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
@@ -1225,8 +1425,6 @@
 
                         f.status = canFly ? 'active' : 'idle';
 
-                        // ** CENTRALIZED LEASE DEDUCTION **
-                        // 機材の状態（運航中・待機中・航続距離不足等）に関わらず、リース機なら1日1回だけ控除。
                         if (f.isLeased) {
                             const lCost = ac.leaseDaily || 0;
                             comp.funds -= lCost;
@@ -1242,7 +1440,6 @@
                     });
                 });
 
-                // 3. Market Processing & Operations
                 const pairs = {};
                 marketRoutes.forEach(mr => {
                     const pairKey = [mr.route.from, mr.route.to].sort().join('-');
@@ -1292,7 +1489,6 @@
                         totalScore += mr.score;
                     });
 
-                    // Distribute Market Pax & Apply Operational Income/Expense
                     group.forEach(mr => {
                         if (!mr.valid) return;
 
@@ -1308,16 +1504,14 @@
                         const rFuel = Math.floor(mr.route.distance * (mr.ac.fuelRate || 1.5) * mr.dailyFlights * GameData.FUEL_UNIT_PRICE);
                         const rAirport = Math.floor((apA.scale + apB.scale) * 25000 * mr.dailyFlights);
                         const rMaint = mr.ac.maint || 500000;
-                        const rLease = mr.plane.isLeased ? (mr.ac.leaseDaily || 0) : 0; // Purely analytical per-route visual breakdown
+                        const rLease = mr.plane.isLeased ? (mr.ac.leaseDaily || 0) : 0; 
 
-                        // ** NO LEASE COST DEDUCTED HERE FOR COMPANY FUNDS ** (Already handled globally)
                         const opCost = rFuel + rAirport + rMaint;
 
-                        // Analytics update per Route
                         mr.route.stats.flights += mr.dailyFlights; 
                         mr.route.stats.pax += rPax; 
                         mr.route.stats.rev += rRev; 
-                        mr.route.stats.profit += (rRev - opCost - rLease); // route analytics include lease purely for UI visualization
+                        mr.route.stats.profit += (rRev - opCost - rLease);
                         
                         if (!mr.route.stats.costBreakdown) mr.route.stats.costBreakdown = { fuel:0, airport:0, maint:0, lease:0 };
                         mr.route.stats.costBreakdown.fuel += rFuel;
@@ -1340,8 +1534,7 @@
                         mr.route.stats.lfHistory.push(rLf);
                         if (mr.route.stats.lfHistory.length > 30) mr.route.stats.lfHistory.shift();
 
-                        // Accumulate Actual Operational Funds to Company
-                        mr.owner.funds += (rRev - opCost); // NO LEASE IN OP COST
+                        mr.owner.funds += (rRev - opCost); 
                         mr.owner.finances.today.rev += rRev;
                         mr.owner.finances.today.cost.fuel += rFuel;
                         mr.owner.finances.today.cost.airport += rAirport;
@@ -1364,7 +1557,6 @@
                     });
                 }
 
-                // 4. 月末判定と月次決算 (当日分の処理完了後に行う)
                 let nextD = d + 1;
                 let nextM = m;
                 let nextY = y;
@@ -1383,12 +1575,10 @@
                     });
                 }
 
-                // 5. 日付の更新
                 Player.company.date = `${nextY}-${String(nextM).padStart(2,'0')}-${String(nextD).padStart(2,'0')}`;
                 
-                // 6. AI Strategic Evaluation
                 if (isAIEnabled) {
-                    this._processAIs(d); // AIは曜日分散ロジックのため、元の日の数値を使用
+                    this._processAIs(d);
                 }
 
                 if (this.debugForceErrorInDaily) {
@@ -1421,13 +1611,11 @@
                     if (ai.status === 'bankrupt') return;
                     
                     const diff = Player.settings?.aiDifficulty ?? 'normal';
-                    // 難易度による資金基準と許容赤字期間。難しいほど賢く耐える。
                     let bankruptThresh = -2000000000;
                     let graceMonths = 3;
                     if (diff === 'easy') { bankruptThresh = -1000000000; graceMonths = 2; }
                     if (diff === 'hard') { bankruptThresh = -5000000000; graceMonths = 6; }
 
-                    // Bankruptcy Check using deeper buffer and sustained timer
                     if (ai.funds < bankruptThresh) {
                         ai.bankruptTimer = (ai.bankruptTimer || 0) + 1;
                         if (ai.bankruptTimer > graceMonths * 30) {
@@ -1441,7 +1629,6 @@
                         ai.bankruptTimer = Math.max(0, (ai.bankruptTimer || 0) - 1);
                     }
 
-                    // Weekly Decision Making per AI
                     if (dayOfMonth % 7 === (idx + 1) % 7) {
                         this._aiDecision(ai, diff);
                     }
@@ -1453,29 +1640,25 @@
                 if (diff === 'easy') { expandThresh = 5000000000; fareReact = 0.02; cutMonths = 6; maxRoutes = 8; }
                 if (diff === 'hard') { expandThresh = 1500000000; fareReact = 0.10; cutMonths = 2; maxRoutes = 30; }
 
-                // Survival / Crisis Mode
                 if (ai.funds < 0) {
-                    // Emergency loan if deeply in debt, once per crisis to prevent instant collapse
                     if (ai.funds < -500000000 && (!ai.lastLoan || Player.company.date > ai.lastLoan)) {
                         const loanAmt = diff === 'hard' ? 4000000000 : 2000000000;
                         ai.funds += loanAmt;
                         ai.debt = (ai.debt || 0) + loanAmt;
-                        // Set 1-year cooldown on loans
                         const parts = Player.company.date.split('-');
                         ai.lastLoan = `${parseInt(parts[0])+1}-${parts[1]}-${parts[2]}`;
                         this.addNews(`【経営】${ai.name}が経営立て直しのため緊急融資を受けました。`, 'warning');
                     }
-                    expandThresh = Infinity; // Block expansion
+                    expandThresh = Infinity; 
                 }
 
-                // 1. Adjust Fares & Withdraw from heavy loss routes
                 for (let i = ai.routes.length - 1; i >= 0; i--) {
                     let r = ai.routes[i];
                     if (r.stats.flights > 30) { 
                         if (r.stats.lastProfit < 0) {
                             if (r.stats.lastLf < 60 && r.fareMult > 0.6) r.fareMult = Math.max(0.6, r.fareMult - fareReact);
                             r.deficitCount = (r.deficitCount || 0) + 1;
-                            if (r.deficitCount > cutMonths * 4) { // Weeks of consecutive losses
+                            if (r.deficitCount > cutMonths * 4) { 
                                 this.addNews(`${ai.name}が採算悪化のため ${r.from}-${r.to} 線から撤退しました。`, 'warning');
                                 const plane = ai.fleet.find(f => f.reg === r.assignedReg);
                                 if(plane) { plane.routeId = null; plane.status = 'idle'; }
@@ -1489,7 +1672,6 @@
                     }
                 }
 
-                // 2. Return Idle Leases
                 const idleLimit = ai.funds < 0 ? 1 : 3;
                 for (let i = ai.fleet.length - 1; i >= 0; i--) {
                     let f = ai.fleet[i];
@@ -1501,7 +1683,6 @@
                     }
                 }
 
-                // 3. Expand Operations if wealthy
                 if (ai.funds > expandThresh && ai.routes.length < maxRoutes) {
                     const hqAp = GameData.Airports.find(a => a.id === ai.hq);
                     if (!hqAp) return;
@@ -1514,11 +1695,9 @@
                         const dist = Utils.haversine(hqAp.lat, hqAp.lon, target.lat, target.lon);
                         const cost = Math.floor(dist * 100000 + (hqAp.scale + target.scale) * 5000000);
                         
-                        // Smart Aircraft Picking for AI
                         let validPlanes = GameData.Aircrafts.filter(a => a.range >= dist);
                         if(validPlanes.length === 0) return;
                         
-                        // Flavor bias
                         if (ai.iata === 'NR') validPlanes = validPlanes.filter(a => a.cat === 'ターボプロップ' || a.cat === 'リージョナル' || a.cat === '小型ジェット');
                         if (ai.iata === 'SA') validPlanes = validPlanes.filter(a => a.cat.includes('ジェット') || a.cat.includes('ワイドボディ'));
                         if (ai.iata === 'PW') validPlanes = validPlanes.filter(a => a.cat !== '超大型機');
@@ -1572,7 +1751,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="card-row"><span>機種</span><span><b>${ac ? ac.name : f.typeId}</b> (${ac ? ac.seats : '-'}席)</span></div>
-                                <div class="card-row"><span>割り当て路線</span><span>${f.routeId || '未割り当て'}</span></div>
+                                <div class="card-row"><span>割り当て路線</span><span>${f.routeId || '未割り当て (従来路線)'}</span></div>
                                 <div class="card-row"><span>累計運航便数</span><span>${(f.stats.flights || 0).toLocaleString()} 便</span></div>
                             </div>
                             <div class="card-footer">
@@ -1741,7 +1920,6 @@
                 const stdFare = Utils.getStandardFare(r.distance); 
                 const actualFare = Math.floor(stdFare * (r.fareMult||1.0));
                 
-                // Construct Bar Chart (7 vs 30 days toggleable)
                 const hist = st.lfHistory || [];
                 let bars = '';
                 if(hist.length === 0) { 
@@ -1809,9 +1987,9 @@
                 UI.showModal(`路線詳細: ${routeId}`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
             },
 
-            // --- 新規/編集スケジュール用の動的機材セレクト更新 ---
             _updateScheduleAircraftSelect(routeId, selectedReg = null) {
                 const sel = document.getElementById('sched-form-aircraft');
+                const infoDiv = document.getElementById('sched-form-rotation-info');
                 if (!sel) return;
                 
                 let opts = '<option value="">未設定</option>';
@@ -1832,9 +2010,31 @@
                         sel.value = r.assignedReg;
                     }
                 }
+
+                if (infoDiv) {
+                    const val = sel.value;
+                    if (!val) {
+                        infoDiv.innerHTML = '<span class="text-muted" style="font-size:0.85rem;">機材が選択されていません。</span>';
+                    } else {
+                        const tempSchedules = Player.company.schedules;
+                        const rot = RotationSystem.checkRotationBySchedules(val, tempSchedules);
+                        let badge = '';
+                        if (rot.status === '成立') badge = '<span class="badge badge-active">成立</span>';
+                        else if (rot.status === '警告あり') badge = '<span class="badge badge-lease">警告あり</span>';
+                        else if (rot.status === '不成立') badge = '<span class="badge" style="background:var(--col-danger);color:white;">不成立</span>';
+                        else badge = '<span class="badge badge-idle">便なし</span>';
+                        
+                        const flightsCount = tempSchedules.filter(s => s.aircraftId === val).length;
+                        infoDiv.innerHTML = `
+                            <div style="font-size:0.85rem; padding:8px; background:var(--col-bg-dark); border-radius:6px; border:1px solid var(--panel-border);">
+                                <div>この機材には現在 <b>${flightsCount}便</b> が割り当てられています。</div>
+                                <div style="margin-top:4px; display:flex; align-items:center; gap:5px;">ローテーション状態: ${badge}</div>
+                            </div>
+                        `;
+                    }
+                }
             },
 
-            // --- スケジュール作成・編集モーダル構築 ---
             showScheduleFormModal(flightId = null) {
                 if (Player.company.routes.length === 0) {
                     UI.showModal('新規便の作成エラー', '先に路線管理画面から路線を開設してください。');
@@ -1899,8 +2099,9 @@
                     </div>
                     <div class="input-group">
                         <label>使用機材</label>
-                        <select id="sched-form-aircraft" class="input-field"></select>
+                        <select id="sched-form-aircraft" class="input-field" onchange="Views._updateScheduleAircraftSelect(null, this.value)"></select>
                     </div>
+                    <div id="sched-form-rotation-info" style="margin-bottom:15px;"></div>
                     <div class="input-group">
                         <label>運航状態</label>
                         <select id="sched-form-active" class="input-field">
@@ -1922,7 +2123,6 @@
                 }, 10);
             },
 
-            // --- 削除確認モーダル ---
             deleteScheduleConfirm(flightId) {
                 const s = Player.company.schedules.find(fs => fs.flightId === flightId);
                 if (!s) return;
@@ -1942,7 +2142,6 @@
             },
 
             renderSchedules() {
-                // Initialize company selector
                 const compSelect = document.getElementById('schedule-comp-select');
                 let optionsHtml = `<option value="player">自社 (${Player.company.name})</option>`;
                 if (Player.settings?.competitionEnabled && Player.competitors) {
@@ -1955,7 +2154,6 @@
                 compSelect.innerHTML = optionsHtml;
                 compSelect.value = this.scheduleState.company;
 
-                // Populate Airport Filters if empty
                 const origSel = document.getElementById('sched-filter-origin');
                 const destSel = document.getElementById('sched-filter-dest');
                 if (origSel.options.length <= 1) {
@@ -1992,7 +2190,6 @@
                 const actionBar = document.getElementById('schedule-action-bar');
                 tb.innerHTML = ''; mobCards.innerHTML = '';
 
-                // UI Visibility Control for Competitor View (Read-Only)
                 if (this.scheduleState.company === 'player') {
                     if (actionBar) actionBar.style.display = 'block';
                 } else {
@@ -2006,7 +2203,6 @@
 
                 const schedules = compData.schedules || [];
                 
-                // Update stats
                 const total = schedules.length;
                 const active = schedules.filter(s => s.isActive).length;
                 document.getElementById('schedule-stat-total').textContent = total;
@@ -2019,7 +2215,6 @@
                     return;
                 }
 
-                // Filter
                 const st = this.scheduleState;
                 let list = schedules.filter(s => {
                     if (st.search && !s.flightNumber.toLowerCase().includes(st.search.toLowerCase())) return false;
@@ -2034,7 +2229,6 @@
                     return true;
                 });
 
-                // Sort
                 list.sort((a, b) => {
                     if (st.sort === 'depTime') return a.departureTime.localeCompare(b.departureTime);
                     if (st.sort === 'arrTime') return a.arrivalTime.localeCompare(b.arrivalTime);
@@ -2163,7 +2357,6 @@
                 `;
                 
                 let footerHtml = '<button class="btn" onclick="UI.hideModal()">閉じる</button>';
-                // 自社のスケジュールのみ編集・削除可能
                 if (compId === 'player') {
                     footerHtml = `
                         <div style="flex:1;">
@@ -2175,6 +2368,174 @@
                 }
 
                 UI.showModal(`便詳細情報`, '', html, footerHtml);
+            },
+
+            // --- 航空機ローテーション画面の描画 ---
+            renderRotation() {
+                const sel = document.getElementById('rot-aircraft-select');
+                const summaryCard = document.getElementById('rot-summary-card');
+                const tlContainer = document.getElementById('rot-timeline-container');
+                
+                if (sel.options.length === 0 || sel.dataset.updated !== "true") {
+                    let opts = '';
+                    Player.company.fleet.forEach(f => {
+                        const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
+                        const name = ac ? ac.name : f.typeId;
+                        opts += `<option value="${f.reg}">${f.reg} - ${name} (${f.isLeased?'リース':'購入'})</option>`;
+                    });
+                    sel.innerHTML = opts || '<option value="">機材がありません</option>';
+                    sel.dataset.updated = "true";
+                }
+
+                const reg = sel.value;
+                if (!reg) {
+                    summaryCard.classList.add('hidden');
+                    tlContainer.innerHTML = '<div class="text-muted text-center" style="padding: 20px;">機材がありません。</div>';
+                    return;
+                }
+
+                const plane = Player.company.fleet.find(f => f.reg === reg);
+                const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
+                
+                const rot = RotationSystem.checkRotationBySchedules(reg, Player.company.schedules);
+                
+                let statusBadge = '';
+                if (rot.status === '成立') statusBadge = '<span class="badge badge-active" style="font-size:1rem; padding: 4px 10px;">成立</span>';
+                else if (rot.status === '警告あり') statusBadge = '<span class="badge badge-lease" style="font-size:1rem; padding: 4px 10px;">警告あり</span>';
+                else if (rot.status === '不成立') statusBadge = '<span class="badge" style="background:var(--col-danger);color:white;font-size:1rem; padding: 4px 10px;">不成立</span>';
+                else statusBadge = '<span class="badge badge-idle" style="font-size:1rem; padding: 4px 10px;">便なし</span>';
+
+                summaryCard.innerHTML = `
+                    <div class="card-header">
+                        <span>機材情報: <span class="text-primary">${reg}</span></span>
+                        <div>${statusBadge}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-row"><span>機種</span><span>${acDef ? acDef.name : '-'} (${acDef ? acDef.seats : '-'}席)</span></div>
+                        <div class="card-row"><span>割り当て便数</span><span class="font-bold">${Player.company.schedules.filter(s=>s.aircraftId===reg).length} 便</span></div>
+                        <hr style="border:0; border-top:1px solid var(--panel-border); margin:10px 0;">
+                        <div class="font-bold" style="margin-bottom:5px;">予定位置 (スケジュール上)</div>
+                        ${rot.plannedPosition ? `
+                            <div class="card-row text-muted" style="font-size:0.85rem;"><span>開始空港</span><span>${rot.plannedPosition.startAirport}</span></div>
+                            <div class="card-row text-muted" style="font-size:0.85rem;"><span>前便到着</span><span>${rot.plannedPosition.prevArrAp} (${rot.plannedPosition.prevArrTime})</span></div>
+                            <div class="card-row text-muted" style="font-size:0.85rem;"><span>次便出発</span><span>${rot.plannedPosition.nextDepAp} (${rot.plannedPosition.nextDepTime}) <span class="font-bold text-primary">[${rot.plannedPosition.nextFlight}]</span></span></div>
+                        ` : '<div class="text-muted" style="font-size:0.85rem;">予定がありません。</div>'}
+                    </div>
+                    ${rot.errors.length > 0 ? `
+                        <div style="background:rgba(239,68,68,0.1); border-top:1px solid var(--col-danger); padding:10px;">
+                            <div class="text-danger font-bold" style="font-size:0.9rem; margin-bottom:5px;">⚠️ 以下の問題によりローテーションが不成立です</div>
+                            <ul class="text-danger" style="font-size:0.8rem; padding-left:20px; margin:0; line-height: 1.4;">
+                                ${rot.errors.map(e => `<li>${e}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    ${rot.warnings.length > 0 ? `
+                        <div style="background:rgba(245,158,11,0.1); border-top:1px solid var(--col-warning); padding:10px;">
+                            <ul class="text-warning" style="font-size:0.8rem; padding-left:20px; margin:0; line-height: 1.4;">
+                                ${rot.warnings.map(w => `<li>${w}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+                summaryCard.classList.remove('hidden');
+
+                if (rot.events.length === 0) {
+                    tlContainer.innerHTML = '<div class="text-center text-muted" style="padding: 40px; background:var(--col-bg-panel); border-radius:8px; border:1px dashed var(--panel-border);">この機材に割り当てられた便はありません。</div>';
+                    return;
+                }
+
+                let tlHtml = '<div class="rotation-container">';
+                
+                for (let i = 0; i < rot.events.length; i++) {
+                    let ev = rot.events[i];
+                    
+                    let drawOrigin = false;
+                    if (i === 0) {
+                        drawOrigin = true;
+                    } else {
+                        let prevEv = rot.events[i - 1];
+                        if (prevEv.s.destinationAirportId !== ev.s.originAirportId) {
+                            drawOrigin = true;
+                        }
+                    }
+
+                    if (drawOrigin) {
+                        tlHtml += `
+                            <div class="rot-node">
+                                <div class="rot-airport">${ev.origName}</div>
+                            </div>
+                            <div class="rot-node">
+                                <div style="width: 140px; display:flex; justify-content:center;"><div class="rot-arrow-line"></div></div>
+                            </div>
+                        `;
+                    }
+
+                    tlHtml += `
+                        <div class="rot-node">
+                            <div style="width: 140px; display:flex; justify-content:center; flex-direction:column; align-items:center;">
+                                <div style="font-size:0.85rem; color:var(--col-text-muted); font-weight:bold;">${ev.dayName}曜日</div>
+                                <div style="font-size:0.95rem; font-weight:bold;">${ev.s.departureTime} 発</div>
+                            </div>
+                            <div class="rot-flight ${ev.s.isActive ? '' : 'warning'}">
+                                <div>
+                                    <div class="font-bold text-primary" style="font-size:1.1rem; cursor:pointer;" onclick="Views.showScheduleDetails('${ev.flightId}', 'player')">${ev.s.flightNumber}</div>
+                                    <div class="text-muted" style="font-size:0.85rem;">${ev.origName} → ${ev.destName}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div class="font-bold">${ev.s.arrivalTime} 着 ${ev.isNextDayArrival?'<span class="text-warning" style="font-size:0.8rem;">(翌日)</span>':''}</div>
+                                    <div class="text-muted" style="font-size:0.8rem;">${ev.s.isActive ? '運航中' : '運休中'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    let isLast = (i === rot.events.length - 1);
+                    let nextEv = isLast ? rot.events[0] : rot.events[i + 1];
+                    let turnaround = ev.turnaroundMins;
+                    
+                    let connClass = 'rot-conn-info';
+                    let connText = `折り返し: ${Math.floor(turnaround / 60)}時間${turnaround % 60}分`;
+                    
+                    if (turnaround < 0) {
+                        connClass += ' error';
+                        connText = `⚠️ 時間重複 (${Math.abs(turnaround)}分)`;
+                    } else if (turnaround < 45) {
+                        connClass += ' error';
+                        connText = `⚠️ 折り返し時間不足 (${turnaround}分 / 45分必要)`;
+                    }
+
+                    let apMismatch = ev.s.destinationAirportId !== nextEv.s.originAirportId;
+                    if (apMismatch) {
+                        connClass += ' error';
+                        connText += ` / ⚠️ 空港不一致`;
+                    }
+
+                    let loopText = isLast ? '<div style="font-size:0.75rem; color:var(--col-primary); margin-top:2px;">(翌週の先頭へ戻る)</div>' : '';
+
+                    tlHtml += `
+                        <div class="rot-node">
+                            <div style="width: 140px; display:flex; justify-content:center;"><div class="rot-arrow-line"></div></div>
+                        </div>
+                        <div class="rot-node">
+                            <div class="rot-airport">${ev.destName}</div>
+                            <div style="flex:1; padding-left:15px; display:flex; flex-direction:column; justify-content:center;">
+                                <span class="${connClass}">${connText}</span>
+                                ${loopText}
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (!isLast) {
+                        tlHtml += `
+                            <div class="rot-node">
+                                <div style="width: 140px; display:flex; justify-content:center;"><div class="rot-arrow-line"></div></div>
+                            </div>
+                        `;
+                    }
+                }
+
+                tlHtml += '</div>';
+                tlContainer.innerHTML = tlHtml;
             },
 
             renderCompetitors() {
@@ -2190,7 +2551,6 @@
                     grid.innerHTML = '<div class="text-muted">競合データがありません。</div>'; return;
                 }
 
-                // Calculate Market Share & Ranking Data
                 const pPax = Player.company.finances._tmStats?.p || 0;
                 let totalMarketPax = pPax;
                 Player.competitors.forEach(ai => { if (ai.status !== 'bankrupt') totalMarketPax += (ai.finances._tmStats?.p || 0); });
@@ -2326,7 +2686,7 @@
                             <div class="card-footer">${canAssign ? `<button class="btn btn-sm" onclick="Logic.assignAircraft('${routeId}', '${f.reg}')">割り当てる</button>` : ''}</div>
                         </div>`;
                 });
-                html += `</div>`; UI.showModal('機材の割り当て設定', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+                html += `</div>`; UI.showModal('機材の割り当て設定 (従来機能)', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
             },
 
             showCustomAdvanceModal() {
