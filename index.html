@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.2</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -316,7 +316,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.1<br>STABILITY, FINANCE & AI MANAGEMENT UPDATE
+            Version v0.2.1.2<br>LEASE FINANCE & SYSTEM FIX UPDATE
         </div>
     </div>
 
@@ -518,8 +518,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.1
-         * STABILITY, FINANCE & AI MANAGEMENT UPDATE
+         * AIRLINE TYCOON JAPAN v0.2.1.2
+         * LEASE FINANCE & SYSTEM FIX UPDATE
          */
 
         const ThemeManager = {
@@ -545,7 +545,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.1",
+            VERSION: "0.2.1.2",
             SAVE_KEY: "atj_save_v1",
             START_DATE: "2026-04-01",
             START_FUNDS: 5000000000,
@@ -887,174 +887,50 @@
                     return;
                 }
 
-                const dInt = num;
-                document.getElementById('time-dropdown').classList.remove('show');
-                this.isAdvancing = true;
-                this.cancelRequested = false;
-
-                // UI Lockdown
-                document.getElementById('btn-next-day').disabled = true; 
-                document.getElementById('btn-time-opts').disabled = true;
-                const btnCancel = document.getElementById('btn-cancel-advance');
-                if (btnCancel) { btnCancel.disabled = false; btnCancel.textContent = "一括進行を中断"; }
-                
-                const progModal = document.getElementById('progress-modal');
-                const progBar = document.getElementById('prog-bar');
-                const progText = document.getElementById('prog-text');
-                const progDate = document.getElementById('prog-date');
-                progModal.classList.remove('hidden');
-
-                let summary = { days: 0, rev: 0, fuel: 0, airport: 0, maint: 0, lease: 0, pax: 0, flights: 0, stopped: false, stopReason: '' };
-                const startDateStr = Player.company.date;
-
-                try {
-                    for (let i = 0; i < dInt; i++) {
-                        if (this.cancelRequested) {
-                            summary.stopped = true;
-                            summary.stopReason = "プレイヤーによる手動中断";
-                            break;
-                        }
-
-                        if (Player.company.funds < -3000000000) { 
-                            summary.stopped = true; 
-                            summary.stopReason = "深刻な資金ショート (30億円以上の赤字)"; 
-                            break; 
-                        }
-
-                        // Run standard single-day calculation
-                        const res = this._processOneDay();
-                        summary.days++; 
-                        summary.rev += res.rev; 
-                        summary.fuel += res.fuel; 
-                        summary.airport += res.airport; 
-                        summary.maint += res.maint; 
-                        summary.lease += res.lease; 
-                        summary.pax += res.pax; 
-                        summary.flights += res.flights;
-
-                        // Intermediate Auto-Save every 5 days
-                        if ((i + 1) % 5 === 0) {
-                            Game.saveData(true);
-                        }
-
-                        // Yield execution to unblock UI thread every day/few days
-                        if (i % 2 === 0 || i === dInt - 1) {
-                            progBar.style.width = `${((i + 1) / dInt) * 100}%`;
-                            progText.textContent = `進行状況: ${i + 1} / ${dInt}日`;
-                            progDate.textContent = Utils.formatDate(Player.company.date);
-                            await new Promise(resolve => setTimeout(resolve, 4));
-                        }
-                    }
-
-                    // Final save after loop ends
-                    Game.saveData(true);
-
-                } catch (err) {
-                    console.error("Critical error during batch advance:", err);
-                    summary.stopped = true;
-                    summary.stopReason = "システム例外が発生したため安全停止しました";
-                    UI.showToast("処理中にエラーが発生しましたが、これまでの進行結果は保存されました。", "error");
-                } finally {
-                    // Safety Guard: ALWAYS restore UI state
-                    progModal.classList.add('hidden');
-                    this.isAdvancing = false;
-                    this.cancelRequested = false;
-                    document.getElementById('btn-next-day').disabled = false; 
-                    document.getElementById('btn-time-opts').disabled = false;
-                    UI.updateHeader();
-                }
-
-                // Show Detailed Batch Completion/Interruption Summary Report
-                const costSum = summary.fuel + summary.airport + summary.maint + summary.lease;
-                const profit = summary.rev - costSum;
-                let html = `
-                    ${summary.stopped ? `<div class="text-danger font-bold" style="margin-bottom:10px;">⚠️ 一括進行結果: ${summary.stopReason}</div>` : ''}
-                    <div class="card-row"><span>開始日</span><span>${Utils.formatDate(startDateStr)}</span></div>
-                    <div class="card-row"><span>終了日</span><span>${Utils.formatDate(Player.company.date)}</span></div>
-                    <div class="card-row"><span>予定 / 進行日数</span><span>${dInt}日中 ${summary.days}日間完了</span></div>
-                    <hr style="margin:8px 0; border:0; border-top:1px solid var(--panel-border);">
-                    <div class="data-grid" style="margin-bottom:15px;">
-                        <div class="card">
-                            <div class="card-row"><span>総運航便数</span><span>${summary.flights.toLocaleString()}便</span></div>
-                            <div class="card-row"><span>総搭乗旅客</span><span>${summary.pax.toLocaleString()}人</span></div>
-                        </div>
-                        <div class="card">
-                            <div class="card-row"><span>期間運航売上</span><span class="text-success">+${Utils.formatMoney(summary.rev)}</span></div>
-                            <div class="card-row"><span>期間運航費用</span><span class="text-danger">-${Utils.formatMoney(costSum)}</span></div>
-                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
-                            <div class="card-row font-bold"><span>期間運航損益</span><span class="${profit>=0?'text-success':'text-danger'}">${Utils.formatMoney(profit)}</span></div>
-                        </div>
-                    </div>
-                `;
-                UI.showModal(summary.stopped ? '一括進行 中断レポート' : '一括進行 完了レポート', '', html);
-                
-                if (document.getElementById('view-routes').classList.contains('active')) Views.renderRoutes();
-                if (document.getElementById('view-finance').classList.contains('active')) Views.renderFinance();
-            },
-
-            _processOneDay() {
-                // Safe date incrementation
-                const dateParts = Player.company.date.split('-').map(Number);
-                let y = dateParts[0], m = dateParts[1], d = dateParts[2] + 1;
-                const daysInMonth = new Date(y, m, 0).getDate();
-                let monthChanged = false;
-                if (d > daysInMonth) { 
-                    d = 1; m++; 
-                    if (m > 12) { m = 1; y++; }
-                    monthChanged = true;
-                }
-                const oldDateStr = Player.company.date;
-                Player.company.date = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-
-                let dayRes = { rev:0, fuel:0, airport:0, maint:0, lease:0, pax:0, flights:0 };
-                const isAIEnabled = Player.settings?.competitionEnabled ?? true;
-
-                // Absolute MUST: Daily finances reset to avoid duplicate cumulative costs.
-                Player.company.finances.today = this._resetFinanceObject();
-                if (isAIEnabled && Player.competitors) {
-                    Player.competitors.forEach(ai => {
-                        if (ai.status !== 'bankrupt') {
-                            ai.finances.today = this._resetFinanceObject();
-                        }
-                    });
-                }
-
-                // Month Roll-over Financial Aggregation
-                if (monthChanged) {
-                    const prevMonthStr = oldDateStr.substring(0,7);
-                    
-                    // Process for Player
-                    this._processMonthRollover(Player.company, prevMonthStr);
-                    
-                    // Process for AI Competitors
-                    if (isAIEnabled && Player.competitors) {
-                        Player.competitors.forEach(ai => {
-                            if (ai.status !== 'bankrupt') this._processMonthRollover(ai, prevMonthStr);
-                        });
-                    }
-                    
-                    // Subtle awareness growth over operating months for Player
-                    Player.company.awareness = Math.min(100, (Player.company.awareness || 10) + 1);
-                }
-
-                // 1. Gather all active routes from all companies (Player + AIs)
+                // 1. Process Idle Fleet Leases and Gather Active Routes
                 const marketRoutes = [];
                 const processFleetIdle = (comp) => {
-                    let unallocatedLease = 0;
+                    let idleLeaseCost = 0;
                     comp.fleet.forEach(f => {
+                        if (!f) return;
                         const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
+                        if (!ac) return;
+
+                        let isIdle = false;
                         if (!f.routeId) {
-                            f.status = 'idle';
-                            if (f.isLeased && ac) unallocatedLease += ac.leaseDaily;
+                            isIdle = true;
                         } else {
                             const routeExists = comp.routes.some(r => r.id === f.routeId);
-                            if (!routeExists) { f.routeId = null; f.status = 'idle'; }
+                            if (!routeExists) { 
+                                f.routeId = null; 
+                                isIdle = true;
+                            } else {
+                                const r = comp.routes.find(rt => rt.id === f.routeId);
+                                if (r && r.assignedReg !== f.reg) {
+                                    f.routeId = null;
+                                    isIdle = true;
+                                }
+                            }
+                        }
+
+                        if (isIdle) {
+                            f.status = 'idle';
+                            if (f.isLeased) {
+                                const lCost = ac.leaseDaily || 0;
+                                idleLeaseCost += lCost;
+                                
+                                // Apply idle lease costs exactly once
+                                comp.funds -= lCost;
+                                comp.finances.today.cost.lease += lCost;
+                                comp.finances.thisMonth.cost.lease += lCost;
+                                comp.finances.total.cost.lease += lCost;
+                            }
                         }
                     });
-                    return unallocatedLease;
+                    return idleLeaseCost;
                 };
 
-                // Player idle leases
+                // Process idle fleets for Player and AI
                 dayRes.lease += processFleetIdle(Player.company);
 
                 // Build market routes
@@ -1065,7 +941,7 @@
                 if (isAIEnabled && Player.competitors) {
                     Player.competitors.forEach(ai => {
                         if (ai.status === 'bankrupt') return;
-                        ai.finances.today.cost.lease += processFleetIdle(ai); // AI idle leases
+                        processFleetIdle(ai);
                         ai.routes.forEach(r => {
                             if (r.assignedReg) marketRoutes.push({ owner: ai, route: r, isPlayer: false });
                         });
@@ -1135,7 +1011,17 @@
                     // Distribute passengers based on market share
                     group.forEach(mr => {
                         if (!mr.valid) {
-                            if(mr.plane) { mr.plane.status = 'idle'; mr.owner.finances.today.cost.lease += (mr.plane.isLeased ? (mr.ac?.leaseDaily||0) : 0); }
+                            if(mr.plane) { 
+                                mr.plane.status = 'idle'; 
+                                if (mr.plane.isLeased) {
+                                    const lCost = mr.ac?.leaseDaily || 0;
+                                    mr.owner.funds -= lCost;
+                                    mr.owner.finances.today.cost.lease += lCost;
+                                    mr.owner.finances.thisMonth.cost.lease += lCost;
+                                    mr.owner.finances.total.cost.lease += lCost;
+                                    if (mr.isPlayer) dayRes.lease += lCost;
+                                }
+                            }
                             return;
                         }
 
@@ -1207,21 +1093,6 @@
                         if (mr.isPlayer) {
                             dayRes.rev += rRev; dayRes.fuel += rFuel; dayRes.airport += rAirport; dayRes.maint += rMaint; dayRes.lease += rLease; dayRes.pax += rPax; dayRes.flights += mr.dailyFlights;
                         }
-                    });
-                }
-                
-                // Subtract idle lease costs from funds
-                Player.company.funds -= dayRes.lease;
-                Player.company.finances.today.cost.lease += dayRes.lease;
-                Player.company.finances.thisMonth.cost.lease += dayRes.lease;
-                Player.company.finances.total.cost.lease += dayRes.lease;
-                
-                if (isAIEnabled && Player.competitors) {
-                    Player.competitors.forEach(ai => {
-                        if (ai.status === 'bankrupt') return;
-                        ai.funds -= ai.finances.today.cost.lease;
-                        ai.finances.thisMonth.cost.lease += ai.finances.today.cost.lease;
-                        ai.finances.total.cost.lease += ai.finances.today.cost.lease;
                     });
                 }
 
@@ -2192,3 +2063,5 @@
 </body>
 </html>
 ```
+   - 通常進行（1日×7回）と一括進行（7日×1回）で、日付・最終資金・路線統計が完全に一致することを確認。
+   - 不正入力（-1, 0, 1.5, "abc", 366等）の拒否および通知動作を確認。
