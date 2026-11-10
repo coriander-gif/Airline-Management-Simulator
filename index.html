@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.1.4.1</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -246,6 +246,10 @@
         .news-item.info { border-left: 4px solid var(--col-primary); }
         .news-date { font-size: 0.75rem; color: var(--col-text-muted); margin-bottom: 3px; }
 
+        /* Share Bar for Competitors */
+        .share-bar-container { width: 100%; height: 24px; background: var(--col-bg-dark); border-radius: 6px; overflow: hidden; display: flex; margin-bottom: 20px; border: 1px solid var(--panel-border); }
+        .share-bar-segment { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: width 0.3s; }
+
         /* Mobile Adjustments */
         .routes-cards-mobile { display: none; }
         @media (max-width: 768px) {
@@ -312,7 +316,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.0<br>AI COMPETITORS & GAME DIFFICULTY UPDATE
+            Version v0.2.1<br>AI COMPETITORS & GAME DIFFICULTY UPDATE
         </div>
     </div>
 
@@ -343,6 +347,23 @@
                     <div class="input-group w-full">
                         <label for="c-hq">本社拠点空港</label>
                         <select id="c-hq" class="input-field" required></select>
+                    </div>
+                </div>
+                <div class="flex" style="gap: 15px; margin-top: 5px;">
+                    <div class="input-group w-full">
+                        <label for="c-comp">競合会社 (AI)</label>
+                        <select id="c-comp" class="input-field" onchange="document.getElementById('c-diff-group').style.display = this.value === 'yes' ? 'block' : 'none';">
+                            <option value="yes">あり</option>
+                            <option value="no">なし</option>
+                        </select>
+                    </div>
+                    <div class="input-group w-full" id="c-diff-group">
+                        <label for="c-diff">AI難易度</label>
+                        <select id="c-diff" class="input-field">
+                            <option value="easy">かんたん</option>
+                            <option value="normal" selected>中くらい</option>
+                            <option value="hard">むずかしい</option>
+                        </select>
                     </div>
                 </div>
                 <div class="flex justify-between" style="margin-top: 1rem;">
@@ -497,7 +518,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.0
+         * AIRLINE TYCOON JAPAN v0.2.1
          * AI COMPETITORS & GAME DIFFICULTY UPDATE
          */
 
@@ -524,7 +545,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.0",
+            VERSION: "0.2.1",
             SAVE_KEY: "atj_save_v1",
             START_DATE: "2026-04-01",
             START_FUNDS: 5000000000,
@@ -554,15 +575,42 @@
             ],
 
             Aircrafts: [
+                // Turboprops / Regional
+                { id: 'atr42', maker: 'ATR', name: 'ATR 42-600', cat: 'ターボプロップ', seats: 48, range: 1300, price: 2500000000, leaseInit: 250000000, leaseDaily: 500000, speed: 500, fuelRate: 0.6, maint: 200000 },
                 { id: 'atr72', maker: 'ATR', name: 'ATR 72-600', cat: 'ターボプロップ', seats: 70, range: 1500, price: 3500000000, leaseInit: 350000000, leaseDaily: 700000, speed: 500, fuelRate: 0.8, maint: 300000 },
+                { id: 'q400', maker: 'De Havilland', name: 'Dash 8 Q400', cat: 'ターボプロップ', seats: 78, range: 2000, price: 4000000000, leaseInit: 400000000, leaseDaily: 800000, speed: 660, fuelRate: 0.9, maint: 350000 },
+                { id: 'e170', maker: 'Embraer', name: 'Embraer E170', cat: 'リージョナル', seats: 72, range: 3900, price: 4500000000, leaseInit: 450000000, leaseDaily: 900000, speed: 800, fuelRate: 1.0, maint: 400000 },
+                { id: 'e175', maker: 'Embraer', name: 'Embraer E175', cat: 'リージョナル', seats: 78, range: 4000, price: 5000000000, leaseInit: 500000000, leaseDaily: 1000000, speed: 800, fuelRate: 1.1, maint: 420000 },
+                { id: 'e190', maker: 'Embraer', name: 'Embraer E190', cat: 'リージョナル', seats: 104, range: 4500, price: 6000000000, leaseInit: 600000000, leaseDaily: 1200000, speed: 800, fuelRate: 1.3, maint: 450000 },
+                { id: 'e195e2', maker: 'Embraer', name: 'Embraer E195-E2', cat: 'リージョナル', seats: 132, range: 4800, price: 7500000000, leaseInit: 750000000, leaseDaily: 1500000, speed: 820, fuelRate: 1.2, maint: 480000 },
+                { id: 'a220-100', maker: 'Airbus', name: 'Airbus A220-100', cat: '小型ジェット', seats: 110, range: 6300, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.1, maint: 480000 },
                 { id: 'a220', maker: 'Airbus', name: 'Airbus A220-300', cat: '小型ジェット', seats: 130, range: 6000, price: 10000000000, leaseInit: 1000000000, leaseDaily: 2000000, speed: 830, fuelRate: 1.2, maint: 500000 },
-                { id: 'a320n', maker: 'Airbus', name: 'Airbus A320neo', cat: '単通路ジェット', seats: 180, range: 6300, price: 11000000000, leaseInit: 1100000000, leaseDaily: 2200000, speed: 830, fuelRate: 1.5, maint: 600000 },
-                { id: 'a321n', maker: 'Airbus', name: 'Airbus A321neo', cat: '単通路ジェット', seats: 220, range: 7400, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 830, fuelRate: 1.7, maint: 700000 },
-                { id: 'b738', maker: 'Boeing', name: 'Boeing 737-800', cat: '単通路ジェット', seats: 162, range: 5400, price: 7500000000, leaseInit: 750000000, leaseDaily: 1500000, speed: 840, fuelRate: 1.6, maint: 650000 },
-                { id: 'b73m8', maker: 'Boeing', name: 'Boeing 737 MAX 8', cat: '単通路ジェット', seats: 178, range: 6500, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 840, fuelRate: 1.4, maint: 600000 },
-                { id: 'b788', maker: 'Boeing', name: 'Boeing 787-8', cat: 'ワイドボディ', seats: 240, range: 13600, price: 23000000000, leaseInit: 2300000000, leaseDaily: 4600000, speed: 900, fuelRate: 2.5, maint: 1000000 },
-                { id: 'b789', maker: 'Boeing', name: 'Boeing 787-9', cat: 'ワイドボディ', seats: 290, range: 14100, price: 27000000000, leaseInit: 2700000000, leaseDaily: 5400000, speed: 900, fuelRate: 2.8, maint: 1200000 },
-                { id: 'a359', maker: 'Airbus', name: 'Airbus A350-900', cat: 'ワイドボディ', seats: 300, range: 15000, price: 30000000000, leaseInit: 3000000000, leaseDaily: 6000000, speed: 900, fuelRate: 2.9, maint: 1300000 }
+                // Narrowbodies
+                { id: 'a319ceo', maker: 'Airbus', name: 'Airbus A319ceo', cat: '単通路ジェット', seats: 124, range: 6900, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 830, fuelRate: 1.3, maint: 500000 },
+                { id: 'a319neo', maker: 'Airbus', name: 'Airbus A319neo', cat: '単通路ジェット', seats: 140, range: 6800, price: 9500000000, leaseInit: 950000000, leaseDaily: 1900000, speed: 830, fuelRate: 1.2, maint: 520000 },
+                { id: 'a320ceo', maker: 'Airbus', name: 'Airbus A320ceo', cat: '単通路ジェット', seats: 150, range: 6100, price: 9000000000, leaseInit: 900000000, leaseDaily: 1800000, speed: 830, fuelRate: 1.6, maint: 550000 },
+                { id: 'a320n', maker: 'Airbus', name: 'Airbus A320neo', cat: '単通路ジェット', seats: 165, range: 6300, price: 11000000000, leaseInit: 1100000000, leaseDaily: 2200000, speed: 830, fuelRate: 1.4, maint: 600000 },
+                { id: 'a321ceo', maker: 'Airbus', name: 'Airbus A321ceo', cat: '単通路ジェット', seats: 185, range: 5900, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 830, fuelRate: 1.9, maint: 620000 },
+                { id: 'a321n', maker: 'Airbus', name: 'Airbus A321neo', cat: '単通路ジェット', seats: 200, range: 7400, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 830, fuelRate: 1.6, maint: 700000 },
+                { id: 'b737-700', maker: 'Boeing', name: 'Boeing 737-700', cat: '単通路ジェット', seats: 126, range: 6300, price: 7000000000, leaseInit: 700000000, leaseDaily: 1400000, speed: 840, fuelRate: 1.4, maint: 550000 },
+                { id: 'b738', maker: 'Boeing', name: 'Boeing 737-800', cat: '単通路ジェット', seats: 162, range: 5400, price: 8500000000, leaseInit: 850000000, leaseDaily: 1700000, speed: 840, fuelRate: 1.6, maint: 600000 },
+                { id: 'b737-900er', maker: 'Boeing', name: 'Boeing 737-900ER', cat: '単通路ジェット', seats: 178, range: 5400, price: 9500000000, leaseInit: 950000000, leaseDaily: 1900000, speed: 840, fuelRate: 1.8, maint: 650000 },
+                { id: 'b73m8', maker: 'Boeing', name: 'Boeing 737 MAX 8', cat: '単通路ジェット', seats: 162, range: 6500, price: 10500000000, leaseInit: 1050000000, leaseDaily: 2100000, speed: 840, fuelRate: 1.4, maint: 600000 },
+                { id: 'b73m9', maker: 'Boeing', name: 'Boeing 737 MAX 9', cat: '単通路ジェット', seats: 178, range: 6500, price: 11500000000, leaseInit: 1150000000, leaseDaily: 2300000, speed: 840, fuelRate: 1.5, maint: 650000 },
+                { id: 'b73m10', maker: 'Boeing', name: 'Boeing 737 MAX 10', cat: '単通路ジェット', seats: 188, range: 6100, price: 12500000000, leaseInit: 1250000000, leaseDaily: 2500000, speed: 840, fuelRate: 1.6, maint: 680000 },
+                // Widebodies / Long Haul
+                { id: 'b757', maker: 'Boeing', name: 'Boeing 757-200', cat: '単通路ジェット', seats: 200, range: 7200, price: 8000000000, leaseInit: 800000000, leaseDaily: 1600000, speed: 850, fuelRate: 2.1, maint: 800000 },
+                { id: 'b767', maker: 'Boeing', name: 'Boeing 767-300ER', cat: 'ワイドボディ', seats: 218, range: 11000, price: 18000000000, leaseInit: 1800000000, leaseDaily: 3600000, speed: 850, fuelRate: 2.6, maint: 900000 },
+                { id: 'b777-200er', maker: 'Boeing', name: 'Boeing 777-200ER', cat: 'ワイドボディ', seats: 314, range: 13000, price: 25000000000, leaseInit: 2500000000, leaseDaily: 5000000, speed: 900, fuelRate: 3.2, maint: 1100000 },
+                { id: 'b777-300er', maker: 'Boeing', name: 'Boeing 777-300ER', cat: 'ワイドボディ', seats: 396, range: 13600, price: 32000000000, leaseInit: 3200000000, leaseDaily: 6400000, speed: 900, fuelRate: 3.5, maint: 1300000 },
+                { id: 'b788', maker: 'Boeing', name: 'Boeing 787-8', cat: 'ワイドボディ', seats: 242, range: 13600, price: 23000000000, leaseInit: 2300000000, leaseDaily: 4600000, speed: 900, fuelRate: 2.4, maint: 1000000 },
+                { id: 'b789', maker: 'Boeing', name: 'Boeing 787-9', cat: 'ワイドボディ', seats: 290, range: 14100, price: 27000000000, leaseInit: 2700000000, leaseDaily: 5400000, speed: 900, fuelRate: 2.6, maint: 1100000 },
+                { id: 'b7810', maker: 'Boeing', name: 'Boeing 787-10', cat: 'ワイドボディ', seats: 330, range: 11900, price: 30000000000, leaseInit: 3000000000, leaseDaily: 6000000, speed: 900, fuelRate: 2.8, maint: 1200000 },
+                { id: 'a330-300', maker: 'Airbus', name: 'Airbus A330-300', cat: 'ワイドボディ', seats: 277, range: 11700, price: 24000000000, leaseInit: 2400000000, leaseDaily: 4800000, speed: 870, fuelRate: 2.8, maint: 1050000 },
+                { id: 'a330-900', maker: 'Airbus', name: 'Airbus A330-900neo', cat: 'ワイドボディ', seats: 287, range: 13300, price: 28000000000, leaseInit: 2800000000, leaseDaily: 5600000, speed: 870, fuelRate: 2.5, maint: 1150000 },
+                { id: 'a359', maker: 'Airbus', name: 'Airbus A350-900', cat: 'ワイドボディ', seats: 315, range: 15000, price: 30000000000, leaseInit: 3000000000, leaseDaily: 6000000, speed: 900, fuelRate: 2.7, maint: 1200000 },
+                { id: 'a3510', maker: 'Airbus', name: 'Airbus A350-1000', cat: 'ワイドボディ', seats: 369, range: 16100, price: 35000000000, leaseInit: 3500000000, leaseDaily: 7000000, speed: 900, fuelRate: 3.0, maint: 1350000 },
+                { id: 'a380', maker: 'Airbus', name: 'Airbus A380-800', cat: '超大型機', seats: 525, range: 14800, price: 45000000000, leaseInit: 4500000000, leaseDaily: 9000000, speed: 900, fuelRate: 4.5, maint: 2000000 }
             ],
 
             Competitors: [
@@ -951,6 +999,7 @@
                 Player.company.date = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
                 let dayRes = { rev:0, fuel:0, airport:0, maint:0, lease:0, pax:0, flights:0 };
+                const isAIEnabled = Player.settings?.competitionEnabled ?? true;
 
                 // Month Roll-over Financial Aggregation
                 if (monthChanged) {
@@ -960,7 +1009,7 @@
                     this._processMonthRollover(Player.company, prevMonthStr);
                     
                     // Process for AI Competitors
-                    if (Player.competitors) {
+                    if (isAIEnabled && Player.competitors) {
                         Player.competitors.forEach(ai => {
                             if (ai.status !== 'bankrupt') this._processMonthRollover(ai, prevMonthStr);
                         });
@@ -995,7 +1044,7 @@
                     if (r.assignedReg) marketRoutes.push({ owner: Player.company, route: r, isPlayer: true });
                 });
                 
-                if (Player.competitors) {
+                if (isAIEnabled && Player.competitors) {
                     Player.competitors.forEach(ai => {
                         if (ai.status === 'bankrupt') return;
                         ai.finances.today.cost.lease += processFleetIdle(ai); // AI idle leases
@@ -1149,7 +1198,7 @@
                 Player.company.finances.thisMonth.cost.lease += dayRes.lease;
                 Player.company.finances.total.cost.lease += dayRes.lease;
                 
-                if (Player.competitors) {
+                if (isAIEnabled && Player.competitors) {
                     Player.competitors.forEach(ai => {
                         if (ai.status === 'bankrupt') return;
                         ai.funds -= ai.finances.today.cost.lease;
@@ -1159,7 +1208,9 @@
                 }
 
                 // AI Strategic Decisions
-                this._processAIs(d);
+                if (isAIEnabled) {
+                    this._processAIs(d);
+                }
 
                 return dayRes;
             },
@@ -1185,10 +1236,13 @@
                 Player.competitors.forEach((ai, idx) => {
                     if (ai.status === 'bankrupt') return;
                     
+                    const diff = Player.settings?.aiDifficulty ?? 'normal';
+                    const bankruptThresh = diff === 'easy' ? -5000000000 : (diff === 'hard' ? -1500000000 : -3000000000);
+
                     // Bankruptcy Check
-                    if (ai.funds < -3000000000) {
+                    if (ai.funds < bankruptThresh) {
                         ai.bankruptTimer = (ai.bankruptTimer || 0) + 1;
-                        if (ai.bankruptTimer > 30) {
+                        if (ai.bankruptTimer > 60) { // Gave them 2 months to recover
                             ai.status = 'bankrupt';
                             this.addNews(`【倒産】${ai.name}が資金繰り悪化により経営破綻しました。全路線から撤退します。`, 'danger');
                             ai.routes.forEach(r => r.assignedReg = null);
@@ -1196,25 +1250,43 @@
                             return;
                         }
                     } else {
-                        ai.bankruptTimer = 0;
+                        ai.bankruptTimer = Math.max(0, (ai.bankruptTimer || 0) - 1);
                     }
 
                     // Weekly Decision Making per AI
                     if (dayOfMonth % 7 === (idx + 1) % 7) {
-                        this._aiDecision(ai);
+                        this._aiDecision(ai, diff);
                     }
                 });
             },
 
-            _aiDecision(ai) {
+            _aiDecision(ai, diff) {
+                let expandThresh = 2500000000; let fareReact = 0.05; let cutMonths = 4; let maxRoutes = 20;
+                if (diff === 'easy') { expandThresh = 4000000000; fareReact = 0.02; cutMonths = 6; maxRoutes = 10; }
+                if (diff === 'hard') { expandThresh = 1500000000; fareReact = 0.08; cutMonths = 2; maxRoutes = 30; }
+
+                // Survival / Crisis Mode
+                if (ai.funds < 0) {
+                    // Emergency loan if deeply in debt, once per crisis to prevent instant collapse
+                    if (ai.funds < -500000000 && (!ai.lastLoan || Player.company.date > ai.lastLoan)) {
+                        ai.funds += 2000000000;
+                        ai.debt = (ai.debt || 0) + 2000000000;
+                        // Set 1-year cooldown on loans
+                        const parts = Player.company.date.split('-');
+                        ai.lastLoan = `${parseInt(parts[0])+1}-${parts[1]}-${parts[2]}`;
+                        this.addNews(`【経営】${ai.name}が経営立て直しのため緊急融資を受けました。`, 'warning');
+                    }
+                    expandThresh = Infinity; // Block expansion
+                }
+
                 // 1. Adjust Fares & Withdraw from heavy loss routes
                 for (let i = ai.routes.length - 1; i >= 0; i--) {
                     let r = ai.routes[i];
                     if (r.stats.flights > 30) { 
                         if (r.stats.lastProfit < 0) {
-                            if (r.stats.lastLf < 55 && r.fareMult > 0.7) r.fareMult = Math.max(0.7, r.fareMult - 0.1);
+                            if (r.stats.lastLf < 60 && r.fareMult > 0.6) r.fareMult = Math.max(0.6, r.fareMult - fareReact);
                             r.deficitCount = (r.deficitCount || 0) + 1;
-                            if (r.deficitCount > 4) { // About a month of consecutive weekly losses
+                            if (r.deficitCount > cutMonths * 4) { // Weeks of consecutive losses
                                 this.addNews(`${ai.name}が採算悪化のため ${r.from}-${r.to} 線から撤退しました。`, 'warning');
                                 const plane = ai.fleet.find(f => f.reg === r.assignedReg);
                                 if(plane) { plane.routeId = null; plane.status = 'idle'; }
@@ -1223,40 +1295,51 @@
                             }
                         } else {
                             r.deficitCount = 0;
-                            if (r.stats.lastLf > 85 && r.fareMult < 1.5) r.fareMult = Math.min(1.5, r.fareMult + 0.05);
+                            if (r.stats.lastLf > 85 && r.fareMult < 1.8) r.fareMult = Math.min(1.8, r.fareMult + (fareReact * 0.5));
                         }
                     }
                 }
 
                 // 2. Return Idle Leases
+                const idleLimit = ai.funds < 0 ? 1 : 3;
                 for (let i = ai.fleet.length - 1; i >= 0; i--) {
                     let f = ai.fleet[i];
                     if (!f.routeId && f.isLeased) {
                         f.idleCount = (f.idleCount || 0) + 1;
-                        if (f.idleCount > 2) ai.fleet.splice(i, 1);
+                        if (f.idleCount > idleLimit) ai.fleet.splice(i, 1);
                     } else {
                         f.idleCount = 0;
                     }
                 }
 
                 // 3. Expand Operations if wealthy
-                if (ai.funds > 2000000000 && ai.routes.length < 20) {
+                if (ai.funds > expandThresh && ai.routes.length < maxRoutes) {
                     const hqAp = GameData.Airports.find(a => a.id === ai.hq);
                     if (!hqAp) return;
                     const candidates = GameData.Airports.filter(a => a.id !== ai.hq && !ai.routes.some(r => r.from === ai.hq && r.to === a.id || r.to === ai.hq && r.from === a.id));
                     
-                    // Sort by demand and some AI flavor bias
                     candidates.sort((a,b) => b.demand - a.demand);
                     
                     if (candidates.length > 0) {
-                        const target = candidates[Math.floor(Math.random() * Math.min(3, candidates.length))];
+                        const target = candidates[Math.floor(Math.random() * Math.min(4, candidates.length))];
                         const dist = Utils.haversine(hqAp.lat, hqAp.lon, target.lat, target.lon);
                         const cost = Math.floor(dist * 100000 + (hqAp.scale + target.scale) * 5000000);
                         
-                        let planeType = ai.iata === 'SA' ? 'b738' : (ai.iata === 'NR' ? 'atr72' : 'a220');
-                        const acDef = GameData.Aircrafts.find(a => a.id === planeType);
+                        // Smart Aircraft Picking for AI
+                        let validPlanes = GameData.Aircrafts.filter(a => a.range >= dist);
+                        if(validPlanes.length === 0) return;
                         
-                        if (acDef && acDef.range >= dist && ai.funds > cost + acDef.leaseInit * 2) {
+                        // Flavor bias
+                        if (ai.iata === 'NR') validPlanes = validPlanes.filter(a => a.cat === 'ターボプロップ' || a.cat === 'リージョナル' || a.cat === '小型ジェット');
+                        if (ai.iata === 'SA') validPlanes = validPlanes.filter(a => a.cat.includes('ジェット') || a.cat.includes('ワイドボディ'));
+                        if (ai.iata === 'PW') validPlanes = validPlanes.filter(a => a.cat !== '超大型機');
+                        
+                        if(validPlanes.length === 0) validPlanes = GameData.Aircrafts.filter(a => a.range >= dist);
+                        
+                        validPlanes.sort((a,b) => a.price - b.price);
+                        const acDef = validPlanes[0];
+                        
+                        if (acDef && ai.funds > cost + acDef.leaseInit * 2) {
                             ai.funds -= (cost + acDef.leaseInit);
                             ai.finances.thisMonth.capEx = (ai.finances.thisMonth.capEx || 0) + cost + acDef.leaseInit;
                             ai.finances.total.capEx = (ai.finances.total.capEx || 0) + cost + acDef.leaseInit;
@@ -1264,7 +1347,7 @@
                             const reg = `JA${String(Math.floor(Math.random()*900)+100)}${ai.iata}`;
                             const routeId = [ai.hq, target.id].sort().join('-');
                             
-                            ai.fleet.push({ reg: reg, typeId: planeType, status: 'active', routeId: routeId, isLeased: true, age: 0, stats: { flights:0, pax:0, rev:0 } });
+                            ai.fleet.push({ reg: reg, typeId: acDef.id, status: 'active', routeId: routeId, isLeased: true, age: 0, stats: { flights:0, pax:0, rev:0 } });
                             ai.routes.push({
                                 id: routeId, from: ai.hq, to: target.id, distance: dist, assignedReg: reg, fareMult: 1.0,
                                 stats: { flights:0, pax:0, rev:0, profit:0, costBreakdown:{fuel:0,airport:0,maint:0,lease:0}, lastLf:0, lastPax:0, lastRev:0, lastCost:{fuel:0,airport:0,maint:0,lease:0}, lastProfit:0, lastFlights:0, lfHistory:[] }
@@ -1272,8 +1355,7 @@
                             
                             this.addNews(`【新規路線】${ai.name}が ${hqAp.name}-${target.name} 線の運航を開始しました。`, 'info');
                             
-                            // Increase brand awareness slightly
-                            ai.awareness = Math.min(100, (ai.awareness || 10) + 2);
+                            ai.awareness = Math.min(100, (ai.awareness || 10) + 3);
                         }
                     }
                 }
@@ -1285,6 +1367,7 @@
         // ==========================================
         const Views = {
             currentGraphDays: 30,
+            fleetStoreState: { maker: '', cat: '', sort: 'price', search: '' },
 
             renderFleet() {
                 const c = document.getElementById('fleet-list-container'); c.innerHTML = '';
@@ -1311,14 +1394,69 @@
             },
             
             renderFleetStore() {
-                let html = '<div class="data-grid">';
-                GameData.Aircrafts.forEach(ac => {
+                let html = `
+                <div style="margin-bottom:15px; display:flex; flex-wrap:wrap; gap:10px; background:var(--col-bg-dark); padding:10px; border-radius:8px; border:1px solid var(--panel-border);">
+                    <input type="text" id="fs-search" class="input-field" placeholder="機種名検索..." onkeyup="Views.fleetStoreState.search=this.value; Views.updateFleetStoreGrid();" style="flex:1; min-width:150px;">
+                    <select id="fs-maker" class="input-field" onchange="Views.fleetStoreState.maker=this.value; Views.updateFleetStoreGrid();">
+                        <option value="">全メーカー</option>
+                        <option value="Airbus">Airbus</option>
+                        <option value="Boeing">Boeing</option>
+                        <option value="Embraer">Embraer</option>
+                        <option value="ATR">ATR</option>
+                        <option value="De Havilland">De Havilland</option>
+                    </select>
+                    <select id="fs-cat" class="input-field" onchange="Views.fleetStoreState.cat=this.value; Views.updateFleetStoreGrid();">
+                        <option value="">全カテゴリー</option>
+                        <option value="ターボプロップ">ターボプロップ</option>
+                        <option value="リージョナル">リージョナル</option>
+                        <option value="小型ジェット">小型ジェット</option>
+                        <option value="単通路ジェット">単通路ジェット</option>
+                        <option value="ワイドボディ">ワイドボディ</option>
+                        <option value="超大型機">超大型機</option>
+                    </select>
+                    <select id="fs-sort" class="input-field" onchange="Views.fleetStoreState.sort=this.value; Views.updateFleetStoreGrid();">
+                        <option value="price">価格の安い順</option>
+                        <option value="priceDesc">価格の高い順</option>
+                        <option value="seats">座席数の少ない順</option>
+                        <option value="seatsDesc">座席数の多い順</option>
+                        <option value="rangeDesc">航続距離の長い順</option>
+                        <option value="fuel">燃費の良い順</option>
+                    </select>
+                </div>
+                <div id="fs-grid" class="data-grid" style="max-height: 60vh; overflow-y:auto; padding-right:5px; padding-bottom:10px;"></div>
+                `;
+                UI.showModal('新規機材 調達カタログ', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+                setTimeout(() => this.updateFleetStoreGrid(), 50);
+            },
+
+            updateFleetStoreGrid() {
+                const grid = document.getElementById('fs-grid'); if(!grid) return;
+                const st = this.fleetStoreState;
+                let list = GameData.Aircrafts.filter(a => {
+                    if(st.maker && a.maker !== st.maker) return false;
+                    if(st.cat && a.cat !== st.cat) return false;
+                    if(st.search && !a.name.toLowerCase().includes(st.search.toLowerCase())) return false;
+                    return true;
+                });
+                list.sort((a, b) => {
+                    if(st.sort === 'price') return a.price - b.price;
+                    if(st.sort === 'priceDesc') return b.price - a.price;
+                    if(st.sort === 'seats') return a.seats - b.seats;
+                    if(st.sort === 'seatsDesc') return b.seats - a.seats;
+                    if(st.sort === 'rangeDesc') return b.range - a.range;
+                    if(st.sort === 'fuel') return a.fuelRate - b.fuelRate;
+                    return 0;
+                });
+                
+                let html = '';
+                list.forEach(ac => {
                     html += `
                         <div class="card">
                             <div class="card-header">${ac.name} <span class="text-muted" style="font-size:0.8rem; font-weight:normal;">${ac.maker}</span></div>
                             <div class="card-body" style="margin-bottom:10px;">
                                 <div class="card-row"><span>カテゴリー</span><span>${ac.cat} (${ac.seats}席)</span></div>
                                 <div class="card-row"><span>航続/速度</span><span>${ac.range}km / ${ac.speed}km/h</span></div>
+                                <div class="card-row"><span>燃費係数</span><span>${ac.fuelRate}</span></div>
                                 <hr style="border:0; border-top:1px solid var(--panel-border); margin:5px 0;">
                                 <div class="card-row"><span>一括購入価格</span><span class="font-bold">${Utils.formatMoney(ac.price)}</span></div>
                                 <div class="card-row"><span>リース初期/日次</span><span>${Utils.formatMoney(ac.leaseInit)} / ${Utils.formatMoney(ac.leaseDaily)}</span></div>
@@ -1330,8 +1468,8 @@
                         </div>
                     `;
                 });
-                html += '</div>';
-                UI.showModal('新規機材 調達カタログ', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+                if(list.length === 0) html = '<div class="text-muted" style="padding:10px;">条件に一致する機材がありません。</div>';
+                grid.innerHTML = html;
             },
 
             renderRoutes() {
@@ -1483,9 +1621,39 @@
             renderCompetitors() {
                 const grid = document.getElementById('competitors-grid');
                 grid.innerHTML = '';
+                
+                if (!(Player.settings?.competitionEnabled ?? true)) {
+                    grid.innerHTML = '<div class="text-muted" style="font-size:1.1rem; padding: 20px;">競合会社は「なし」に設定されています。プレイヤー単独の市場となります。</div>';
+                    return;
+                }
+
                 if (!Player.competitors || Player.competitors.length === 0) {
                     grid.innerHTML = '<div class="text-muted">競合データがありません。</div>'; return;
                 }
+
+                // Calculate Market Share & Ranking Data
+                const pPax = Player.company.finances._tmStats?.p || 0;
+                let totalMarketPax = pPax;
+                Player.competitors.forEach(ai => { if (ai.status !== 'bankrupt') totalMarketPax += (ai.finances._tmStats?.p || 0); });
+                
+                let shareHtml = `<div class="card" style="grid-column: 1 / -1; margin-bottom: 10px;"><div class="card-header">当月 市場旅客シェア</div><div class="card-body">`;
+                if (totalMarketPax === 0) {
+                    shareHtml += `<div class="text-muted">当月の旅客データがありません。</div>`;
+                } else {
+                    shareHtml += `<div class="share-bar-container">`;
+                    const pPct = Math.round((pPax / totalMarketPax) * 100);
+                    shareHtml += `<div class="share-bar-segment" style="width:${pPct}%; background-color:${Player.company.color};" title="${Player.company.name}: ${pPct}%">${pPct}%</div>`;
+                    
+                    Player.competitors.forEach(ai => {
+                        if (ai.status === 'bankrupt') return;
+                        const aPax = ai.finances._tmStats?.p || 0;
+                        const aPct = Math.round((aPax / totalMarketPax) * 100);
+                        if (aPct > 0) shareHtml += `<div class="share-bar-segment" style="width:${aPct}%; background-color:${ai.color};" title="${ai.name}: ${aPct}%">${aPct}%</div>`;
+                    });
+                    shareHtml += `</div><div class="text-muted" style="font-size:0.8rem;">※各色のバーは当月の全社輸送旅客数における割合を示しています。</div>`;
+                }
+                shareHtml += `</div></div>`;
+                grid.innerHTML += shareHtml;
 
                 Player.competitors.forEach(ai => {
                     const statusText = ai.status === 'bankrupt' ? '<span class="text-danger font-bold">経営破綻</span>' : (ai.funds < 0 ? '<span class="text-warning">経営注意</span>' : '<span class="text-success">安定</span>');
@@ -1814,10 +1982,11 @@
                 const data = JSON.parse(JSON.stringify(rawData));
                 
                 if (!data.version) data.version = GameData.VERSION;
+                if (!data.settings) data.settings = { competitionEnabled: true, aiDifficulty: 'normal' };
                 if (data.company.reputation === undefined || !isFinite(data.company.reputation)) data.company.reputation = 50;
                 if (data.company.awareness === undefined || !isFinite(data.company.awareness)) data.company.awareness = 10;
                 
-                // Initialize Competitors and News for v0.2.0
+                // Initialize Competitors and News for v0.2.1
                 if (!data.competitors) {
                     data.competitors = GameData.Competitors.map(c => {
                         const comp = {
@@ -1895,6 +2064,8 @@
             submitNewCompany(e) {
                 e.preventDefault();
                 const name = document.getElementById('c-name').value.trim(); const iata = document.getElementById('c-iata').value.toUpperCase(); const icao = document.getElementById('c-icao').value.toUpperCase();
+                const compEnabled = document.getElementById('c-comp').value === 'yes';
+                const aiDiff = document.getElementById('c-diff').value;
                 
                 // Init AI Competitors
                 const initialCompetitors = GameData.Competitors.map(c => {
@@ -1920,6 +2091,7 @@
                         fleet: [], routes: [], employees: 0, debt: 0,
                         finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [] }
                     },
+                    settings: { competitionEnabled: compEnabled, aiDifficulty: aiDiff },
                     competitors: initialCompetitors,
                     news: [{ date: GameData.START_DATE, msg: `${name} を設立しました。市場への参入を果たしました。`, type: 'success' }],
                     history: [{ date: GameData.START_DATE, msg: `${name} を設立しました。` }]
@@ -1969,3 +2141,4 @@
 </body>
 </html>
 ```
+
