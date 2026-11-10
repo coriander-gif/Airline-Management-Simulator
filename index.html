@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.3</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.4</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -87,7 +87,7 @@
 
         .input-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
         .input-group label { margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--col-text-muted); }
-        .input-field { background-color: var(--col-bg-dark); color: var(--col-text-main); border: 1px solid var(--col-map-border); padding: 8px; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+        .input-field { background-color: var(--col-bg-dark); color: var(--col-text-main); border: 1px solid var(--map-border); padding: 8px; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
         .input-field:focus { border-color: var(--col-primary); }
 
         /* Load Factor Badge System */
@@ -316,7 +316,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.3<br>DAILY ENGINE & LEASE FINANCE STABILITY UPDATE
+            Version v0.2.1.4<br>財務整合性・データ保護強化アップデート
         </div>
     </div>
 
@@ -518,8 +518,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.3
-         * DAILY ENGINE & LEASE FINANCE STABILITY UPDATE
+         * AIRLINE TYCOON JAPAN v0.2.1.4
+         * 財務整合性・データ保護強化アップデート
          */
 
         const ThemeManager = {
@@ -545,8 +545,9 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.3",
+            VERSION: "0.2.1.4",
             SAVE_KEY: "atj_save_v1",
+            SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
             START_FUNDS: 5000000000,
             FUEL_UNIT_PRICE: 15,
@@ -915,6 +916,7 @@
                             summary.stopped = true; summary.stopReason = "深刻な資金ショート (50億円以上の赤字)"; break; 
                         }
 
+                        // トランザクション化された日次処理を呼び出し
                         const res = this._processOneDay();
                         
                         summary.days++; 
@@ -938,8 +940,8 @@
                 } catch (e) {
                     console.error("Simulation error during advanceDays:", e);
                     summary.stopped = true;
-                    summary.stopReason = "システムエラーによる中断";
-                    UI.showToast("進行中にエラーが発生し、安全のため停止しました。", "error");
+                    summary.stopReason = "エラー発生による中断とデータ保護(ロールバック)";
+                    UI.showModal("重大なエラー", `日次処理中にエラーが発生したため、安全のため当日の変更を取り消しました。<br><br>エラー詳細: ${e.message}`);
                 } finally {
                     progModal.classList.add('hidden');
                     this.isAdvancing = false;
@@ -980,20 +982,21 @@
                 }
             },
 
+            // トランザクション管理ラッパー
             _processOneDay() {
+                const backup = JSON.stringify(Player); // 状態スナップショット作成
+                try {
+                    return this._calculateOneDayImpl();
+                } catch (error) {
+                    Player = JSON.parse(backup); // エラー時はスナップショットからロールバック
+                    throw error;
+                }
+            },
+
+            _calculateOneDayImpl() {
                 const dateParts = Player.company.date.split('-').map(Number);
                 let y = dateParts[0], m = dateParts[1], d = dateParts[2];
                 const daysInMonth = new Date(y, m, 0).getDate();
-                
-                let monthChanged = false;
-                let nextD = d + 1;
-                let nextM = m;
-                let nextY = y;
-                if (nextD > daysInMonth) {
-                    nextD = 1; nextM++;
-                    if (nextM > 12) { nextM = 1; nextY++; }
-                    monthChanged = true;
-                }
 
                 const isAIEnabled = (Player.settings?.competitionEnabled ?? true);
                 const allCompanies = [Player.company];
@@ -1001,16 +1004,11 @@
                     Player.competitors.forEach(ai => { if (ai.status !== 'bankrupt') allCompanies.push(ai); });
                 }
 
-                // 1. Month Rollover & Daily Reset
+                // 1. 当日の財務初期化（毎日の開始時にリセット）
                 allCompanies.forEach(comp => {
-                    if (monthChanged) {
-                        this._processMonthRollover(comp, `${y}-${String(m).padStart(2,'0')}`);
-                    }
-                    // Reset today's finances at the start of the day
                     comp.finances.today = this._resetFinanceObject();
                 });
 
-                // Prepare tracking object scoped to this exact simulated day
                 let dayRes = { rev: 0, fuel: 0, airport: 0, maint: 0, lease: 0, pax: 0, flights: 0 };
 
                 // 2. Centralized Lease Processing & Fleet Status Validation (RULE: DEDUCT LEASE ONCE)
@@ -1018,7 +1016,7 @@
                 allCompanies.forEach(comp => {
                     comp.fleet.forEach(f => {
                         const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
-                        if (!ac) return; // Invalid aircraft reference
+                        if (!ac) throw new Error(`機材マスターデータ未検出: ${f.typeId}`);
 
                         let canFly = false;
                         let assignedRoute = null;
@@ -1035,7 +1033,7 @@
                         f.status = canFly ? 'active' : 'idle';
 
                         // ** CENTRALIZED LEASE DEDUCTION **
-                        // Regardless of status (idle, flying, range too short), deduct lease ONCE globally.
+                        // 機材の状態（運航中・待機中・航続距離不足等）に関わらず、リース機なら1日1回だけ控除。
                         if (f.isLeased) {
                             const lCost = ac.leaseDaily || 0;
                             comp.funds -= lCost;
@@ -1063,7 +1061,7 @@
                     const group = pairs[pairKey];
                     const apA = GameData.Airports.find(a => a.id === group[0].route.from);
                     const apB = GameData.Airports.find(a => a.id === group[0].route.to);
-                    if (!apA || !apB) continue;
+                    if (!apA || !apB) throw new Error(`無効な空港IDを検出: ${pairKey}`);
 
                     const dist = group[0].route.distance;
                     const distFactorGlobal = Math.max(0.5, 1.25 - (dist / 3000));
@@ -1173,12 +1171,31 @@
                     });
                 }
 
-                // Increment Date
+                // 4. 月末判定と月次決算 (当日分の処理完了後に行う)
+                let nextD = d + 1;
+                let nextM = m;
+                let nextY = y;
+                let monthChanged = false;
+                
+                if (nextD > daysInMonth) {
+                    nextD = 1; 
+                    nextM++;
+                    if (nextM > 12) { nextM = 1; nextY++; }
+                    monthChanged = true;
+                }
+
+                if (monthChanged) {
+                    allCompanies.forEach(comp => {
+                        this._processMonthRollover(comp, `${y}-${String(m).padStart(2,'0')}`);
+                    });
+                }
+
+                // 5. 日付の更新
                 Player.company.date = `${nextY}-${String(nextM).padStart(2,'0')}-${String(nextD).padStart(2,'0')}`;
                 
-                // AI Strategic Evaluation on specific dates
+                // 6. AI Strategic Evaluation
                 if (isAIEnabled) {
-                    this._processAIs(nextD);
+                    this._processAIs(d); // AIは曜日分散ロジックのため、元の日の数値を使用
                 }
 
                 return dayRes;
@@ -1935,6 +1952,11 @@
                                 console.warn("Future save data detected."); document.getElementById('btn-continue').disabled = true; return;
                             }
                             document.getElementById('btn-continue').disabled = false; document.getElementById('btn-continue').textContent = `CONTINUE (${data.company.name})`;
+                        } else {
+                            // バックアップがあればCONTINUE可能にする（詳細はロード時に処理）
+                            if (localStorage.getItem(GameData.SAVE_KEY_BACKUP)) {
+                                document.getElementById('btn-continue').disabled = false; document.getElementById('btn-continue').textContent = `CONTINUE (要復元)`;
+                            }
                         }
                     }
                 } catch(e) { console.error("Init check error", e); }
@@ -1948,8 +1970,24 @@
             validateSaveData(data) {
                 if (!data || typeof data !== 'object') return false;
                 if (!data.company || typeof data.company.name !== 'string') return false;
-                if (typeof data.company.funds !== 'number' || !isFinite(data.company.funds)) return false;
+                
+                // 資金のNaNチェック
+                if (typeof data.company.funds !== 'number' || isNaN(data.company.funds) || !isFinite(data.company.funds)) return false;
+                // 日付の形式チェック
+                if (typeof data.company.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.company.date)) return false;
+                // 必須配列
                 if (!Array.isArray(data.company.fleet) || !Array.isArray(data.company.routes)) return false;
+
+                // 致命的な不整合チェック（これらは補正不可と判断）
+                for (const r of data.company.routes) {
+                    const fromAp = GameData.Airports.find(a => a.id === r.from);
+                    const toAp = GameData.Airports.find(a => a.id === r.to);
+                    if (!fromAp || !toAp) return false;
+                }
+                for (const f of data.company.fleet) {
+                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
+                    if (!ac) return false;
+                }
                 return true;
             },
             
@@ -2009,63 +2047,103 @@
                 if (data.company.reputation === undefined || !isFinite(data.company.reputation)) data.company.reputation = 50;
                 if (data.company.awareness === undefined || !isFinite(data.company.awareness)) data.company.awareness = 10;
                 
-                // Initialize Competitors and News for v0.2.1/v0.2.1.1
-                if (!data.competitors) {
-                    data.competitors = GameData.Competitors.map(c => this._generateAIInitialState(c, data.company.date));
-                }
-                
-                if (!data.news) {
-                    data.news = (data.history || []).map(h => ({ date: h.date, msg: h.msg, type: 'info' }));
-                }
+                // Initialize Competitors and News for legacy saves
+                if (!data.competitors) data.competitors = GameData.Competitors.map(c => this._generateAIInitialState(c, data.company.date));
+                if (!data.news) data.news = (data.history || []).map(h => ({ date: h.date, msg: h.msg, type: 'info' }));
 
-                // Verify AI Data
+                // --- 堅牢なデータ補正ヘルパー ---
+                const fixNum = (val, defaultVal = 0) => {
+                    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return defaultVal;
+                    return val;
+                };
+
+                const fixFinances = (fin) => {
+                    if (!fin) return;
+                    fin.rev = Math.max(0, fixNum(fin.rev));
+                    if(!fin.cost) fin.cost = {fuel:0, airport:0, maint:0, lease:0};
+                    fin.cost.fuel = Math.max(0, fixNum(fin.cost.fuel));
+                    fin.cost.airport = Math.max(0, fixNum(fin.cost.airport));
+                    fin.cost.maint = Math.max(0, fixNum(fin.cost.maint));
+                    fin.cost.lease = Math.max(0, fixNum(fin.cost.lease));
+                    fin.capEx = Math.max(0, fixNum(fin.capEx));
+                };
+
+                const checkFleetAndRoutes = (companyObj, isPlayer) => {
+                    const regSet = new Set();
+                    companyObj.fleet.forEach(f => {
+                        if (regSet.has(f.reg) || !f.reg || typeof f.reg !== 'string') {
+                            f.reg = Utils.genRegNum(companyObj.iata);
+                            if (isPlayer) console.warn("機体登録番号を補正しました: " + f.reg);
+                        }
+                        regSet.add(f.reg);
+
+                        if (f.age === undefined) f.age = 0;
+                        if (!f.stats) f.stats = { flights: 0, pax: 0, rev: 0 };
+                        f.stats.flights = Math.max(0, fixNum(f.stats.flights));
+                        f.stats.pax = Math.max(0, fixNum(f.stats.pax));
+                        f.stats.rev = Math.max(0, fixNum(f.stats.rev));
+                    });
+
+                    const routeIdSet = new Set();
+                    const assignedRegSet = new Set();
+                    companyObj.routes = companyObj.routes.filter(r => {
+                        if (routeIdSet.has(r.id)) {
+                            if (isPlayer) console.warn("重複路線を削除しました: " + r.id);
+                            return false;
+                        }
+                        routeIdSet.add(r.id);
+
+                        if (r.assignedReg) {
+                            const plane = companyObj.fleet.find(f => f.reg === r.assignedReg);
+                            // 機材未発見、既に他路線に割当済、または機材側のrouteIdが不一致なら解除
+                            if (!plane || assignedRegSet.has(r.assignedReg) || plane.routeId !== r.id) {
+                                r.assignedReg = null;
+                                if (plane && plane.routeId === r.id) plane.routeId = null; 
+                            } else {
+                                assignedRegSet.add(r.assignedReg);
+                                plane.routeId = r.id;
+                            }
+                        }
+                        if (r.fareMult === undefined || isNaN(r.fareMult)) r.fareMult = 1.0;
+                        if (!r.stats) {
+                            r.stats = { flights: 0, pax: 0, rev: 0, profit: 0, costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 }, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] };
+                        }
+                        if (!r.stats.costBreakdown) r.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
+                        if (!r.stats.lfHistory) r.stats.lfHistory = [];
+                        return true;
+                    });
+
+                    // 存在しない路線を参照している機材の補正
+                    companyObj.fleet.forEach(f => {
+                        if (f.routeId && !companyObj.routes.find(r => r.id === f.routeId)) {
+                            f.routeId = null;
+                            f.status = 'idle';
+                        }
+                        if (!f.routeId && f.status === 'active') f.status = 'idle';
+                    });
+                };
+
+                // Playerの財務・機材補正
+                if (!data.company.finances) data.company.finances = { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: { f:0, p:0, seats:0 } };
+                fixFinances(data.company.finances.today);
+                fixFinances(data.company.finances.thisMonth);
+                fixFinances(data.company.finances.total);
+                data.company.finances.monthlyRecords.forEach(m => {
+                    m.rev = Math.max(0, fixNum(m.rev));
+                    m.netProfit = fixNum(m.netProfit);
+                    if(m.cost) { m.cost.fuel = Math.max(0, fixNum(m.cost.fuel)); m.cost.airport = Math.max(0, fixNum(m.cost.airport)); m.cost.maint = Math.max(0, fixNum(m.cost.maint)); m.cost.lease = Math.max(0, fixNum(m.cost.lease)); }
+                });
+                checkFleetAndRoutes(data.company, true);
+
+                // AIの財務・機材補正
                 data.competitors.forEach(ai => {
-                    if (ai.funds === null || isNaN(ai.funds)) ai.funds = 1000000000;
+                    ai.funds = fixNum(ai.funds, 1000000000);
                     if (!ai.finances) ai.finances = { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} };
-                    ai.routes.forEach(r => { if (!r.stats.costBreakdown) r.stats.costBreakdown = {fuel:0,airport:0,maint:0,lease:0}; });
-                });
-
-                // Finances Structure Validation & Fallbacks
-                if (!data.company.finances) {
-                    data.company.finances = {
-                        today: Logic._resetFinanceObject(), 
-                        thisMonth: Logic._resetFinanceObject(), 
-                        total: Logic._resetFinanceObject(), 
-                        monthlyRecords: [], 
-                        _tmStats: { f:0, p:0, seats:0 }
-                    };
-                }
-                if (data.company.finances.today.capEx === undefined) data.company.finances.today.capEx = 0;
-                if (data.company.finances.thisMonth.capEx === undefined) data.company.finances.thisMonth.capEx = 0;
-                if (data.company.finances.total.capEx === undefined) data.company.finances.total.capEx = 0;
-
-                // Fleet verification & auto-repair
-                const regSet = new Set();
-                data.company.fleet.forEach(f => {
-                    if (!f.stats) f.stats = { flights: 0, pax: 0, rev: 0 };
-                    if (f.status === undefined) f.status = f.routeId ? 'active' : 'idle';
-                    
-                    // Deduplicate aircraft registration if necessary
-                    if (regSet.has(f.reg)) {
-                        f.reg = Utils.genRegNum();
-                    }
-                    regSet.add(f.reg);
-                });
-
-                // Routes verification & cumulative fee structure completion
-                data.company.routes.forEach(r => {
-                    if (r.fareMult === undefined || isNaN(r.fareMult)) r.fareMult = 1.0;
-                    if (!r.stats) {
-                        r.stats = { 
-                            flights: 0, pax: 0, rev: 0, profit: 0, 
-                            costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 },
-                            lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] 
-                        };
-                    }
-                    if (!r.stats.costBreakdown) {
-                        r.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
-                    }
-                    if (!r.stats.lfHistory) r.stats.lfHistory = [];
+                    fixFinances(ai.finances.today);
+                    fixFinances(ai.finances.thisMonth);
+                    fixFinances(ai.finances.total);
+                    if(!ai.finances._tmStats) ai.finances._tmStats = {f:0,p:0,seats:0};
+                    checkFleetAndRoutes(ai, false);
                 });
 
                 data.version = GameData.VERSION;
@@ -2102,13 +2180,38 @@
             },
             continueGame() {
                 try {
-                    const rawText = localStorage.getItem(GameData.SAVE_KEY); if (!rawText) return;
+                    let rawText = localStorage.getItem(GameData.SAVE_KEY); 
+                    if (!rawText) return;
                     let rawData = JSON.parse(rawText);
-                    if (this.compareVer(rawData.version, GameData.VERSION) > 0) { UI.showModal('エラー', 'このセーブデータは現在のゲームより新しいバージョンで作成されています。データの破損を防ぐため読み込みを中止しました。'); return; }
-                    if (!this.validateSaveData(rawData)) { UI.showModal('エラー', 'セーブデータの検証に失敗しました。'); return; }
+                    
+                    if (this.compareVer(rawData.version, GameData.VERSION) > 0) { 
+                        UI.showModal('エラー', 'このセーブデータは現在のゲームより新しいバージョンで作成されています。データの破損を防ぐため読み込みを中止しました。'); 
+                        return; 
+                    }
+                    
+                    // 検証とバックアップ復元システム
+                    if (!this.validateSaveData(rawData)) {
+                        console.warn("セーブデータの検証に失敗。バックアップからの復元を試みます。");
+                        const backupText = localStorage.getItem(GameData.SAVE_KEY_BACKUP);
+                        if (backupText) {
+                            const backupData = JSON.parse(backupText);
+                            if (this.validateSaveData(backupData)) {
+                                rawData = backupData;
+                                UI.showModal('データ修復', '最新のセーブデータが破損していたため、前回の正常なバックアップから復元しました。');
+                            } else {
+                                throw new Error("バックアップデータも破損しています。ゲームを開始できません。");
+                            }
+                        } else {
+                            throw new Error("正常なセーブデータが見つかりません。");
+                        }
+                    }
+                    
                     Player = this.migrateSaveData(rawData);
                     this.enterHQ();
-                } catch(e) { console.error(e); UI.showModal('エラー', 'セーブデータのロードに失敗しました。'); }
+                } catch(e) { 
+                    console.error(e); 
+                    UI.showModal('重大なエラー', `セーブデータのロードに失敗しました。<br>エラー詳細: ${e.message}`); 
+                }
             },
             enterHQ() {
                 UI.switchScreen('screen-hq'); UI.updateHeader(); UI.updateNews(); MapSystem.initMap();
@@ -2123,7 +2226,14 @@
                     const exist = localStorage.getItem(GameData.SAVE_KEY);
                     if (exist) {
                         const ed = JSON.parse(exist);
-                        if (this.compareVer(ed.version, GameData.VERSION) > 0) { console.error("Autosave blocked to prevent overwrite."); return false; }
+                        if (this.compareVer(ed.version, GameData.VERSION) > 0) { 
+                            console.error("Autosave blocked to prevent overwrite."); 
+                            return false; 
+                        }
+                        // 既存の正常なデータをバックアップとして退避
+                        if (this.validateSaveData(ed)) {
+                            localStorage.setItem(GameData.SAVE_KEY_BACKUP, exist);
+                        }
                     }
                     Player.metadata.lastPlayed = new Date().toISOString();
                     localStorage.setItem(GameData.SAVE_KEY, JSON.stringify(Player));
