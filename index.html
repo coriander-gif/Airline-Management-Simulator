@@ -316,7 +316,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.4<br>財務整合性・データ保護強化アップデート
+            Version v0.2.1.5<br>セーブデータ検証・保護強化アップデート
         </div>
     </div>
 
@@ -518,7 +518,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.4
+         * AIRLINE TYCOON JAPAN v0.2.1.5
          * 財務整合性・データ保護強化アップデート
          */
 
@@ -545,7 +545,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.4",
+            VERSION: "0.2.1.5",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -759,6 +759,7 @@
         const Logic = {
             isAdvancing: false,
             cancelRequested: false,
+            debugForceErrorInDaily: false,
 
             _resetFinanceObject() { return { rev: 0, cost: { fuel: 0, airport: 0, maint: 0, lease: 0 }, capEx: 0 }; },
 
@@ -1196,6 +1197,11 @@
                 // 6. AI Strategic Evaluation
                 if (isAIEnabled) {
                     this._processAIs(d); // AIは曜日分散ロジックのため、元の日の数値を使用
+                }
+
+                if (this.debugForceErrorInDaily) {
+                    this.debugForceErrorInDaily = false;
+                    throw new Error("[テスト] 日次処理中に意図的なエラーが発生しました。");
                 }
 
                 return dayRes;
@@ -1973,21 +1979,21 @@
                 
                 // 資金のNaNチェック
                 if (typeof data.company.funds !== 'number' || isNaN(data.company.funds) || !isFinite(data.company.funds)) return false;
-                // 日付の形式チェック
+                
+                // 日付の形式チェックと実在チェック
                 if (typeof data.company.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.company.date)) return false;
+                const dp = data.company.date.split('-').map(Number);
+                const d = new Date(dp[0], dp[1] - 1, dp[2]);
+                if (d.getFullYear() !== dp[0] || d.getMonth() + 1 !== dp[1] || d.getDate() !== dp[2]) return false; // 2月30日等の判定
+                
+                // 開始日より前は不正
+                const startDp = GameData.START_DATE.split('-').map(Number);
+                const startD = new Date(startDp[0], startDp[1] - 1, startDp[2]);
+                if (d < startD) return false;
+
                 // 必須配列
                 if (!Array.isArray(data.company.fleet) || !Array.isArray(data.company.routes)) return false;
 
-                // 致命的な不整合チェック（これらは補正不可と判断）
-                for (const r of data.company.routes) {
-                    const fromAp = GameData.Airports.find(a => a.id === r.from);
-                    const toAp = GameData.Airports.find(a => a.id === r.to);
-                    if (!fromAp || !toAp) return false;
-                }
-                for (const f of data.company.fleet) {
-                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
-                    if (!ac) return false;
-                }
                 return true;
             },
             
@@ -2042,20 +2048,24 @@
                 // Defensive Copy - Never mutate raw data during migration
                 const data = JSON.parse(JSON.stringify(rawData));
                 
+                data._repairLog = [];
+                const logRepair = (msg) => { data._repairLog.push(msg); console.warn(`[自動修復] ${msg}`); };
+
                 if (!data.version) data.version = GameData.VERSION;
                 if (!data.settings) data.settings = { competitionEnabled: true, aiDifficulty: 'normal' };
-                if (data.company.reputation === undefined || !isFinite(data.company.reputation)) data.company.reputation = 50;
-                if (data.company.awareness === undefined || !isFinite(data.company.awareness)) data.company.awareness = 10;
                 
-                // Initialize Competitors and News for legacy saves
-                if (!data.competitors) data.competitors = GameData.Competitors.map(c => this._generateAIInitialState(c, data.company.date));
-                if (!data.news) data.news = (data.history || []).map(h => ({ date: h.date, msg: h.msg, type: 'info' }));
-
                 // --- 堅牢なデータ補正ヘルパー ---
                 const fixNum = (val, defaultVal = 0) => {
                     if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return defaultVal;
                     return val;
                 };
+
+                data.company.reputation = fixNum(data.company.reputation, 50);
+                data.company.awareness = fixNum(data.company.awareness, 10);
+                
+                // Initialize Competitors and News for legacy saves
+                if (!data.competitors) data.competitors = GameData.Competitors.map(c => this._generateAIInitialState(c, data.company.date));
+                if (!data.news) data.news = (data.history || []).map(h => ({ date: h.date, msg: h.msg, type: 'info' }));
 
                 const fixFinances = (fin) => {
                     if (!fin) return;
@@ -2069,11 +2079,26 @@
                 };
 
                 const checkFleetAndRoutes = (companyObj, isPlayer) => {
+                    if (!Array.isArray(companyObj.fleet)) {
+                        companyObj.fleet = [];
+                        logRepair(`${isPlayer ? 'プレイヤー' : companyObj.name} の機材リストが破損していたため初期化しました。`);
+                    }
+                    if (!Array.isArray(companyObj.routes)) {
+                        companyObj.routes = [];
+                        logRepair(`${isPlayer ? 'プレイヤー' : companyObj.name} の路線リストが破損していたため初期化しました。`);
+                    }
+
                     const regSet = new Set();
-                    companyObj.fleet.forEach(f => {
+                    companyObj.fleet = companyObj.fleet.filter(f => {
+                        if (!f || typeof f !== 'object') return false;
+                        const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
+                        if (!ac) {
+                            logRepair(`存在しない機種ID(${f.typeId})の機材を削除しました。`);
+                            return false;
+                        }
                         if (regSet.has(f.reg) || !f.reg || typeof f.reg !== 'string') {
                             f.reg = Utils.genRegNum(companyObj.iata);
-                            if (isPlayer) console.warn("機体登録番号を補正しました: " + f.reg);
+                            if (isPlayer) logRepair("機体登録番号の重複または不正を補正しました: " + f.reg);
                         }
                         regSet.add(f.reg);
 
@@ -2082,13 +2107,22 @@
                         f.stats.flights = Math.max(0, fixNum(f.stats.flights));
                         f.stats.pax = Math.max(0, fixNum(f.stats.pax));
                         f.stats.rev = Math.max(0, fixNum(f.stats.rev));
+                        f.isLeased = !!f.isLeased;
+                        return true;
                     });
 
                     const routeIdSet = new Set();
                     const assignedRegSet = new Set();
                     companyObj.routes = companyObj.routes.filter(r => {
+                        if (!r || typeof r !== 'object') return false;
+                        const fromAp = GameData.Airports.find(a => a.id === r.from);
+                        const toAp = GameData.Airports.find(a => a.id === r.to);
+                        if (!fromAp || !toAp || r.from === r.to) {
+                            logRepair(`不正な路線を削除しました: ${r.id}`);
+                            return false;
+                        }
                         if (routeIdSet.has(r.id)) {
-                            if (isPlayer) console.warn("重複路線を削除しました: " + r.id);
+                            if (isPlayer) logRepair("重複路線を削除しました: " + r.id);
                             return false;
                         }
                         routeIdSet.add(r.id);
@@ -2099,17 +2133,21 @@
                             if (!plane || assignedRegSet.has(r.assignedReg) || plane.routeId !== r.id) {
                                 r.assignedReg = null;
                                 if (plane && plane.routeId === r.id) plane.routeId = null; 
+                                logRepair(`路線 ${r.id} の機材割り当て不整合を補正(解除)しました。`);
                             } else {
                                 assignedRegSet.add(r.assignedReg);
                                 plane.routeId = r.id;
                             }
                         }
-                        if (r.fareMult === undefined || isNaN(r.fareMult)) r.fareMult = 1.0;
+                        
+                        r.fareMult = fixNum(r.fareMult, 1.0);
+                        if (r.fareMult < 0.1 || r.fareMult > 5.0) r.fareMult = 1.0;
+
                         if (!r.stats) {
                             r.stats = { flights: 0, pax: 0, rev: 0, profit: 0, costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 }, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] };
                         }
                         if (!r.stats.costBreakdown) r.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
-                        if (!r.stats.lfHistory) r.stats.lfHistory = [];
+                        if (!Array.isArray(r.stats.lfHistory)) r.stats.lfHistory = [];
                         return true;
                     });
 
@@ -2118,6 +2156,7 @@
                         if (f.routeId && !companyObj.routes.find(r => r.id === f.routeId)) {
                             f.routeId = null;
                             f.status = 'idle';
+                            logRepair(`存在しない路線に割り当てられていた機材(${f.reg})を待機中に戻しました。`);
                         }
                         if (!f.routeId && f.status === 'active') f.status = 'idle';
                     });
@@ -2128,16 +2167,31 @@
                 fixFinances(data.company.finances.today);
                 fixFinances(data.company.finances.thisMonth);
                 fixFinances(data.company.finances.total);
-                data.company.finances.monthlyRecords.forEach(m => {
-                    m.rev = Math.max(0, fixNum(m.rev));
-                    m.netProfit = fixNum(m.netProfit);
-                    if(m.cost) { m.cost.fuel = Math.max(0, fixNum(m.cost.fuel)); m.cost.airport = Math.max(0, fixNum(m.cost.airport)); m.cost.maint = Math.max(0, fixNum(m.cost.maint)); m.cost.lease = Math.max(0, fixNum(m.cost.lease)); }
-                });
+                if (Array.isArray(data.company.finances.monthlyRecords)) {
+                    data.company.finances.monthlyRecords.forEach(m => {
+                        m.rev = Math.max(0, fixNum(m.rev));
+                        m.netProfit = fixNum(m.netProfit);
+                        if(m.cost) { m.cost.fuel = Math.max(0, fixNum(m.cost.fuel)); m.cost.airport = Math.max(0, fixNum(m.cost.airport)); m.cost.maint = Math.max(0, fixNum(m.cost.maint)); m.cost.lease = Math.max(0, fixNum(m.cost.lease)); }
+                    });
+                } else {
+                    data.company.finances.monthlyRecords = [];
+                }
                 checkFleetAndRoutes(data.company, true);
 
                 // AIの財務・機材補正
+                if (!Array.isArray(data.competitors)) data.competitors = [];
+                data.competitors = data.competitors.filter(ai => {
+                    if (!ai || typeof ai.id !== 'string' || typeof ai.name !== 'string') {
+                        logRepair("不正なAI会社データを削除しました。");
+                        return false;
+                    }
+                    return true;
+                });
+
                 data.competitors.forEach(ai => {
                     ai.funds = fixNum(ai.funds, 1000000000);
+                    ai.reputation = fixNum(ai.reputation, 50);
+                    ai.awareness = fixNum(ai.awareness, 10);
                     if (!ai.finances) ai.finances = { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} };
                     fixFinances(ai.finances.today);
                     fixFinances(ai.finances.thisMonth);
@@ -2207,6 +2261,9 @@
                     }
                     
                     Player = this.migrateSaveData(rawData);
+                    if (Player._repairLog && Player._repairLog.length > 0) {
+                        setTimeout(() => UI.showToast("一部のデータを修復して読み込みました", "warning"), 500);
+                    }
                     this.enterHQ();
                 } catch(e) { 
                     console.error(e); 
@@ -2225,14 +2282,18 @@
                 try {
                     const exist = localStorage.getItem(GameData.SAVE_KEY);
                     if (exist) {
-                        const ed = JSON.parse(exist);
-                        if (this.compareVer(ed.version, GameData.VERSION) > 0) { 
-                            console.error("Autosave blocked to prevent overwrite."); 
-                            return false; 
-                        }
-                        // 既存の正常なデータをバックアップとして退避
-                        if (this.validateSaveData(ed)) {
-                            localStorage.setItem(GameData.SAVE_KEY_BACKUP, exist);
+                        try {
+                            const ed = JSON.parse(exist);
+                            if (this.compareVer(ed.version, GameData.VERSION) > 0) { 
+                                console.error("Autosave blocked to prevent overwrite."); 
+                                return false; 
+                            }
+                            // 既存の正常なデータをバックアップとして退避
+                            if (this.validateSaveData(ed)) {
+                                localStorage.setItem(GameData.SAVE_KEY_BACKUP, exist);
+                            }
+                        } catch(e) {
+                            console.warn("既存のセーブデータがJSONとして不正なためバックアップをスキップします", e);
                         }
                     }
                     Player.metadata.lastPlayed = new Date().toISOString();
@@ -2240,7 +2301,7 @@
                     return true;
                 } catch(e) {
                     if (isAuto) UI.showToast("自動セーブに失敗しました。ブラウザの保存領域を確認してください。", "warning");
-                    else UI.showModal('エラー', 'セーブデータの保存に失敗しました。');
+                    else UI.showModal('エラー', 'セーブデータの保存に失敗しました。ストレージの空き容量などを確認してください。');
                     return false;
                 }
             },
