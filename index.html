@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.3.0.5</title>
+    <title>AIRLINE TYCOON JAPAN v0.3.0.5.1</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -343,7 +343,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.3.0.5<br>航空機整備システムの実装
+            Version v0.3.0.5.1<br>航空機整備システムの不具合修正
         </div>
     </div>
 
@@ -707,7 +707,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.3.0.5
+         * AIRLINE TYCOON JAPAN v0.3.0.5.1
          * 航空機整備システムの実装
          */
 
@@ -734,7 +734,7 @@
         };
 
         const GameData = {
-            VERSION: "0.3.0.5",
+            VERSION: "0.3.0.5.1",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -893,43 +893,89 @@
                 'other': 'その他'
             },
 
+            _createSnapshot() {
+                try { return JSON.stringify(Player); } catch (e) { return null; }
+            },
+
+            _rollbackAfterSaveFailure(snapshot, message) {
+                if (snapshot) {
+                    try { Player = JSON.parse(snapshot); } catch (e) {}
+                }
+                UI.showToast(message || '保存に失敗しました。変更は取り消されました。', 'error');
+                if (Player && Player.company) {
+                    Views.renderMaintenance();
+                    Views.renderFleet();
+                    if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
+                    UI.updateNews();
+                }
+            },
+
             getAircraftStatus(reg) {
                 if (!Player || !Player.company || !Player.company.maintenanceRecords) return { code: 'normal', text: '正常', record: null };
                 const todayStr = Player.company.date;
                 const records = Player.company.maintenanceRecords.filter(m => m.aircraftReg === reg && m.status !== 'cancelled');
-                
+
                 if (records.length === 0) return { code: 'normal', text: '正常', record: null };
-                
+
+                // ゲーム内時計は日付のみ。将来、既存セーブに時刻がある場合のみ日時精度を使用し、
+                // 時刻フィールドや日次進行の仕様そのものは追加・変更しない。
+                const gameTime = Player.company.time || Player.company.gameTime || null;
+                const toStamp = (dateStr, timeStr) => {
+                    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return NaN;
+                    const [y, mo, d] = dateStr.split('-').map(Number);
+                    const [h, mi] = (timeStr || '00:00').split(':').map(Number);
+                    return Date.UTC(y, mo - 1, d, h || 0, mi || 0);
+                };
+                const gameStamp = gameTime ? toStamp(todayStr, gameTime) : NaN;
+
                 let inProgress = null;
                 let scheduled = null;
                 let needsCheck = false;
                 let completedPending = null;
-                
-                for (const r of records) {
-                    if (r.startDate > r.endDate || (r.startDate === r.endDate && r.startTime >= r.endTime)) { 
-                        needsCheck = true; continue; 
-                    }
-                    if (r.status === 'completed') continue;
+                let manuallyCompleted = null;
 
-                    if (todayStr >= r.startDate && todayStr <= r.endDate) {
-                        inProgress = r;
-                    } else if (todayStr < r.startDate) {
-                        if (!scheduled || r.startDate < scheduled.startDate) {
-                            scheduled = r;
+                for (const r of records) {
+                    const startStamp = toStamp(r.startDate, r.startTime);
+                    const endStamp = toStamp(r.endDate, r.endTime);
+                    if (!Number.isFinite(startStamp) || !Number.isFinite(endStamp) || startStamp >= endStamp) {
+                        needsCheck = true;
+                        continue;
+                    }
+
+                    if (r.status === 'completed') {
+                        if (!manuallyCompleted || String(r.completedAt || r.updatedAt || '').localeCompare(String(manuallyCompleted.completedAt || manuallyCompleted.updatedAt || '')) > 0) {
+                            manuallyCompleted = r;
                         }
-                    } else if (todayStr > r.endDate) {
-                        if (!completedPending || r.endDate > completedPending.endDate) {
+                        continue;
+                    }
+
+                    if (Number.isFinite(gameStamp)) {
+                        if (gameStamp >= startStamp && gameStamp < endStamp) {
+                            inProgress = r;
+                        } else if (gameStamp < startStamp) {
+                            if (!scheduled || startStamp < toStamp(scheduled.startDate, scheduled.startTime)) scheduled = r;
+                        } else if (!completedPending || endStamp > toStamp(completedPending.endDate, completedPending.endTime)) {
+                            completedPending = r;
+                        }
+                    } else {
+                        // 現行ゲームは日付単位で進行するため、同一ゲーム日内は整備中として扱う。
+                        // 日内の09:00/17:00の区別はゲーム内時計が存在しないため表現できない。
+                        if (todayStr >= r.startDate && todayStr <= r.endDate) {
+                            inProgress = r;
+                        } else if (todayStr < r.startDate) {
+                            if (!scheduled || r.startDate < scheduled.startDate || (r.startDate === scheduled.startDate && r.startTime < scheduled.startTime)) scheduled = r;
+                        } else if (!completedPending || r.endDate > completedPending.endDate || (r.endDate === completedPending.endDate && r.endTime > completedPending.endTime)) {
                             completedPending = r;
                         }
                     }
                 }
-                
+
                 if (needsCheck) return { code: 'needs_check', text: '要確認', record: null };
                 if (inProgress) return { code: 'in_progress', text: '整備中', record: inProgress };
                 if (scheduled) return { code: 'scheduled', text: '整備予定', record: scheduled };
-                
+                if (manuallyCompleted) return { code: 'completed', text: '整備完了', record: manuallyCompleted };
                 if (completedPending) return { code: 'completed', text: '整備完了', record: completedPending };
-                
+
                 return { code: 'normal', text: '正常', record: null };
             },
 
@@ -1043,15 +1089,22 @@
                     completedAt: existR ? existR.completedAt : null
                 };
 
+                const snapshot = this._createSnapshot();
+                if (!snapshot) { UI.showToast('変更前データを保護できないため、保存を中止しました。', 'error'); return; }
+
                 if (isEdit) {
                     const idx = Player.company.maintenanceRecords.findIndex(m => m.maintenanceId === recordId);
-                    if (idx !== -1) Player.company.maintenanceRecords[idx] = newRecord;
+                    if (idx === -1) { UI.showToast('編集対象の整備記録が見つかりません。', 'error'); return; }
+                    Player.company.maintenanceRecords[idx] = newRecord;
                 } else {
                     Player.company.maintenanceRecords.push(newRecord);
                 }
 
+                if (!Game.saveData(true)) {
+                    this._rollbackAfterSaveFailure(snapshot, '整備記録の保存に失敗しました。変更は取り消されました。');
+                    return;
+                }
                 UI.showToast(`整備予定を${isEdit?'更新':'登録'}しました`, "success");
-                Game.saveData(true);
                 UI.hideModal();
                 Views.renderMaintenance();
                 if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
@@ -1078,29 +1131,41 @@
             
             _executeCancel(recordId) {
                 const rec = Player.company.maintenanceRecords.find(m => m.maintenanceId === recordId);
-                if (rec) {
-                    rec.status = 'cancelled';
-                    rec.updatedAt = new Date().toISOString();
-                    Logic.addNews(`【整備】機材 ${rec.aircraftReg} の整備予定「${rec.title}」をキャンセルしました。`, 'warning');
-                    Game.saveData(true);
-                    UI.showToast("整備予定をキャンセルしました", "success");
+                if (!rec) { UI.showToast('対象の整備記録が見つかりません。', 'error'); return; }
+                const snapshot = this._createSnapshot();
+                if (!snapshot) { UI.showToast('変更前データを保護できないため、処理を中止しました。', 'error'); return; }
+
+                rec.status = 'cancelled';
+                rec.updatedAt = new Date().toISOString();
+                Logic.addNews(`【整備】機材 ${rec.aircraftReg} の整備予定「${rec.title}」をキャンセルしました。`, 'warning');
+                if (!Game.saveData(true)) {
+                    this._rollbackAfterSaveFailure(snapshot, '整備予定のキャンセル保存に失敗しました。変更は取り消されました。');
+                    return;
                 }
+
                 UI.hideModal();
+                UI.showToast("整備予定をキャンセルしました", "success");
                 Views.renderMaintenance();
                 if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
             },
 
             completeMaintenance(recordId) {
                 const rec = Player.company.maintenanceRecords.find(m => m.maintenanceId === recordId);
-                if (rec) {
-                    rec.status = 'completed';
-                    rec.updatedAt = new Date().toISOString();
-                    rec.completedAt = new Date().toISOString();
-                    Logic.addNews(`【整備】機材 ${rec.aircraftReg} の整備「${rec.title}」が完了しました。`, 'info');
-                    Game.saveData(true);
-                    UI.showToast("整備を完了としてマークしました", "success");
+                if (!rec) { UI.showToast('対象の整備記録が見つかりません。', 'error'); return; }
+                const snapshot = this._createSnapshot();
+                if (!snapshot) { UI.showToast('変更前データを保護できないため、処理を中止しました。', 'error'); return; }
+
+                rec.status = 'completed';
+                rec.updatedAt = new Date().toISOString();
+                rec.completedAt = new Date().toISOString();
+                Logic.addNews(`【整備】機材 ${rec.aircraftReg} の整備「${rec.title}」が完了しました。`, 'info');
+                if (!Game.saveData(true)) {
+                    this._rollbackAfterSaveFailure(snapshot, '整備完了の保存に失敗しました。変更は取り消されました。');
+                    return;
                 }
+
                 UI.hideModal();
+                UI.showToast("整備を完了としてマークしました", "success");
                 Views.renderMaintenance();
                 if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
             }
@@ -1351,30 +1416,47 @@
             },
 
             returnLease(reg) {
-                const idx = Player.company.fleet.findIndex(f => f.reg === reg); if (idx === -1) return;
+                const idx = Player.company.fleet.findIndex(f => f.reg === reg);
+                if (idx === -1) { UI.showToast("返却対象の航空機が見つかりません。", "error"); return false; }
                 const plane = Player.company.fleet[idx];
-                if (plane.routeId) { UI.showToast("路線に割り当て中のため返却できません。", "error"); return; }
-                
+
+                // 事前検証フェーズ。ここではゲームデータを一切変更しない。
+                if (!plane.isLeased) { UI.showToast("購入機材はリース返却できません。", "error"); return false; }
+                if (plane.routeId) { UI.showToast("路線に割り当て中のため返却できません。", "error"); return false; }
+
+                const hasMaint = (Player.company.maintenanceRecords || []).some(m =>
+                    m.aircraftReg === reg && (m.status === 'scheduled' || m.status === 'in_progress')
+                );
+                const maintenanceStatus = MaintenanceSystem.getAircraftStatus(reg);
+                if (hasMaint || maintenanceStatus.code === 'in_progress') {
+                    UI.showToast("この航空機には未完了の整備予定が登録されているため返却できません。整備予定を確認してください。", "error");
+                    return false;
+                }
+
+                // すべての条件を満たした場合のみ変更フェーズへ進む。
+                const snapshot = JSON.stringify(Player);
                 const hasSchedules = Player.company.schedules.some(s => s.aircraftId === reg);
                 if (hasSchedules) {
                     Player.company.schedules.forEach(s => {
                         if (s.aircraftId === reg) s.aircraftId = null;
                     });
-                    UI.showToast("この機材に関連する便の機材割り当てを解除しました。", "warning");
-                }
-                
-                if (Player.company.maintenanceRecords) {
-                    const hasMaint = Player.company.maintenanceRecords.some(m => m.aircraftReg === reg && (m.status === 'scheduled' || m.status === 'in_progress'));
-                    if (hasMaint) {
-                         UI.showToast("この機材の未完了の整備予定が存在します。キャンセルしてから返却してください。", "error"); return;
-                    }
                 }
 
                 Player.company.fleet.splice(idx, 1);
                 Player.history.unshift({ date: Player.company.date, msg: `リース機 ${reg} を返却しました。` });
-                UI.showToast(`${reg} を返却しました。`); 
-                Views.renderFleet(); UI.updateHeader(); 
-                Game.saveData(true);
+                if (!Game.saveData(true)) {
+                    Player = JSON.parse(snapshot);
+                    Views.renderFleet();
+                    UI.updateHeader();
+                    UI.showToast("返却データの保存に失敗しました。返却処理は取り消されました。", "error");
+                    return false;
+                }
+
+                if (hasSchedules) UI.showToast("この機材に関連する便の機材割り当てを解除しました。", "warning");
+                UI.showToast(`${reg} を返却しました。`, "success");
+                Views.renderFleet();
+                UI.updateHeader();
+                return true;
             },
 
             createRoute(fromId, toId) {
@@ -3672,16 +3754,29 @@
             },
 
             saveData(isAuto = false) {
-                if (!Player) return;
+                if (!Player) return false;
+                let previousPrimary = null;
+                let previousBackup = null;
                 try {
+                    previousPrimary = localStorage.getItem(GameData.SAVE_KEY);
+                    previousBackup = localStorage.getItem(GameData.SAVE_KEY_BACKUP);
                     const data = JSON.stringify(Player);
                     localStorage.setItem(GameData.SAVE_KEY, data);
                     if (!isAuto) {
                         localStorage.setItem(GameData.SAVE_KEY_BACKUP, data);
-                        UI.showToast("ゲームデータを保存しました。", "success");
                     }
+                    if (!isAuto) UI.showToast("ゲームデータを保存しました。", "success");
+                    return true;
                 } catch(e) {
+                    // 保存途中で失敗した場合は、保存領域を可能な範囲で直前の状態へ戻す。
+                    try {
+                        if (previousPrimary === null) localStorage.removeItem(GameData.SAVE_KEY);
+                        else localStorage.setItem(GameData.SAVE_KEY, previousPrimary);
+                        if (previousBackup === null) localStorage.removeItem(GameData.SAVE_KEY_BACKUP);
+                        else localStorage.setItem(GameData.SAVE_KEY_BACKUP, previousBackup);
+                    } catch(rollbackError) {}
                     if (!isAuto) UI.showToast("セーブに失敗しました: " + e.message, "error");
+                    return false;
                 }
             },
 
