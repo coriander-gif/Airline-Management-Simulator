@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.3.0.4</title>
+    <title>AIRLINE TYCOON JAPAN v0.3.0.5</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -180,6 +180,12 @@
         .badge-owned { background-color: var(--col-success); color: #fff; }
         .badge-active { background-color: rgba(16, 185, 129, 0.15); color: var(--col-success); }
         .badge-idle { background-color: rgba(100, 116, 139, 0.15); color: var(--col-text-muted); }
+        
+        /* Maintenance Badges */
+        .badge-maint-scheduled { background-color: rgba(59, 130, 246, 0.15); color: var(--col-primary); }
+        .badge-maint-progress { background-color: rgba(245, 158, 11, 0.2); color: var(--col-warning); border: 1px solid var(--col-warning); }
+        .badge-maint-check { background-color: rgba(239, 68, 68, 0.15); color: var(--col-danger); }
+        .badge-maint-normal { background-color: rgba(16, 185, 129, 0.15); color: var(--col-success); }
 
         /* Side Panel (Airport Info) */
         .side-panel { position: absolute; top: 0; right: 0; width: 340px; height: 100%; background-color: var(--col-bg-panel); border-left: 1px solid var(--panel-border); box-shadow: -5px 0 15px var(--shadow-color); transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; z-index: 20; }
@@ -337,7 +343,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.3.0.4<br>航空機ローテーションシステムの実装
+            Version v0.3.0.5<br>航空機整備システムの実装
         </div>
     </div>
 
@@ -432,6 +438,7 @@
             <aside class="hq-sidebar" id="hq-sidebar">
                 <div class="nav-item active" onclick="UI.switchMainView('view-map', this)">経営本部 (MAP)</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-fleet', this)">機材管理</div>
+                <div class="nav-item" onclick="UI.switchMainView('view-maintenance', this)">🛠️ 整備管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-routes', this)">路線管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-schedules', this)">スケジュール</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-rotation', this)">航空機ローテーション</div>
@@ -476,6 +483,67 @@
                         <button class="btn" onclick="Views.renderFleetStore()">＋ 新規機材の購入・リース</button>
                     </div>
                     <div id="fleet-list-container" class="data-grid"></div>
+                </div>
+
+                <!-- Maintenance Management View (NEW) -->
+                <div id="view-maintenance" class="mgmt-panel">
+                    <div class="panel-header-title">航空機整備管理</div>
+                    <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9rem;">航空機の整備予定の登録や履歴、現在の状態を管理します。</p>
+                    
+                    <div class="data-grid" style="margin-bottom: 20px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">保有・リース機材数</div>
+                            <div class="card-row font-bold" style="font-size: 1.2rem; margin-top: 5px;" id="maint-stat-total">0</div>
+                        </div>
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">正常</div>
+                            <div class="card-row font-bold text-success" style="font-size: 1.2rem; margin-top: 5px;" id="maint-stat-normal">0</div>
+                        </div>
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">整備予定</div>
+                            <div class="card-row font-bold text-primary" style="font-size: 1.2rem; margin-top: 5px;" id="maint-stat-scheduled">0</div>
+                        </div>
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">整備中</div>
+                            <div class="card-row font-bold text-warning" style="font-size: 1.2rem; margin-top: 5px;" id="maint-stat-progress">0</div>
+                        </div>
+                        <div class="card" style="padding: 10px 15px;">
+                            <div class="card-row text-muted" style="font-size: 0.8rem;">要確認</div>
+                            <div class="card-row font-bold text-danger" style="font-size: 1.2rem; margin-top: 5px;" id="maint-stat-check">0</div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--col-bg-dark); padding: 15px; border-radius: 8px; border: 1px solid var(--panel-border); margin-bottom: 15px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <button class="btn" onclick="Views.showMaintenanceFormModal()">＋ 整備予定を登録</button>
+                            <input type="text" id="maint-filter-reg" class="input-field" placeholder="登録記号/機種名検索..." onkeyup="Views.maintState.search = this.value; Views.updateMaintenanceGrid();" style="flex: 1; min-width: 120px;">
+                            <select id="maint-filter-status" class="input-field" onchange="Views.maintState.status = this.value; Views.updateMaintenanceGrid();" style="flex: 1; min-width: 120px;">
+                                <option value="">整備状態 (すべて)</option>
+                                <option value="normal">正常</option>
+                                <option value="scheduled">整備予定</option>
+                                <option value="in_progress">整備中</option>
+                                <option value="needs_check">要確認</option>
+                            </select>
+                            <button class="btn btn-outline" onclick="Views.resetMaintenanceFilters()">条件リセット</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>登録記号</th>
+                                    <th>機種名 (種別)</th>
+                                    <th>整備状態</th>
+                                    <th>次回整備予定</th>
+                                    <th>直近整備完了日</th>
+                                    <th>履歴件数</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maintenance-table-body"></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- 3. Route Management View -->
@@ -639,8 +707,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.3.0.4
-         * 航空機ローテーションシステムの実装
+         * AIRLINE TYCOON JAPAN v0.3.0.5
+         * 航空機整備システムの実装
          */
 
         const ThemeManager = {
@@ -666,7 +734,7 @@
         };
 
         const GameData = {
-            VERSION: "0.3.0.4",
+            VERSION: "0.3.0.5",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -802,11 +870,244 @@
                 else { badgeClass = 'lf-very-high'; }
                 return `<span class="lf-badge ${badgeClass}">${safeLf}%</span>`;
             },
-            getStandardFare: (distance) => 3000 + (distance * 18)
+            getStandardFare: (distance) => 3000 + (distance * 18),
+            
+            getMinutesFromRef: (dateStr, timeStr) => {
+                if (!dateStr || !timeStr) return 0;
+                const [y, m, d] = dateStr.split('-').map(Number);
+                const [hh, mm] = timeStr.split(':').map(Number);
+                return new Date(y, m-1, d, hh, mm).getTime() / 60000;
+            }
         };
 
         // ==========================================
-        // Rotation System (NEW)
+        // Maintenance System (NEW)
+        // ==========================================
+        const MaintenanceSystem = {
+            TYPES: {
+                'routine': '定期整備',
+                'inspection': '詳細点検',
+                'engine': 'エンジン整備',
+                'cabin': '客室整備',
+                'cleaning': '清掃・機内整備',
+                'other': 'その他'
+            },
+
+            getAircraftStatus(reg) {
+                if (!Player || !Player.company || !Player.company.maintenanceRecords) return { code: 'normal', text: '正常', record: null };
+                const todayStr = Player.company.date;
+                const records = Player.company.maintenanceRecords.filter(m => m.aircraftReg === reg && m.status !== 'cancelled');
+                
+                if (records.length === 0) return { code: 'normal', text: '正常', record: null };
+                
+                let inProgress = null;
+                let scheduled = null;
+                let needsCheck = false;
+                let completedPending = null;
+                
+                for (const r of records) {
+                    if (r.startDate > r.endDate || (r.startDate === r.endDate && r.startTime >= r.endTime)) { 
+                        needsCheck = true; continue; 
+                    }
+                    if (r.status === 'completed') continue;
+
+                    if (todayStr >= r.startDate && todayStr <= r.endDate) {
+                        inProgress = r;
+                    } else if (todayStr < r.startDate) {
+                        if (!scheduled || r.startDate < scheduled.startDate) {
+                            scheduled = r;
+                        }
+                    } else if (todayStr > r.endDate) {
+                        if (!completedPending || r.endDate > completedPending.endDate) {
+                            completedPending = r;
+                        }
+                    }
+                }
+                
+                if (needsCheck) return { code: 'needs_check', text: '要確認', record: null };
+                if (inProgress) return { code: 'in_progress', text: '整備中', record: inProgress };
+                if (scheduled) return { code: 'scheduled', text: '整備予定', record: scheduled };
+                
+                if (completedPending) return { code: 'completed', text: '整備完了', record: completedPending };
+                
+                return { code: 'normal', text: '正常', record: null };
+            },
+
+            checkOverlapWithSchedules(aircraftReg, startDate, startTime, endDate, endTime, schedulesList) {
+                let overlaps = [];
+                if (!aircraftReg || !startDate || !startTime || !endDate || !endTime) return overlaps;
+                
+                let mySchedules = schedulesList.filter(s => s.aircraftId === aircraftReg && s.isActive);
+                if (mySchedules.length === 0) return overlaps;
+
+                let maintStartMins = Utils.getMinutesFromRef(startDate, startTime);
+                let maintEndMins = Utils.getMinutesFromRef(endDate, endTime);
+                
+                const [sy, sm, sd] = startDate.split('-').map(Number);
+                const [ey, em, ed] = endDate.split('-').map(Number);
+                
+                let startLoopDate = new Date(sy, sm-1, sd - 1); 
+                let endLoopDate = new Date(ey, em-1, ed);
+
+                for (let d = new Date(startLoopDate); d <= endLoopDate; d.setDate(d.getDate() + 1)) {
+                    let dYear = d.getFullYear();
+                    let dMonth = String(d.getMonth() + 1).padStart(2, '0');
+                    let dDate = String(d.getDate()).padStart(2, '0');
+                    let loopDateStr = `${dYear}-${dMonth}-${dDate}`;
+                    let dayOfWeek = d.getDay(); 
+
+                    mySchedules.forEach(s => {
+                        if (s.operatingDays.includes(dayOfWeek)) {
+                            let depMins = Utils.getMinutesFromRef(loopDateStr, s.departureTime);
+                            let arrMins = Utils.getMinutesFromRef(loopDateStr, s.arrivalTime);
+                            
+                            if (arrMins < depMins) {
+                                arrMins += 24 * 60; 
+                            }
+                            
+                            if (maintStartMins < arrMins && maintEndMins > depMins) {
+                                let overlapStart = Math.max(maintStartMins, depMins);
+                                let overlapEnd = Math.min(maintEndMins, arrMins);
+                                let overlapDur = overlapEnd - overlapStart;
+                                
+                                overlaps.push({
+                                    schedule: s,
+                                    date: loopDateStr,
+                                    dayName: RotationSystem.DAY_MAP[dayOfWeek],
+                                    depTimeAbs: depMins,
+                                    arrTimeAbs: arrMins,
+                                    overlapMinutes: overlapDur
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                overlaps.sort((a, b) => a.depTimeAbs - b.depTimeAbs);
+                return overlaps;
+            },
+
+            saveMaintenanceRecord(recordId, isEdit) {
+                const reg = document.getElementById('maint-form-reg').value;
+                const type = document.getElementById('maint-form-type').value;
+                const title = document.getElementById('maint-form-title').value.trim();
+                const desc = document.getElementById('maint-form-desc').value.trim();
+                const startDate = document.getElementById('maint-form-sdate').value;
+                const startTime = document.getElementById('maint-form-stime').value;
+                const endDate = document.getElementById('maint-form-edate').value;
+                const endTime = document.getElementById('maint-form-etime').value;
+
+                if (!reg) { UI.showToast("対象航空機を選択してください", "error"); return; }
+                if (!type) { UI.showToast("整備種別を選択してください", "error"); return; }
+                if (!title) { UI.showToast("整備名称を入力してください", "error"); return; }
+                
+                const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+                if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) { UI.showToast("有効な日付を入力してください", "error"); return; }
+                if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) { UI.showToast("有効な時刻を入力してください", "error"); return; }
+
+                if (startDate > endDate || (startDate === endDate && startTime >= endTime)) {
+                    UI.showToast("終了日時は開始日時より後に設定してください", "error"); return;
+                }
+
+                const overlaps = this.checkOverlapWithSchedules(reg, startDate, startTime, endDate, endTime, Player.company.schedules);
+                if (overlaps.length > 0) {
+                    let errHtml = `<p class="text-danger font-bold">整備予定期間中に、対象機材が担当するフライトスケジュールが存在します。重複を解消してください。</p><ul style="font-size:0.85rem; margin-top:10px; padding-left:20px;">`;
+                    overlaps.forEach(o => {
+                        const oAp = GameData.Airports.find(a => a.id === o.schedule.originAirportId);
+                        const dAp = GameData.Airports.find(a => a.id === o.schedule.destinationAirportId);
+                        errHtml += `<li><b>${o.schedule.flightNumber}</b>: ${o.date}(${o.dayName}) ${o.schedule.departureTime}発(${oAp?oAp.name:''}) → ${o.schedule.arrivalTime}着(${dAp?dAp.name:''})<br><span class="text-muted">重複時間: ${Math.floor(o.overlapMinutes/60)}時間${o.overlapMinutes%60}分</span></li>`;
+                    });
+                    errHtml += `</ul><p class="text-muted" style="font-size:0.85rem; margin-top:10px;">※既存便のスケジュールを変更するか、機材の割り当てを解除してから再度登録してください。</p>`;
+                    UI.showModal('スケジュールの重複エラー', '', errHtml);
+                    return;
+                }
+
+                const now = new Date().toISOString();
+                const newId = isEdit ? recordId : `MAINT-${Date.now().toString(36)}-${Math.floor(Math.random()*100000).toString(36)}`;
+                let existR = isEdit ? Player.company.maintenanceRecords.find(m => m.maintenanceId === recordId) : null;
+
+                const newRecord = {
+                    maintenanceId: newId,
+                    aircraftReg: reg,
+                    maintenanceType: type,
+                    title: title,
+                    description: desc,
+                    startDate: startDate,
+                    startTime: startTime,
+                    endDate: endDate,
+                    endTime: endTime,
+                    status: 'scheduled',
+                    createdAt: existR ? existR.createdAt : now,
+                    updatedAt: now,
+                    completedAt: existR ? existR.completedAt : null
+                };
+
+                if (isEdit) {
+                    const idx = Player.company.maintenanceRecords.findIndex(m => m.maintenanceId === recordId);
+                    if (idx !== -1) Player.company.maintenanceRecords[idx] = newRecord;
+                } else {
+                    Player.company.maintenanceRecords.push(newRecord);
+                }
+
+                UI.showToast(`整備予定を${isEdit?'更新':'登録'}しました`, "success");
+                Game.saveData(true);
+                UI.hideModal();
+                Views.renderMaintenance();
+                if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
+            },
+
+            cancelMaintenance(recordId) {
+                const rec = Player.company.maintenanceRecords.find(m => m.maintenanceId === recordId);
+                if (!rec) return;
+                
+                const html = `
+                    <div class="card-row" style="font-size: 1.1rem; margin-bottom: 10px;">
+                        <span>整備対象:</span><span class="font-bold text-primary">${rec.aircraftReg}</span>
+                    </div>
+                    <div class="card-row text-muted"><span>名称:</span><span>${rec.title}</span></div>
+                    <p class="text-danger font-bold" style="margin-top:15px;">この整備予定をキャンセルしてもよろしいですか？</p>
+                    <p class="text-muted" style="font-size:0.8rem; margin-top:5px;">※記録はキャンセル済みとして履歴に残ります。</p>
+                `;
+                const btns = `
+                    <button class="btn btn-outline" onclick="UI.hideModal()">戻る</button>
+                    <button class="btn btn-danger" onclick="MaintenanceSystem._executeCancel('${recordId}')">キャンセルする</button>
+                `;
+                UI.showModal('整備予定のキャンセル確認', '', html, btns);
+            },
+            
+            _executeCancel(recordId) {
+                const rec = Player.company.maintenanceRecords.find(m => m.maintenanceId === recordId);
+                if (rec) {
+                    rec.status = 'cancelled';
+                    rec.updatedAt = new Date().toISOString();
+                    Logic.addNews(`【整備】機材 ${rec.aircraftReg} の整備予定「${rec.title}」をキャンセルしました。`, 'warning');
+                    Game.saveData(true);
+                    UI.showToast("整備予定をキャンセルしました", "success");
+                }
+                UI.hideModal();
+                Views.renderMaintenance();
+                if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
+            },
+
+            completeMaintenance(recordId) {
+                const rec = Player.company.maintenanceRecords.find(m => m.maintenanceId === recordId);
+                if (rec) {
+                    rec.status = 'completed';
+                    rec.updatedAt = new Date().toISOString();
+                    rec.completedAt = new Date().toISOString();
+                    Logic.addNews(`【整備】機材 ${rec.aircraftReg} の整備「${rec.title}」が完了しました。`, 'info');
+                    Game.saveData(true);
+                    UI.showToast("整備を完了としてマークしました", "success");
+                }
+                UI.hideModal();
+                Views.renderMaintenance();
+                if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
+            }
+        };
+
+        // ==========================================
+        // Rotation System 
         // ==========================================
         const RotationSystem = {
             DAY_MAP: ['日','月','火','水','木','金','土'],
@@ -949,6 +1250,7 @@
                 if(window.innerWidth <= 768) this.toggleSidebar();
                 
                 if(id === 'view-fleet') Views.renderFleet();
+                if(id === 'view-maintenance') Views.renderMaintenance();
                 if(id === 'view-routes') Views.renderRoutes();
                 if(id === 'view-schedules') Views.renderSchedules();
                 if(id === 'view-finance') Views.renderFinance();
@@ -1053,13 +1355,19 @@
                 const plane = Player.company.fleet[idx];
                 if (plane.routeId) { UI.showToast("路線に割り当て中のため返却できません。", "error"); return; }
                 
-                // フライトスケジュールからの割り当ても確認して解除
                 const hasSchedules = Player.company.schedules.some(s => s.aircraftId === reg);
                 if (hasSchedules) {
                     Player.company.schedules.forEach(s => {
                         if (s.aircraftId === reg) s.aircraftId = null;
                     });
                     UI.showToast("この機材に関連する便の機材割り当てを解除しました。", "warning");
+                }
+                
+                if (Player.company.maintenanceRecords) {
+                    const hasMaint = Player.company.maintenanceRecords.some(m => m.aircraftReg === reg && (m.status === 'scheduled' || m.status === 'in_progress'));
+                    if (hasMaint) {
+                         UI.showToast("この機材の未完了の整備予定が存在します。キャンセルしてから返却してください。", "error"); return;
+                    }
                 }
 
                 Player.company.fleet.splice(idx, 1);
@@ -1091,12 +1399,11 @@
                 });
                 Player.history.unshift({ date: Player.company.date, msg: `${from.name} - ${to.name} 線を開設しました。` });
                 UI.hideModal(); UI.updateHeader(); UI.showToast("路線を開設しました", "success");
-                MapSystem.drawRoutes(); Views.renderRoutes(); UI.switchMainView('view-routes', document.querySelectorAll('.nav-item')[2]);
+                MapSystem.drawRoutes(); Views.renderRoutes(); UI.switchMainView('view-routes', document.querySelectorAll('.nav-item')[3]);
                 Game.saveData(true);
             },
 
             assignAircraft(routeId, reg) {
-                // これは従来の「路線単位での機材割り当て」。今回のスケジュール単位割り当てには干渉しない。
                 if (!Player || !Player.company || !Player.company.routes) return;
                 const route = Player.company.routes.find(r => r.id === routeId);
                 if (!route) { UI.showToast("指定された路線が存在しません", "error"); return; }
@@ -1132,7 +1439,6 @@
                 UI.updateNews();
             },
 
-            // --- スケジュール作成・編集・削除 ---
             saveSchedule(flightId) {
                 const flightNum = document.getElementById('sched-form-num').value.trim();
                 const routeId = document.getElementById('sched-form-route').value;
@@ -1192,8 +1498,19 @@
                     createdAt: existS ? existS.createdAt : now,
                     updatedAt: now
                 };
+                
+                if (aircraftId && newSchedule.isActive) {
+                    const mRecords = Player.company.maintenanceRecords.filter(m => m.aircraftReg === aircraftId && (m.status === 'scheduled' || m.status === 'in_progress'));
+                    for (const m of mRecords) {
+                        const tempSchedules = [newSchedule];
+                        const overlaps = MaintenanceSystem.checkOverlapWithSchedules(aircraftId, m.startDate, m.startTime, m.endDate, m.endTime, tempSchedules);
+                        if (overlaps.length > 0) {
+                            UI.showModal('スケジュールの重複エラー', `この便のスケジュールは、機材(${aircraftId})の既存の整備予定「${m.title}」(${m.startDate}〜)と重複するため保存できません。`);
+                            return;
+                        }
+                    }
+                }
 
-                // 機材が割り当てられた場合、ローテーションの不成立チェックを行う
                 if (aircraftId) {
                     const tempSchedules = Player.company.schedules.filter(x => x.flightId !== flightId);
                     tempSchedules.push(newSchedule);
@@ -1235,7 +1552,6 @@
                 UI.hideModal();
                 Views.renderSchedules();
                 
-                // ローテーション画面が開かれている場合は更新
                 if (document.getElementById('view-rotation').classList.contains('active')) {
                     Views.renderRotation();
                 }
@@ -1370,6 +1686,7 @@
                         
                         if (document.getElementById('view-routes').classList.contains('active')) Views.renderRoutes();
                         if (document.getElementById('view-schedules').classList.contains('active')) Views.renderSchedules();
+                        if (document.getElementById('view-maintenance').classList.contains('active')) Views.renderMaintenance();
                         if (document.getElementById('view-finance').classList.contains('active')) Views.renderFinance();
                         if (document.getElementById('view-competitors').classList.contains('active')) Views.renderCompetitors();
                         if (document.getElementById('view-fleet').classList.contains('active')) Views.renderFleet();
@@ -1410,7 +1727,8 @@
                     comp.fleet.forEach(f => {
                         const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
                         if (!ac) throw new Error(`機材マスターデータ未検出: ${f.typeId}`);
-
+                        
+                        // ※今回は日次での自動的な運航制限や整備費用の差し引きは行わない要件のため、既存ロジックを維持。
                         let canFly = false;
                         let assignedRoute = null;
                         if (f.routeId) {
@@ -1737,17 +2055,28 @@
             currentGraphDays: 30,
             fleetStoreState: { maker: '', cat: '', sort: 'price', search: '' },
             scheduleState: { company: 'player', search: '', origin: '', dest: '', day: '', status: '', sort: 'depTime' },
+            maintState: { search: '', status: '' },
 
             renderFleet() {
                 const c = document.getElementById('fleet-list-container'); c.innerHTML = '';
                 if (!Player.company.fleet || Player.company.fleet.length === 0) { c.innerHTML = '<div class="text-muted">保有する機材はありません。</div>'; return; }
                 Player.company.fleet.forEach(f => {
                     const ac = GameData.Aircrafts.find(a => a.id === f.typeId); const isFlying = f.status === 'active';
+                    const mStatus = MaintenanceSystem.getAircraftStatus(f.reg);
+                    let mBadge = '';
+                    if (mStatus.code === 'scheduled') mBadge = '<span class="badge badge-maint-scheduled">整備予定</span>';
+                    else if (mStatus.code === 'in_progress') mBadge = '<span class="badge badge-maint-progress">整備中</span>';
+                    else if (mStatus.code === 'needs_check') mBadge = '<span class="badge badge-maint-check">要確認</span>';
+                    
                     c.innerHTML += `
                         <div class="card">
                             <div class="card-header">
                                 <span>${f.reg}</span>
-                                <div><span class="badge ${f.isLeased ? 'badge-lease' : 'badge-owned'}">${f.isLeased ? 'LEASED' : 'OWNED'}</span><span class="badge ${isFlying ? 'badge-active' : 'badge-idle'}">${isFlying ? '運航中' : '待機中'}</span></div>
+                                <div style="display:flex; gap:5px; align-items:center;">
+                                    ${mBadge}
+                                    <span class="badge ${f.isLeased ? 'badge-lease' : 'badge-owned'}">${f.isLeased ? 'LEASED' : 'OWNED'}</span>
+                                    <span class="badge ${isFlying ? 'badge-active' : 'badge-idle'}">${isFlying ? '運航中' : '待機中'}</span>
+                                </div>
                             </div>
                             <div class="card-body">
                                 <div class="card-row"><span>機種</span><span><b>${ac ? ac.name : f.typeId}</b> (${ac ? ac.seats : '-'}席)</span></div>
@@ -1762,6 +2091,265 @@
                 });
             },
             
+            // --- 整備管理関連 (NEW) ---
+            renderMaintenance() {
+                this.updateMaintenanceGrid();
+            },
+            
+            resetMaintenanceFilters() {
+                this.maintState.search = '';
+                this.maintState.status = '';
+                document.getElementById('maint-filter-reg').value = '';
+                document.getElementById('maint-filter-status').value = '';
+                this.updateMaintenanceGrid();
+            },
+            
+            updateMaintenanceGrid() {
+                const tb = document.getElementById('maintenance-table-body');
+                tb.innerHTML = '';
+                
+                const fleet = Player.company.fleet || [];
+                const mRecords = Player.company.maintenanceRecords || [];
+                
+                let countNorm = 0, countSched = 0, countProg = 0, countCheck = 0;
+                
+                let rowsData = [];
+                
+                fleet.forEach(f => {
+                    const acDef = GameData.Aircrafts.find(a => a.id === f.typeId);
+                    const acName = acDef ? acDef.name : f.typeId;
+                    
+                    const st = MaintenanceSystem.getAircraftStatus(f.reg);
+                    if (st.code === 'normal') countNorm++;
+                    else if (st.code === 'scheduled') countSched++;
+                    else if (st.code === 'in_progress') countProg++;
+                    else if (st.code === 'needs_check') countCheck++;
+                    else if (st.code === 'completed') countNorm++; 
+                    
+                    const acRecords = mRecords.filter(m => m.aircraftReg === f.reg && m.status !== 'cancelled');
+                    const compRecords = acRecords.filter(m => m.status === 'completed');
+                    compRecords.sort((a,b) => (b.completedAt||b.endDate).localeCompare(a.completedAt||a.endDate));
+                    
+                    let nextMaint = '-';
+                    if (st.record && (st.code === 'scheduled' || st.code === 'in_progress' || st.code === 'completed')) {
+                        nextMaint = `${st.record.startDate} 〜 ${st.record.endDate}`;
+                    }
+                    
+                    rowsData.push({
+                        reg: f.reg,
+                        acName: acName,
+                        typeStr: f.isLeased ? 'リース' : '購入',
+                        statusCode: st.code,
+                        statusText: st.text,
+                        statusRecord: st.record,
+                        nextMaint: nextMaint,
+                        lastComp: compRecords.length > 0 ? compRecords[0].endDate : '-',
+                        histCount: acRecords.length
+                    });
+                });
+                
+                document.getElementById('maint-stat-total').textContent = fleet.length;
+                document.getElementById('maint-stat-normal').textContent = countNorm;
+                document.getElementById('maint-stat-scheduled').textContent = countSched;
+                document.getElementById('maint-stat-progress').textContent = countProg;
+                document.getElementById('maint-stat-check').textContent = countCheck;
+                
+                const st = this.maintState;
+                let filtered = rowsData.filter(r => {
+                    if (st.search && !(r.reg.toLowerCase().includes(st.search.toLowerCase()) || r.acName.toLowerCase().includes(st.search.toLowerCase()))) return false;
+                    if (st.status) {
+                        if (st.status === 'normal' && r.statusCode !== 'normal' && r.statusCode !== 'completed') return false;
+                        if (st.status === 'scheduled' && r.statusCode !== 'scheduled') return false;
+                        if (st.status === 'in_progress' && r.statusCode !== 'in_progress') return false;
+                        if (st.status === 'needs_check' && r.statusCode !== 'needs_check') return false;
+                    }
+                    return true;
+                });
+                
+                if (filtered.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted">条件に該当する航空機がありません。</td></tr>';
+                    return;
+                }
+                
+                filtered.forEach(r => {
+                    let badge = '';
+                    if (r.statusCode === 'normal') badge = '<span class="badge badge-maint-normal">正常</span>';
+                    else if (r.statusCode === 'scheduled') badge = '<span class="badge badge-maint-scheduled">整備予定</span>';
+                    else if (r.statusCode === 'in_progress') badge = '<span class="badge badge-maint-progress">整備中</span>';
+                    else if (r.statusCode === 'needs_check') badge = '<span class="badge badge-maint-check">要確認</span>';
+                    else if (r.statusCode === 'completed') badge = '<span class="badge" style="background:var(--col-primary); color:white;">整備完了(未処理)</span>';
+                    
+                    tb.innerHTML += `
+                        <tr style="cursor:pointer;" onclick="Views.showMaintenanceDetails('${r.reg}')">
+                            <td class="font-bold text-primary">${r.reg}</td>
+                            <td>${r.acName} <span class="text-muted" style="font-size:0.75rem;">(${r.typeStr})</span></td>
+                            <td>${badge}</td>
+                            <td style="font-family:monospace; font-size:0.8rem;">${r.nextMaint}</td>
+                            <td style="font-family:monospace; font-size:0.8rem;">${r.lastComp}</td>
+                            <td>${r.histCount}件</td>
+                            <td><button class="btn btn-sm btn-outline">詳細</button></td>
+                        </tr>
+                    `;
+                });
+            },
+            
+            showMaintenanceDetails(reg) {
+                const f = Player.company.fleet.find(x => x.reg === reg);
+                if (!f) return;
+                
+                const acDef = GameData.Aircrafts.find(a => a.id === f.typeId);
+                const acName = acDef ? acDef.name : f.typeId;
+                const st = MaintenanceSystem.getAircraftStatus(reg);
+                const mRecords = (Player.company.maintenanceRecords || []).filter(m => m.aircraftReg === reg).sort((a,b)=>b.startDate.localeCompare(a.startDate));
+                
+                let badge = '<span class="badge badge-maint-normal" style="font-size:1rem; padding:4px 10px;">正常</span>';
+                if (st.code === 'scheduled') badge = '<span class="badge badge-maint-scheduled" style="font-size:1rem; padding:4px 10px;">整備予定</span>';
+                else if (st.code === 'in_progress') badge = '<span class="badge badge-maint-progress" style="font-size:1rem; padding:4px 10px;">整備中</span>';
+                else if (st.code === 'needs_check') badge = '<span class="badge badge-maint-check" style="font-size:1rem; padding:4px 10px;">要確認</span>';
+                else if (st.code === 'completed') badge = '<span class="badge" style="background:var(--col-primary); color:white; font-size:1rem; padding:4px 10px;">整備完了(未処理)</span>';
+                
+                let recHtml = '';
+                if (mRecords.length === 0) {
+                    recHtml = '<div class="text-muted text-center" style="padding:15px;">整備履歴はありません。</div>';
+                } else {
+                    mRecords.forEach(m => {
+                        const isCurrent = (st.record && st.record.maintenanceId === m.maintenanceId);
+                        let mBadge = '';
+                        if (m.status === 'scheduled') mBadge = '<span class="badge badge-maint-scheduled">予定</span>';
+                        else if (m.status === 'cancelled') mBadge = '<span class="badge badge-idle">キャンセル</span>';
+                        else if (m.status === 'completed') mBadge = '<span class="badge badge-maint-normal">完了</span>';
+                        else mBadge = '<span class="badge badge-idle">不明</span>';
+                        
+                        let actBtns = '';
+                        if (m.status === 'scheduled') {
+                            actBtns = `
+                                <div style="margin-top:10px; display:flex; gap:5px; justify-content:flex-end;">
+                                    ${st.code === 'completed' && isCurrent ? `<button class="btn btn-sm" onclick="MaintenanceSystem.completeMaintenance('${m.maintenanceId}')">完了としてマーク</button>` : ''}
+                                    <button class="btn btn-sm btn-outline" onclick="Views.showMaintenanceFormModal('${reg}', '${m.maintenanceId}')">編集</button>
+                                    <button class="btn btn-sm btn-danger" onclick="MaintenanceSystem.cancelMaintenance('${m.maintenanceId}')">キャンセル</button>
+                                </div>
+                            `;
+                        }
+                        
+                        recHtml += `
+                            <div style="background:var(--col-bg-dark); border:1px solid ${isCurrent?'var(--col-primary)':'var(--panel-border)'}; border-radius:6px; padding:10px; margin-bottom:10px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                    <span class="font-bold text-primary">${m.title}</span>
+                                    ${mBadge}
+                                </div>
+                                <div class="card-row" style="font-size:0.8rem;"><span>種別</span><span>${MaintenanceSystem.TYPES[m.maintenanceType]||m.maintenanceType}</span></div>
+                                <div class="card-row" style="font-size:0.8rem;"><span>期間</span><span style="font-family:monospace;">${m.startDate} ${m.startTime} 〜 ${m.endDate} ${m.endTime}</span></div>
+                                ${m.description ? `<div class="text-muted" style="font-size:0.8rem; margin-top:5px; border-top:1px dashed var(--panel-border); padding-top:5px;">${m.description}</div>` : ''}
+                                ${actBtns}
+                            </div>
+                        `;
+                    });
+                }
+                
+                let html = `
+                    <div class="card" style="margin-bottom:15px;">
+                        <div class="card-header">
+                            <span style="font-size:1.2rem;">${f.reg}</span>
+                            <div>${badge}</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-row"><span>機種</span><span>${acName}</span></div>
+                            <div class="card-row"><span>所有形態</span><span>${f.isLeased ? 'リース' : '購入'}</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">整備履歴・予定一覧</div>
+                        <div class="card-body" style="max-height:300px; overflow-y:auto; padding:10px;">
+                            ${recHtml}
+                        </div>
+                    </div>
+                `;
+                
+                const btns = `
+                    <button class="btn btn-outline" onclick="Views.showMaintenanceFormModal('${reg}')">＋ 整備予定を追加</button>
+                    <button class="btn" onclick="UI.hideModal()">閉じる</button>
+                `;
+                UI.showModal('航空機 整備詳細', '', html, btns);
+            },
+            
+            showMaintenanceFormModal(initialReg = '', maintenanceId = null) {
+                const isEdit = !!maintenanceId;
+                let m = null;
+                if (isEdit) {
+                    m = Player.company.maintenanceRecords.find(x => x.maintenanceId === maintenanceId);
+                    if (!m) return;
+                }
+                
+                let regOpts = '<option value="">対象機材を選択</option>';
+                Player.company.fleet.forEach(f => {
+                    const acDef = GameData.Aircrafts.find(a => a.id === f.typeId);
+                    const acName = acDef ? acDef.name : f.typeId;
+                    const sel = ((m && m.aircraftReg === f.reg) || (!m && initialReg === f.reg)) ? 'selected' : '';
+                    regOpts += `<option value="${f.reg}" ${sel}>${f.reg} - ${acName}</option>`;
+                });
+                
+                let typeOpts = '';
+                for (const [key, val] of Object.entries(MaintenanceSystem.TYPES)) {
+                    const sel = (m && m.maintenanceType === key) ? 'selected' : '';
+                    typeOpts += `<option value="${key}" ${sel}>${val}</option>`;
+                }
+                
+                const today = new Date();
+                const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                
+                const html = `
+                    <div class="input-group">
+                        <label>対象航空機</label>
+                        <select id="maint-form-reg" class="input-field" ${isEdit ? 'disabled' : ''}>${regOpts}</select>
+                    </div>
+                    <div class="flex" style="gap:15px;">
+                        <div class="input-group w-full">
+                            <label>整備種別</label>
+                            <select id="maint-form-type" class="input-field">${typeOpts}</select>
+                        </div>
+                        <div class="input-group w-full">
+                            <label>整備名称</label>
+                            <input type="text" id="maint-form-title" class="input-field" placeholder="例: Cチェック" value="${m ? m.title : ''}" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>説明 (任意)</label>
+                        <input type="text" id="maint-form-desc" class="input-field" placeholder="詳細な作業内容など" value="${m ? m.description : ''}">
+                    </div>
+                    <hr style="border:0; border-top:1px solid var(--panel-border); margin:10px 0 15px 0;">
+                    <div class="flex" style="gap:15px;">
+                        <div class="input-group w-full">
+                            <label>開始日</label>
+                            <input type="date" id="maint-form-sdate" class="input-field" value="${m ? m.startDate : defaultDate}" required>
+                        </div>
+                        <div class="input-group w-full">
+                            <label>開始時刻</label>
+                            <input type="time" id="maint-form-stime" class="input-field" value="${m ? m.startTime : '09:00'}" required>
+                        </div>
+                    </div>
+                    <div class="flex" style="gap:15px;">
+                        <div class="input-group w-full">
+                            <label>終了日</label>
+                            <input type="date" id="maint-form-edate" class="input-field" value="${m ? m.endDate : defaultDate}" required>
+                        </div>
+                        <div class="input-group w-full">
+                            <label>終了時刻</label>
+                            <input type="time" id="maint-form-etime" class="input-field" value="${m ? m.endTime : '17:00'}" required>
+                        </div>
+                    </div>
+                    <p class="text-muted" style="font-size:0.8rem; margin-top:5px;">※指定した期間中に既存のフライトスケジュールがある場合、保存できません。ローテーションとの重複にご注意ください。</p>
+                `;
+                
+                const btns = `
+                    <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
+                    <button class="btn" onclick="MaintenanceSystem.saveMaintenanceRecord('${maintenanceId || ''}', ${isEdit})">保存する</button>
+                `;
+                
+                UI.showModal(isEdit ? '整備予定の編集' : '新規整備予定の登録', '', html, btns);
+            },
+
+            // --- 既存機能の再利用・修正部分 ---
+
             renderFleetStore() {
                 let html = `
                 <div style="margin-bottom:15px; display:flex; flex-wrap:wrap; gap:10px; background:var(--col-bg-dark); padding:10px; border-radius:8px; border:1px solid var(--panel-border);">
@@ -1998,7 +2586,12 @@
                     const name = ac ? ac.name : f.typeId;
                     const seats = ac ? ac.seats : '-';
                     const type = f.isLeased ? 'リース' : '購入';
-                    opts += `<option value="${f.reg}">${f.reg} - ${name} (${seats}席 / ${type})</option>`;
+                    
+                    const mSt = MaintenanceSystem.getAircraftStatus(f.reg);
+                    let mInfo = '';
+                    if (mSt.code === 'scheduled' || mSt.code === 'in_progress') mInfo = ` [⚠️整備あり]`;
+                    
+                    opts += `<option value="${f.reg}">${f.reg} - ${name} (${seats}席 / ${type})${mInfo}</option>`;
                 });
                 sel.innerHTML = opts;
                 
@@ -2024,11 +2617,18 @@
                         else if (rot.status === '不成立') badge = '<span class="badge" style="background:var(--col-danger);color:white;">不成立</span>';
                         else badge = '<span class="badge badge-idle">便なし</span>';
                         
+                        const mSt = MaintenanceSystem.getAircraftStatus(val);
+                        let mBadge = '';
+                        if (mSt.code === 'scheduled' || mSt.code === 'in_progress' || mSt.code === 'completed') {
+                            mBadge = `<div class="text-warning font-bold" style="margin-top:5px; font-size:0.8rem;">⚠️ 整備予定あり: ${mSt.record.startDate} 〜 ${mSt.record.endDate}</div>`;
+                        }
+                        
                         const flightsCount = tempSchedules.filter(s => s.aircraftId === val).length;
                         infoDiv.innerHTML = `
                             <div style="font-size:0.85rem; padding:8px; background:var(--col-bg-dark); border-radius:6px; border:1px solid var(--panel-border);">
                                 <div>この機材には現在 <b>${flightsCount}便</b> が割り当てられています。</div>
                                 <div style="margin-top:4px; display:flex; align-items:center; gap:5px;">ローテーション状態: ${badge}</div>
+                                ${mBadge}
                             </div>
                         `;
                     }
@@ -2399,11 +2999,37 @@
                 
                 const rot = RotationSystem.checkRotationBySchedules(reg, Player.company.schedules);
                 
+                const mSt = MaintenanceSystem.getAircraftStatus(reg);
+                
                 let statusBadge = '';
                 if (rot.status === '成立') statusBadge = '<span class="badge badge-active" style="font-size:1rem; padding: 4px 10px;">成立</span>';
                 else if (rot.status === '警告あり') statusBadge = '<span class="badge badge-lease" style="font-size:1rem; padding: 4px 10px;">警告あり</span>';
                 else if (rot.status === '不成立') statusBadge = '<span class="badge" style="background:var(--col-danger);color:white;font-size:1rem; padding: 4px 10px;">不成立</span>';
                 else statusBadge = '<span class="badge badge-idle" style="font-size:1rem; padding: 4px 10px;">便なし</span>';
+
+                let mInfoHtml = '';
+                if (mSt.code === 'scheduled' || mSt.code === 'in_progress') {
+                    mInfoHtml = `
+                        <hr style="border:0; border-top:1px solid var(--panel-border); margin:10px 0;">
+                        <div class="font-bold" style="margin-bottom:5px;">整備予定情報</div>
+                        <div class="card-row text-muted" style="font-size:0.85rem;"><span>現在の状態</span><span><b class="text-warning">${mSt.text}</b></span></div>
+                        <div class="card-row text-muted" style="font-size:0.85rem;"><span>整備期間</span><span>${mSt.record.startDate} ${mSt.record.startTime} 〜 ${mSt.record.endDate} ${mSt.record.endTime}</span></div>
+                    `;
+                    
+                    const overlaps = MaintenanceSystem.checkOverlapWithSchedules(reg, mSt.record.startDate, mSt.record.startTime, mSt.record.endDate, mSt.record.endTime, Player.company.schedules);
+                    if (overlaps.length > 0) {
+                        mInfoHtml += `
+                            <div style="background:rgba(239,68,68,0.1); border-top:1px solid var(--col-danger); padding:10px; margin-top:10px;">
+                                <div class="text-danger font-bold" style="font-size:0.9rem; margin-bottom:5px;">⚠️ 整備予定と便のスケジュールが重複しています</div>
+                                <ul class="text-danger" style="font-size:0.8rem; padding-left:20px; margin:0; line-height: 1.4;">
+                                    ${overlaps.map(o => `<li>便 ${o.schedule.flightNumber} : ${o.date}(${o.dayName})</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    } else {
+                        mInfoHtml += `<div class="text-success" style="font-size:0.85rem; margin-top:5px; font-weight:bold;">✅ スケジュールとの重複はありません</div>`;
+                    }
+                }
 
                 summaryCard.innerHTML = `
                     <div class="card-header">
@@ -2420,6 +3046,8 @@
                             <div class="card-row text-muted" style="font-size:0.85rem;"><span>前便到着</span><span>${rot.plannedPosition.prevArrAp} (${rot.plannedPosition.prevArrTime})</span></div>
                             <div class="card-row text-muted" style="font-size:0.85rem;"><span>次便出発</span><span>${rot.plannedPosition.nextDepAp} (${rot.plannedPosition.nextDepTime}) <span class="font-bold text-primary">[${rot.plannedPosition.nextFlight}]</span></span></div>
                         ` : '<div class="text-muted" style="font-size:0.85rem;">予定がありません。</div>'}
+                        
+                        ${mInfoHtml}
                     </div>
                     ${rot.errors.length > 0 ? `
                         <div style="background:rgba(239,68,68,0.1); border-top:1px solid var(--col-danger); padding:10px;">
@@ -2678,724 +3306,425 @@
                 const available = Player.company.fleet.filter(f => f.routeId === null || f.routeId === routeId);
                 if (available.length === 0) html += `<div class="text-muted" style="padding:10px;">割り当て可能なフリーの機材がありません。</div>`;
                 available.forEach(f => {
-                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId); const canAssign = ac && ac.range >= route.distance;
+                    const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
+                    const canFly = ac && ac.range >= route.distance;
                     html += `
-                        <div class="card" style="opacity: ${canAssign ? 1 : 0.5}">
-                            <div class="card-header">${f.reg} <span style="font-size:0.8rem; font-weight:normal;">${ac ? ac.name : ''}</span></div>
-                            <div class="card-body">航続距離: ${ac ? ac.range : 0}km / 座席数: ${ac ? ac.seats : 0}席 ${!canAssign ? '<br><span class="text-danger font-bold">※航続距離不足のため割当不可</span>' : ''}</div>
-                            <div class="card-footer">${canAssign ? `<button class="btn btn-sm" onclick="Logic.assignAircraft('${routeId}', '${f.reg}')">割り当てる</button>` : ''}</div>
-                        </div>`;
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="font-bold">${f.reg}</div>
+                                <div class="text-muted" style="font-size:0.8rem;">${ac?ac.name:f.typeId} (${f.isLeased?'リース':'購入'})</div>
+                                <div class="text-muted" style="font-size:0.8rem;">航続距離: ${ac?ac.range:0}km</div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-sm" ${!canFly ? 'disabled title="航続距離不足"' : ''} onclick="Logic.assignAircraft('${routeId}', '${f.reg}')">${f.routeId === routeId ? '現在の機材' : '割り当て'}</button>
+                            </div>
+                        </div>
+                    `;
                 });
-                html += `</div>`; UI.showModal('機材の割り当て設定 (従来機能)', '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
-            },
-
-            showCustomAdvanceModal() {
-                document.getElementById('time-dropdown').classList.remove('show');
-                let html = `
-                    <div class="input-group">
-                        <label>進行する日数 (1〜365日の整数)</label>
-                        <input type="number" id="custom-days-input" class="input-field" min="1" max="365" step="1" value="30">
-                    </div>
-                `;
-                let btns = `
-                    <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
-                    <button class="btn" onclick="const val = document.getElementById('custom-days-input').value; UI.hideModal(); Logic.advanceDays(val);">実行</button>
-                `;
-                UI.showModal('任意日数の指定進行', '', html, btns);
+                html += `</div>`;
+                UI.showModal(`${routeId} 機材割り当て`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
             },
 
             renderFinance() {
-                const grid = document.getElementById('finance-grid');
-                const tbody = document.getElementById('finance-monthly-body');
-                if(!Player.company.finances) return;
-
-                const td = Player.company.finances.today || Logic._resetFinanceObject();
-                const tm = Player.company.finances.thisMonth || Logic._resetFinanceObject();
-                const tot = Player.company.finances.total || Logic._resetFinanceObject();
-
-                const sumOpCost = (c) => (c.fuel||0) + (c.airport||0) + (c.maint||0) + (c.lease||0);
-                const tdCost = sumOpCost(td.cost); 
-                const tmCost = sumOpCost(tm.cost); 
-                const totCost = sumOpCost(tot.cost);
+                const g = document.getElementById('finance-grid'); const tb = document.getElementById('finance-monthly-body');
+                g.innerHTML = ''; tb.innerHTML = '';
                 
-                grid.innerHTML = `
+                const tm = Player.company.finances.thisMonth;
+                const tmOpCost = (tm.cost.fuel||0) + (tm.cost.airport||0) + (tm.cost.maint||0) + (tm.cost.lease||0);
+                const tmProf = tm.rev - tmOpCost;
+                const tmNet = tmProf - (tm.capEx||0);
+                
+                g.innerHTML = `
                     <div class="card">
-                        <div class="card-header">当日の収支</div>
-                        <div class="card-body">
-                            <div class="card-row"><span>運航売上</span><span class="text-success">${Utils.formatMoney(td.rev)}</span></div>
-                            <div class="card-row"><span>運航費用合計</span><span class="text-danger">-${Utils.formatMoney(tdCost)}</span></div>
-                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
-                            <div class="card-row font-bold"><span>当日運航損益</span><span class="${(td.rev-tdCost)>=0?'text-success':'text-danger'}">${Utils.formatMoney(td.rev-tdCost)}</span></div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">今月の損益・投資</div>
+                        <div class="card-header">当月の収支状況</div>
                         <div class="card-body">
                             <div class="card-row"><span>運航売上</span><span class="text-success">${Utils.formatMoney(tm.rev)}</span></div>
-                            <div class="card-row"><span>運航費用合計</span><span class="text-danger">-${Utils.formatMoney(tmCost)}</span></div>
-                            <div class="card-row"><span>設備投資 (機材・路線)</span><span class="text-danger">-${Utils.formatMoney(tm.capEx||0)}</span></div>
-                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
-                            <div class="card-row font-bold"><span>当月純キャッシュフロー</span><span class="${(tm.rev-tmCost-(tm.capEx||0))>=0?'text-success':'text-danger'}">${Utils.formatMoney(tm.rev-tmCost-(tm.capEx||0))}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ 燃料費</span><span>-${Utils.formatMoney(tm.cost.fuel||0)}</span></div>
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ 空港使用料</span><span>-${Utils.formatMoney(tm.cost.airport||0)}</span></div>
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ 整備費</span><span>-${Utils.formatMoney(tm.cost.maint||0)}</span></div>
+                            <div class="card-row text-muted" style="font-size:0.8rem;"><span>└ リース費</span><span>-${Utils.formatMoney(tm.cost.lease||0)}</span></div>
+                            <div class="card-row font-bold"><span>運航費用合計</span><span class="text-danger">-${Utils.formatMoney(tmOpCost)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                            <div class="card-row font-bold"><span>運航利益</span><span class="${tmProf>=0?'text-success':'text-danger'}">${Utils.formatMoney(tmProf)}</span></div>
+                            <div class="card-row"><span>設備投資等</span><span class="text-danger">-${Utils.formatMoney(tm.capEx||0)}</span></div>
+                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--panel-border);">
+                            <div class="card-row font-bold" style="font-size:1.1rem;"><span>当月純損益</span><span class="${tmNet>=0?'text-success':'text-danger'}">${Utils.formatMoney(tmNet)}</span></div>
                         </div>
                     </div>
+                    
                     <div class="card">
-                        <div class="card-header">全期間 累計損益</div>
+                        <div class="card-header">当月の運航統計</div>
                         <div class="card-body">
-                            <div class="card-row"><span>累計運航売上</span><span class="text-success">${Utils.formatMoney(tot.rev)}</span></div>
-                            <div class="card-row"><span>累計運航費用</span><span class="text-danger">-${Utils.formatMoney(totCost)}</span></div>
-                            <div class="card-row"><span>累計設備投資</span><span class="text-danger">-${Utils.formatMoney(tot.capEx||0)}</span></div>
-                            <hr style="margin:4px 0; border:0; border-top:1px solid var(--col-bg-dark);">
-                            <div class="card-row font-bold"><span>累計全純損益</span><span class="${(tot.rev-totCost-(tot.capEx||0))>=0?'text-success':'text-danger'}">${Utils.formatMoney(tot.rev-totCost-(tot.capEx||0))}</span></div>
+                            <div class="card-row"><span>総運航便数</span><span>${(Player.company.finances._tmStats?.f||0).toLocaleString()} 便</span></div>
+                            <div class="card-row"><span>総搭乗旅客</span><span>${(Player.company.finances._tmStats?.p||0).toLocaleString()} 人</span></div>
+                            <div class="card-row"><span>提供総座席数</span><span>${(Player.company.finances._tmStats?.seats||0).toLocaleString()} 席</span></div>
+                            <div class="card-row"><span>平均搭乗率 (LF)</span><span class="font-bold">${(Player.company.finances._tmStats?.seats>0) ? Math.round((Player.company.finances._tmStats.p / Player.company.finances._tmStats.seats)*100) : 0} %</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">企業設立からの累計</div>
+                        <div class="card-body">
+                            <div class="card-row"><span>累計売上</span><span class="text-success">${Utils.formatMoney(Player.company.finances.total.rev)}</span></div>
+                            <div class="card-row"><span>累計運航費用</span><span class="text-danger">-${Utils.formatMoney((Player.company.finances.total.cost.fuel||0)+(Player.company.finances.total.cost.airport||0)+(Player.company.finances.total.cost.maint||0)+(Player.company.finances.total.cost.lease||0))}</span></div>
+                            <div class="card-row"><span>累計設備投資</span><span class="text-danger">-${Utils.formatMoney(Player.company.finances.total.capEx||0)}</span></div>
                         </div>
                     </div>
                 `;
 
-                tbody.innerHTML = '';
-                if(!Player.company.finances.monthlyRecords || Player.company.finances.monthlyRecords.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">月次履歴データがありません</td></tr>';
-                } else {
-                    Player.company.finances.monthlyRecords.forEach(m => {
-                        const mOpCost = sumOpCost(m.cost);
-                        const netProf = (m.netProfit !== undefined) ? m.netProfit : (m.rev - mOpCost - (m.capEx||0));
-                        tbody.innerHTML += `
-                            <tr>
-                                <td class="font-bold">${m.ym}</td>
-                                <td>${(m.flights||0).toLocaleString()}</td>
-                                <td>${(m.pax||0).toLocaleString()}</td>
-                                <td>${m.avgLf||0}%</td>
-                                <td class="text-success">${Utils.formatMoney(m.rev)}</td>
-                                <td class="text-danger">${Utils.formatMoney(mOpCost)}</td>
-                                <td class="text-danger">${Utils.formatMoney(m.capEx||0)}</td>
-                                <td class="${netProf>=0?'text-success':'text-danger'} font-bold">${Utils.formatMoney(netProf)}</td>
-                            </tr>
-                        `;
-                    });
+                if (Player.company.finances.monthlyRecords.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted">月次データがありません</td></tr>'; return;
                 }
+                Player.company.finances.monthlyRecords.forEach(m => {
+                    const cSum = (m.cost.fuel||0)+(m.cost.airport||0)+(m.cost.maint||0)+(m.cost.lease||0);
+                    tb.innerHTML += `
+                        <tr>
+                            <td class="font-bold">${m.ym}</td>
+                            <td>${(m.flights||0).toLocaleString()}</td>
+                            <td>${(m.pax||0).toLocaleString()}</td>
+                            <td>${m.avgLf||0}%</td>
+                            <td class="text-success">${Utils.formatMoney(m.rev)}</td>
+                            <td class="text-danger">-${Utils.formatMoney(cSum)}</td>
+                            <td class="text-danger">-${Utils.formatMoney(m.capEx||0)}</td>
+                            <td class="font-bold ${m.netProfit>=0?'text-success':'text-danger'}">${Utils.formatMoney(m.netProfit)}</td>
+                        </tr>
+                    `;
+                });
+            },
+            
+            showCustomAdvanceModal() {
+                const html = `
+                    <div class="input-group">
+                        <label>進めたい日数を入力 (1〜365)</label>
+                        <input type="number" id="custom-adv-days" class="input-field" min="1" max="365" value="30">
+                    </div>
+                `;
+                const btns = `
+                    <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
+                    <button class="btn" onclick="const v = document.getElementById('custom-adv-days').value; UI.hideModal(); Logic.advanceDays(v);">実行</button>
+                `;
+                UI.showModal('任意の日数だけ進める', '', html, btns);
             }
         };
 
         // ==========================================
-        // Map System (SVG Rendering & Interactivity)
+        // Map System
         // ==========================================
         const MapSystem = {
-            width: 1000, height: 1000, scale: 1.3, currentX: -50, currentY: -100,
-            project(lat, lon) { const x = ((lon - 127.0) / (146.5 - 127.0)) * this.width; const r = Math.PI / 180; const yLat = Math.log(Math.tan(Math.PI/4 + (lat * r)/2)); const yMin = Math.log(Math.tan(Math.PI/4 + (25.5 * r)/2)); const yMax = Math.log(Math.tan(Math.PI/4 + (46.0 * r)/2)); const y = this.height - ((yLat - yMin) / (yMax - yMin)) * this.height; return { x, y }; },
-            initMap() {
-                const oGroup = document.getElementById('map-outline'); oGroup.innerHTML = '';
-                JapanPolygons.forEach(p => {
-                    const pts = p.map(c => { const pt = this.project(c[0], c[1]); return `${pt.x},${pt.y}`; }).join(' ');
-                    const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-                    poly.setAttribute("points", pts); poly.setAttribute("fill", "var(--col-map-land)"); poly.setAttribute("stroke", "var(--col-map-border)"); poly.setAttribute("stroke-width", "2"); poly.setAttribute("stroke-linejoin", "round");
-                    oGroup.appendChild(poly);
-                });
-                const mGroup = document.getElementById('map-markers'); mGroup.innerHTML = '';
-                [...GameData.Airports].sort((a,b) => a.scale - b.scale).forEach(ap => {
-                    const pt = this.project(ap.lat, ap.lon); const g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.setAttribute("class", `airport-marker ${ap.scale >= 4 ? 'is-major' : ''}`); g.setAttribute("data-id", ap.id);
-                    if(Player && Player.company.hq === ap.id) g.classList.add('always-show');
-                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle"); hit.setAttribute("cx", pt.x); hit.setAttribute("cy", pt.y); hit.setAttribute("r", 15); hit.setAttribute("fill", "transparent");
-                    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle"); c.setAttribute("cx", pt.x); c.setAttribute("cy", pt.y); c.setAttribute("r", 2.5 + (ap.scale * 0.7)); c.setAttribute("fill", (Player && Player.company.hq===ap.id) ? Player.company.color : "var(--col-marker-default)"); c.setAttribute("stroke", "var(--col-bg-dark)"); c.setAttribute("stroke-width", "1.5");
-                    const lg = document.createElementNS("http://www.w3.org/2000/svg", "g"); lg.setAttribute("class", "label-group");
-                    const ox = ap.labelOffset[0], oy = ap.labelOffset[1], d = (2.5 + ap.scale*0.7) + 3;
-                    let tx = pt.x + (ox*d), ty = pt.y + (oy*d) + (oy>0?6:(oy<0?-2:3)); let ta = ox<0 ? "end" : (ox===0 ? "middle" : "start");
-                    const to = document.createElementNS("http://www.w3.org/2000/svg", "text"); to.setAttribute("x", tx); to.setAttribute("y", ty); to.setAttribute("text-anchor", ta); to.setAttribute("class", "airport-label airport-label-outline"); to.textContent = ap.name;
-                    const tt = document.createElementNS("http://www.w3.org/2000/svg", "text"); tt.setAttribute("x", tx); tt.setAttribute("y", ty); tt.setAttribute("text-anchor", ta); tt.setAttribute("class", "airport-label"); tt.textContent = ap.name;
-                    lg.appendChild(to); lg.appendChild(tt); g.appendChild(hit); g.appendChild(c); g.appendChild(lg); mGroup.appendChild(g);
-                });
-                this.drawRoutes(); this.setupInteractions(); this.updateTransform();
+            svg: null, tGroup: null, 
+            scale: 1, minScale: 0.5, maxScale: 8,
+            panX: 0, panY: 0, 
+            isDragging: false, startX: 0, startY: 0, selectedAp: null,
+            baseW: 1000, baseH: 1000,
+
+            init() {
+                this.svg = document.getElementById('map-svg'); this.tGroup = document.getElementById('map-transform-group');
+                this.drawJapanOutline(); this.drawAirports();
+                
+                this.svg.addEventListener('mousedown', e => this.startDrag(e));
+                window.addEventListener('mousemove', e => this.drag(e));
+                window.addEventListener('mouseup', () => this.endDrag());
+                this.svg.addEventListener('wheel', e => this.zoomWheel(e), {passive: false});
+
+                this.svg.addEventListener('touchstart', e => this.startDragTouch(e), {passive: false});
+                window.addEventListener('touchmove', e => this.dragTouch(e), {passive: false});
+                window.addEventListener('touchend', () => this.endDrag());
+
+                window.addEventListener('resize', () => { if(document.getElementById('view-map').classList.contains('active')) this.updateTransform(); });
+                setTimeout(() => this.resetView(), 100);
             },
+            
+            latLonToXY(lat, lon) { 
+                const latMin = 24.0, latMax = 46.0, lonMin = 122.0, lonMax = 146.0;
+                const x = ((lon - lonMin) / (lonMax - lonMin)) * this.baseW;
+                const y = this.baseH - (((lat - latMin) / (latMax - latMin)) * this.baseH);
+                return { x, y }; 
+            },
+
+            drawJapanOutline() {
+                const g = document.getElementById('map-outline'); g.innerHTML = '';
+                JapanPolygons.forEach(poly => {
+                    let pts = poly.map(p => { const xy = this.latLonToXY(p[0], p[1]); return `${xy.x},${xy.y}`; }).join(' ');
+                    g.innerHTML += `<polygon points="${pts}" fill="var(--col-map-land)" stroke="var(--col-map-border)" stroke-width="1.5" stroke-linejoin="round" />`;
+                });
+            },
+
+            drawAirports() {
+                const g = document.getElementById('map-markers'); g.innerHTML = '';
+                GameData.Airports.forEach(ap => {
+                    const pos = this.latLonToXY(ap.lat, ap.lon);
+                    const isMajor = ap.scale >= 4;
+                    const r = isMajor ? 6 : 4;
+                    const offX = (ap.labelOffset?.[0]||1) * (r + 4); const offY = (ap.labelOffset?.[1]||1) * (r + 4) + 4;
+                    
+                    const el = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    el.setAttribute('class', `airport-marker ${isMajor ? 'is-major' : ''}`);
+                    el.setAttribute('id', `marker-${ap.id}`);
+                    el.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+                    el.style.cursor = 'pointer';
+                    el.onclick = (e) => { e.stopPropagation(); this.selectAirport(ap.id); };
+
+                    el.innerHTML = `
+                        <circle cx="0" cy="0" r="${r}" fill="var(--col-marker-default)" stroke="var(--col-bg-panel)" stroke-width="1.5" />
+                        <g class="label-group" transform="translate(${offX}, ${offY})">
+                            <text class="airport-label airport-label-outline">${ap.iata}</text>
+                            <text class="airport-label">${ap.iata}</text>
+                        </g>
+                    `;
+                    g.appendChild(el);
+                });
+                this.updateMarkersClass();
+            },
+
             drawRoutes() {
-                if(!Player || !Player.company.routes) return;
-                const rg = document.getElementById('map-routes'); rg.innerHTML = '';
+                const g = document.getElementById('map-routes'); g.innerHTML = '';
+                if (!Player || !Player.company || !Player.company.routes) return;
                 Player.company.routes.forEach(r => {
-                    const f = GameData.Airports.find(a=>a.id===r.from); const t = GameData.Airports.find(a=>a.id===r.to); if (!f || !t) return;
-                    const pf = this.project(f.lat, f.lon); const pt = this.project(t.lat, t.lon);
-                    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    l.setAttribute("x1", pf.x); l.setAttribute("y1", pf.y); l.setAttribute("x2", pt.x); l.setAttribute("y2", pt.y); l.setAttribute("class", "route-line"); l.setAttribute("stroke", Player.company.color);
-                    rg.appendChild(l);
+                    const fromAp = GameData.Airports.find(a => a.id === r.from);
+                    const toAp = GameData.Airports.find(a => a.id === r.to);
+                    if (!fromAp || !toAp) return;
+                    const p1 = this.latLonToXY(fromAp.lat, fromAp.lon);
+                    const p2 = this.latLonToXY(toAp.lat, toAp.lon);
+                    
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y);
+                    line.setAttribute('x2', p2.x); line.setAttribute('y2', p2.y);
+                    line.setAttribute('class', 'route-line');
+                    line.setAttribute('stroke', Player.company.color || 'var(--col-primary)');
+                    g.appendChild(line);
                 });
             },
+
+            selectAirport(id) {
+                this.clearSelection(); this.selectedAp = id;
+                const m = document.getElementById(`marker-${id}`); if(m) m.classList.add('selected');
+                UI.showAirportDetails(id);
+            },
+            clearSelection() {
+                if(this.selectedAp) { const m = document.getElementById(`marker-${this.selectedAp}`); if(m) m.classList.remove('selected'); }
+                this.selectedAp = null;
+            },
+
             updateTransform() {
-                const maxPanX = this.width * this.scale * 1.2; const maxPanY = this.height * this.scale * 1.2;
-                this.currentX = Math.max(-maxPanX, Math.min(this.currentX, this.width)); this.currentY = Math.max(-maxPanY, Math.min(this.currentY, this.height));
-                document.getElementById('map-transform-group').setAttribute('transform', `translate(${this.currentX}, ${this.currentY}) scale(${this.scale})`);
-                const mg = document.getElementById('map-markers'); mg.className = this.scale >= 2.2 ? 'zoom-level-2' : (this.scale >= 1.4 ? 'zoom-level-1' : 'zoom-level-0');
+                if (!this.tGroup) return;
+                const svgRect = this.svg.getBoundingClientRect();
+                const bW = svgRect.width, bH = svgRect.height;
+                const scaledW = this.baseW * this.scale; const scaledH = this.baseH * this.scale;
+
+                let minX = bW - scaledW; let minY = bH - scaledH;
+                if (minX > 0) minX = (bW - scaledW) / 2;
+                if (minY > 0) minY = (bH - scaledH) / 2;
+                let maxX = minX > 0 ? minX : 0; let maxY = minY > 0 ? minY : 0;
+
+                this.panX = Math.max(minX, Math.min(maxX, this.panX));
+                this.panY = Math.max(minY, Math.min(maxY, this.panY));
+
+                this.tGroup.setAttribute('transform', `translate(${this.panX}, ${this.panY}) scale(${this.scale})`);
+                this.updateMarkersClass();
             },
-            applyZoom(f, cx, cy) {
-                let ns = Math.max(0.8, Math.min(this.scale * f, 10));
-                this.currentX = cx - (cx - this.currentX) * (ns / this.scale); this.currentY = cy - (cy - this.currentY) * (ns / this.scale);
-                this.scale = ns; this.updateTransform();
+            updateMarkersClass() {
+                const g = document.getElementById('map-markers'); if(!g) return;
+                g.classList.remove('zoom-level-0', 'zoom-level-1', 'zoom-level-2');
+                if (this.scale < 2) g.classList.add('zoom-level-0');
+                else if (this.scale < 4) g.classList.add('zoom-level-1');
+                else g.classList.add('zoom-level-2');
             },
-            zoomIn() { this.applyZoom(1.5, this.width/2, this.height/2); }, zoomOut() { this.applyZoom(1/1.5, this.width/2, this.height/2); },
-            resetView() { const m = window.innerWidth<=768; this.scale = m?1.0:1.3; this.currentX = -50; this.currentY = m?-50:-100; this.updateTransform(); },
-            getSVGCoords(cx, cy) { const svg = document.getElementById('map-svg'); const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy; const ctm = svg.getScreenCTM(); return ctm ? pt.matrixTransform(ctm.inverse()) : {x:0, y:0}; },
-            setupInteractions() {
-                const svg = document.getElementById('map-svg'); let pointers = new Map(), dragStart = null, isDrag = false, initDist = null, initScale = null;
-                svg.onpointerdown = e => {
-                    pointers.set(e.pointerId, e); svg.setPointerCapture(e.pointerId);
-                    if(pointers.size===1) { isDrag = true; dragStart = {x:e.clientX, y:e.clientY}; svg.classList.add('dragging'); }
-                    else if(pointers.size===2) { isDrag = false; const pts = Array.from(pointers.values()); initDist = Math.hypot(pts[0].clientX-pts[1].clientX, pts[0].clientY-pts[1].clientY); initScale = this.scale; }
-                };
-                svg.onpointermove = e => {
-                    if(!pointers.has(e.pointerId)) return; const prevE = pointers.get(e.pointerId); pointers.set(e.pointerId, e);
-                    if(pointers.size===1 && isDrag) { const ctm = svg.getScreenCTM(); if(ctm) { this.currentX += (e.clientX-prevE.clientX)/ctm.a; this.currentY += (e.clientY-prevE.clientY)/ctm.d; this.updateTransform(); } }
-                    else if(pointers.size===2 && initDist>0) {
-                        const pts = Array.from(pointers.values()); const d = Math.hypot(pts[0].clientX-pts[1].clientX, pts[0].clientY-pts[1].clientY);
-                        const c = this.getSVGCoords((pts[0].clientX+pts[1].clientX)/2, (pts[0].clientY+pts[1].clientY)/2); let ns = Math.max(0.8, Math.min(initScale*(d/initDist), 10));
-                        this.currentX = c.x - (c.x - this.currentX)*(ns/this.scale); this.currentY = c.y - (c.y - this.currentY)*(ns/this.scale); this.scale = ns; this.updateTransform();
+            
+            resetView() {
+                const svgRect = this.svg.getBoundingClientRect();
+                const sX = svgRect.width / this.baseW; const sY = svgRect.height / this.baseH;
+                this.scale = Math.max(this.minScale, Math.min(sX, sY) * 1.1);
+                
+                this.panX = (svgRect.width - (this.baseW * this.scale)) / 2;
+                this.panY = (svgRect.height - (this.baseH * this.scale)) / 2;
+                
+                if (Player && Player.company && Player.company.hq) {
+                    const hqAp = GameData.Airports.find(a => a.id === Player.company.hq);
+                    if (hqAp) {
+                        this.scale = 2.5;
+                        const pos = this.latLonToXY(hqAp.lat, hqAp.lon);
+                        this.panX = (svgRect.width / 2) - (pos.x * this.scale);
+                        this.panY = (svgRect.height / 2) - (pos.y * this.scale);
                     }
-                };
-                const end = e => {
-                    if(!pointers.has(e.pointerId)) return;
-                    if(pointers.size===1 && dragStart && Math.hypot(e.clientX-dragStart.x, e.clientY-dragStart.y)<8) {
-                        const tgt = document.elementFromPoint(e.clientX, e.clientY); const mk = tgt ? tgt.closest('.airport-marker') : null;
-                        if(mk) {
-                            if(this.selId) { const p = document.querySelector(`.airport-marker[data-id="${this.selId}"]`); if(p) p.classList.remove('selected'); }
-                            this.selId = mk.getAttribute('data-id'); mk.classList.add('selected'); mk.parentNode.appendChild(mk); UI.showAirportDetails(this.selId);
-                        }
-                    }
-                    pointers.delete(e.pointerId);
-                    if(pointers.size===1) { const rem = Array.from(pointers.values())[0]; dragStart = {x:rem.clientX, y:rem.clientY}; isDrag = true; }
-                    else if(pointers.size===0) { initDist = null; isDrag = false; dragStart = null; svg.classList.remove('dragging'); }
-                };
-                svg.onpointerup = end; svg.onpointercancel = end; svg.onwheel = e => { e.preventDefault(); const c = this.getSVGCoords(e.clientX, e.clientY); this.applyZoom(e.deltaY>0?(1/1.2):1.2, c.x, c.y); };
+                }
+                this.updateTransform();
             },
-            clearSelection() { if(this.selId) { const p = document.querySelector(`.airport-marker[data-id="${this.selId}"]`); if(p) p.classList.remove('selected'); this.selId = null; } }
+
+            zoomIn() { this.scale = Math.min(this.maxScale, this.scale * 1.4); this.updateTransform(); },
+            zoomOut() { this.scale = Math.max(this.minScale, this.scale / 1.4); this.updateTransform(); },
+            zoomWheel(e) {
+                e.preventDefault();
+                const svgRect = this.svg.getBoundingClientRect();
+                const mX = e.clientX - svgRect.left; const mY = e.clientY - svgRect.top;
+                const oldScale = this.scale;
+                this.scale = e.deltaY < 0 ? Math.min(this.maxScale, this.scale * 1.2) : Math.max(this.minScale, this.scale / 1.2);
+                
+                this.panX = mX - ((mX - this.panX) * (this.scale / oldScale));
+                this.panY = mY - ((mY - this.panY) * (this.scale / oldScale));
+                this.updateTransform();
+            },
+
+            startDrag(e) { if(e.target.closest('.map-controls') || e.target.closest('.airport-marker')) return; this.isDragging = true; this.startX = e.clientX - this.panX; this.startY = e.clientY - this.panY; this.svg.classList.add('dragging'); },
+            drag(e) { if (!this.isDragging) return; this.panX = e.clientX - this.startX; this.panY = e.clientY - this.startY; this.updateTransform(); },
+            startDragTouch(e) { if(e.target.closest('.map-controls') || e.target.closest('.airport-marker') || e.touches.length > 1) return; e.preventDefault(); this.isDragging = true; this.startX = e.touches[0].clientX - this.panX; this.startY = e.touches[0].clientY - this.panY; },
+            dragTouch(e) { if (!this.isDragging || e.touches.length > 1) return; e.preventDefault(); this.panX = e.touches[0].clientX - this.startX; this.panY = e.touches[0].clientY - this.startY; this.updateTransform(); },
+            endDrag() { this.isDragging = false; this.svg.classList.remove('dragging'); }
         };
 
         // ==========================================
-        // Game Save/Load, Migration & Verification Engine
+        // Main Game Loop & Setup
         // ==========================================
         const Game = {
             init() {
                 ThemeManager.init();
-                const hqSelect = document.getElementById('c-hq'); hqSelect.innerHTML = '';
-                GameData.Airports.forEach(ap => { hqSelect.innerHTML += `<option value="${ap.id}">${ap.name} (${ap.iata})</option>`; });
+                const btnCont = document.getElementById('btn-continue');
                 try {
-                    const saved = localStorage.getItem(GameData.SAVE_KEY);
-                    if (saved) {
-                        const data = JSON.parse(saved);
-                        if (this.validateSaveData(data)) {
-                            if (this.compareVer(data.version, GameData.VERSION) > 0) {
-                                console.warn("Future save data detected."); document.getElementById('btn-continue').disabled = true; return;
-                            }
-                            document.getElementById('btn-continue').disabled = false; document.getElementById('btn-continue').textContent = `CONTINUE (${data.company.name})`;
-                        } else {
-                            if (localStorage.getItem(GameData.SAVE_KEY_BACKUP)) {
-                                document.getElementById('btn-continue').disabled = false; document.getElementById('btn-continue').textContent = `CONTINUE (要復元)`;
-                            }
+                    const sd = localStorage.getItem(GameData.SAVE_KEY);
+                    if (sd) {
+                        const parsed = JSON.parse(sd);
+                        if (parsed && parsed.company) {
+                            btnCont.disabled = false;
+                            btnCont.textContent = `CONTINUE (${parsed.company.name})`;
                         }
                     }
-                } catch(e) { console.error("Init check error", e); }
-            },
-            compareVer(v1, v2) {
-                if(!v1) return -1;
-                const p1 = v1.replace('v','').split('.').map(Number); const p2 = v2.replace('v','').split('.').map(Number);
-                for(let i=0; i<Math.max(p1.length, p2.length); i++) { const n1 = p1[i]||0, n2 = p2[i]||0; if(n1 > n2) return 1; if(n1 < n2) return -1; }
-                return 0;
+                } catch(e) {}
+                
+                const hqSelect = document.getElementById('c-hq');
+                GameData.Airports.forEach(a => { 
+                    if (a.scale >= 3) {
+                        hqSelect.innerHTML += `<option value="${a.id}">${a.name} (${a.pref})</option>`; 
+                    }
+                });
             },
             
-            validateSaveData(data) {
-                if (!data || typeof data !== 'object') return false;
-                if (!data.company || typeof data.company !== 'object') return false;
-                if (typeof data.company.name !== 'string' || data.company.name.trim() === '') return false;
-                
-                if (typeof data.company.funds !== 'number' || isNaN(data.company.funds) || !isFinite(data.company.funds)) return false;
-                
-                if (typeof data.company.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.company.date)) return false;
-                const dp = data.company.date.split('-').map(Number);
-                const d = new Date(dp[0], dp[1] - 1, dp[2]);
-                if (d.getFullYear() !== dp[0] || d.getMonth() + 1 !== dp[1] || d.getDate() !== dp[2]) return false;
-                
-                const startDp = GameData.START_DATE.split('-').map(Number);
-                const startD = new Date(startDp[0], startDp[1] - 1, startDp[2]);
-                if (d < startD) return false;
-
-                if (!Array.isArray(data.company.fleet) || !Array.isArray(data.company.routes)) return false;
-
-                for (let f of data.company.fleet) {
-                    if (typeof f.isLeased !== 'boolean') return false;
-                }
-
-                const validateSchedules = (comp) => {
-                    if (!('schedules' in comp)) return true;
-                    if (!Array.isArray(comp.schedules)) return false;
-                    const fIds = new Set();
-                    for (let s of comp.schedules) {
-                        if (!s || typeof s !== 'object') return false;
-                        if (typeof s.flightId !== 'string' || s.flightId === '') return false;
-                        if (fIds.has(s.flightId)) return false;
-                        fIds.add(s.flightId);
-                        
-                        if (typeof s.flightNumber !== 'string') return false;
-                        if (typeof s.routeId !== 'string') return false;
-                        if (typeof s.airlineId !== 'string') return false;
-                        if (s.aircraftId !== undefined && s.aircraftId !== null && typeof s.aircraftId !== 'string') return false;
-                        if (s.originAirportId !== undefined && s.originAirportId !== null && typeof s.originAirportId !== 'string') return false;
-                        if (s.destinationAirportId !== undefined && s.destinationAirportId !== null && typeof s.destinationAirportId !== 'string') return false;
-
-                        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-                        if (typeof s.departureTime !== 'string' || !timeRegex.test(s.departureTime)) return false;
-                        if (typeof s.arrivalTime !== 'string' || !timeRegex.test(s.arrivalTime)) return false;
-                        
-                        if (!Array.isArray(s.operatingDays)) return false;
-                        const dSet = new Set();
-                        for (let d of s.operatingDays) {
-                            if (typeof d !== 'number' || d < 0 || d > 6) return false;
-                            if (dSet.has(d)) return false;
-                            dSet.add(d);
-                        }
-                        
-                        if (typeof s.isActive !== 'boolean') return false;
-                    }
-                    return true;
-                };
-
-                if (!validateSchedules(data.company)) return false;
-
-                if (data.settings && data.settings.competitionEnabled) {
-                    if (!Array.isArray(data.competitors)) return false;
-                } else if ('competitors' in data) {
-                    if (!Array.isArray(data.competitors)) return false;
-                }
-
-                if (Array.isArray(data.competitors)) {
-                    for (let ai of data.competitors) {
-                        if (!Array.isArray(ai.fleet) || !Array.isArray(ai.routes)) return false;
-                        for (let f of ai.fleet) {
-                            if (typeof f.isLeased !== 'boolean') return false;
-                        }
-                        if (!validateSchedules(ai)) return false;
-                    }
-                }
-
-                return true;
-            },
-            
-            _generateAIInitialState(c, dateStr) {
-                const comp = {
-                    id: c.iata, name: c.name, iata: c.iata, icao: c.icao, color: '#64748b', hq: c.hq,
-                    funds: 0, reputation: 60, awareness: 50, date: dateStr, status: 'active',
-                    fleet: [], routes: [], schedules: [],
-                    finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [], _tmStats: {f:0,p:0,seats:0} }
-                };
-                
-                let initialRoutes = [];
-                let initialAcType = '';
-                
-                if (c.iata === 'SA') {
-                    comp.color = '#e11d48'; comp.funds = 12000000000;
-                    initialRoutes = ['CTS', 'FUK']; initialAcType = 'a320n';
-                } else if (c.iata === 'NR') {
-                    comp.color = '#16a34a'; comp.funds = 6000000000;
-                    initialRoutes = ['KOJ', 'SDJ']; initialAcType = 'e190';
-                } else if (c.iata === 'PW') {
-                    comp.color = '#0284c7'; comp.funds = 7000000000;
-                    initialRoutes = ['OKA', 'NGO']; initialAcType = 'b738';
-                }
-                
-                initialRoutes.forEach(dest => {
-                    const fromAp = GameData.Airports.find(a => a.id === comp.hq);
-                    const toAp = GameData.Airports.find(a => a.id === dest);
-                    const acDef = GameData.Aircrafts.find(a => a.id === initialAcType);
-                    if (fromAp && toAp && acDef) {
-                        const dist = Utils.haversine(fromAp.lat, fromAp.lon, toAp.lat, toAp.lon);
-                        const cost = Math.floor(dist * 100000 + (fromAp.scale + toAp.scale) * 5000000);
-                        const reg = Utils.genRegNum(comp.iata);
-                        const routeId = [comp.hq, dest].sort().join('-');
-                        
-                        comp.funds -= (cost + acDef.leaseInit);
-                        comp.finances.total.capEx += (cost + acDef.leaseInit);
-                        
-                        comp.fleet.push({ reg: reg, typeId: acDef.id, status: 'active', routeId: routeId, isLeased: true, age: 0, stats: { flights:0, pax:0, rev:0 } });
-                        comp.routes.push({
-                            id: routeId, from: comp.hq, to: dest, distance: dist, assignedReg: reg, fareMult: 1.0, deficitCount: 0,
-                            stats: { flights:0, pax:0, rev:0, profit:0, costBreakdown:{fuel:0,airport:0,maint:0,lease:0}, lastLf:0, lastPax:0, lastRev:0, lastCost:{fuel:0,airport:0,maint:0,lease:0}, lastProfit:0, lastFlights:0, lfHistory:[] }
-                        });
-                    }
-                });
-                
-                return comp;
+            startNewGame() {
+                UI.switchScreen('screen-new-company');
             },
 
-            migrateSaveData(rawData) {
-                const data = JSON.parse(JSON.stringify(rawData));
-                
-                data._repairLog = [];
-                const logRepair = (msg) => { data._repairLog.push(msg); console.warn(`[自動修復] ${msg}`); };
-
-                if (!data.version) data.version = GameData.VERSION;
-                if (!data.settings) data.settings = { competitionEnabled: true, aiDifficulty: 'normal' };
-                
-                const fixNum = (val, defaultVal = 0) => {
-                    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return defaultVal;
-                    return val;
-                };
-
-                data.company.reputation = fixNum(data.company.reputation, 50);
-                data.company.awareness = fixNum(data.company.awareness, 10);
-                
-                if (!('competitors' in data)) {
-                    if (data.settings.competitionEnabled) {
-                        throw new Error("競合会社データが欠損しています。自動生成を中止し、重大異常として扱います。");
-                    } else {
-                        data.competitors = [];
-                    }
-                } else if (!Array.isArray(data.competitors)) {
-                    throw new Error("競合会社データが不正な形式です。");
+            continueGame() {
+                if (this.loadData()) {
+                    UI.switchScreen('screen-hq');
+                    UI.updateHeader();
+                    UI.updateNews();
+                    MapSystem.init();
+                    UI.switchMainView('view-map', document.querySelector('.hq-sidebar .nav-item'));
                 }
-
-                if (!data.news) data.news = (data.history || []).map(h => ({ date: h.date, msg: h.msg, type: 'info' }));
-
-                const fixFinances = (finParent, key) => {
-                    if (!finParent[key] || typeof finParent[key] !== 'object') {
-                        finParent[key] = { rev: 0, cost: { fuel: 0, airport: 0, maint: 0, lease: 0 }, capEx: 0 };
-                        logRepair(`財務データ(${key})が欠損していたため初期化しました。`);
-                    }
-                    const fin = finParent[key];
-                    fin.rev = Math.max(0, fixNum(fin.rev));
-                    if (!fin.cost || typeof fin.cost !== 'object') {
-                        fin.cost = { fuel: 0, airport: 0, maint: 0, lease: 0 };
-                        logRepair(`財務費用データ(${key}.cost)が欠損していたため初期化しました。`);
-                    }
-                    fin.cost.fuel = Math.max(0, fixNum(fin.cost.fuel));
-                    fin.cost.airport = Math.max(0, fixNum(fin.cost.airport));
-                    fin.cost.maint = Math.max(0, fixNum(fin.cost.maint));
-                    fin.cost.lease = Math.max(0, fixNum(fin.cost.lease));
-                    fin.capEx = Math.max(0, fixNum(fin.capEx));
-                };
-
-                const fixTmStats = (obj, ownerName) => {
-                    if (!obj.finances) obj.finances = {};
-                    if (!obj.finances._tmStats || typeof obj.finances._tmStats !== 'object') {
-                        obj.finances._tmStats = { f: 0, p: 0, seats: 0 };
-                        logRepair(`${ownerName} の月次統計データ(_tmStats)が欠損していたため初期化しました。`);
-                    } else {
-                        obj.finances._tmStats.f = Math.max(0, fixNum(obj.finances._tmStats.f));
-                        obj.finances._tmStats.p = Math.max(0, fixNum(obj.finances._tmStats.p));
-                        obj.finances._tmStats.seats = Math.max(0, fixNum(obj.finances._tmStats.seats));
-                    }
-                };
-
-                const checkFleetAndRoutes = (companyObj, isPlayer) => {
-                    if (!Array.isArray(companyObj.fleet)) {
-                        throw new Error(`${isPlayer ? 'プレイヤー' : companyObj.name} の機材リストが破損または欠損しています。`);
-                    }
-                    if (!Array.isArray(companyObj.routes)) {
-                        throw new Error(`${isPlayer ? 'プレイヤー' : companyObj.name} の路線リストが破損または欠損しています。`);
-                    }
-
-                    const regSet = new Set();
-                    companyObj.fleet = companyObj.fleet.filter(f => {
-                        if (!f || typeof f !== 'object') return false;
-                        const ac = GameData.Aircrafts.find(a => a.id === f.typeId);
-                        if (!ac) {
-                            logRepair(`存在しない機種ID(${f.typeId})の機材を削除しました。`);
-                            return false;
-                        }
-                        if (regSet.has(f.reg) || !f.reg || typeof f.reg !== 'string') {
-                            f.reg = Utils.genRegNum(companyObj.iata);
-                            if (isPlayer) logRepair("機体登録番号の重複または不正を補正しました: " + f.reg);
-                        }
-                        regSet.add(f.reg);
-
-                        if (f.age === undefined) f.age = 0;
-                        if (!f.stats) f.stats = { flights: 0, pax: 0, rev: 0 };
-                        f.stats.flights = Math.max(0, fixNum(f.stats.flights));
-                        f.stats.pax = Math.max(0, fixNum(f.stats.pax));
-                        f.stats.rev = Math.max(0, fixNum(f.stats.rev));
-                        
-                        if (typeof f.isLeased !== 'boolean') {
-                            throw new Error(`機材 ${f.reg} のリース情報(isLeased)が欠損または不正です。誤変換を防ぐためロードを中止します。`);
-                        }
-                        return true;
-                    });
-
-                    const routeIdSet = new Set();
-                    const assignedRegSet = new Set();
-                    companyObj.routes = companyObj.routes.filter(r => {
-                        if (!r || typeof r !== 'object') return false;
-                        const fromAp = GameData.Airports.find(a => a.id === r.from);
-                        const toAp = GameData.Airports.find(a => a.id === r.to);
-                        if (!fromAp || !toAp || r.from === r.to) {
-                            logRepair(`不正な路線を削除しました: ${r.id}`);
-                            return false;
-                        }
-                        if (routeIdSet.has(r.id)) {
-                            if (isPlayer) logRepair("重複路線を削除しました: " + r.id);
-                            return false;
-                        }
-                        routeIdSet.add(r.id);
-
-                        if (r.assignedReg) {
-                            const plane = companyObj.fleet.find(f => f.reg === r.assignedReg);
-                            if (!plane || assignedRegSet.has(r.assignedReg) || plane.routeId !== r.id) {
-                                r.assignedReg = null;
-                                if (plane && plane.routeId === r.id) plane.routeId = null; 
-                                logRepair(`路線 ${r.id} の機材割り当て不整合を補正(解除)しました。`);
-                            } else {
-                                assignedRegSet.add(r.assignedReg);
-                                plane.routeId = r.id;
-                            }
-                        }
-                        
-                        r.fareMult = fixNum(r.fareMult, 1.0);
-                        if (r.fareMult < 0.1 || r.fareMult > 5.0) r.fareMult = 1.0;
-
-                        if (!r.stats || typeof r.stats !== 'object') {
-                            r.stats = { flights: 0, pax: 0, rev: 0, profit: 0, costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 }, lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] };
-                            logRepair(`路線 ${r.id} の統計データが欠損していたため初期化しました。`);
-                        } else {
-                            r.stats.flights = fixNum(r.stats.flights);
-                            r.stats.pax = fixNum(r.stats.pax);
-                            r.stats.rev = fixNum(r.stats.rev);
-                            r.stats.profit = fixNum(r.stats.profit);
-                            
-                            if (!r.stats.costBreakdown || typeof r.stats.costBreakdown !== 'object') {
-                                r.stats.costBreakdown = { fuel: 0, airport: 0, maint: 0, lease: 0 };
-                            } else {
-                                r.stats.costBreakdown.fuel = fixNum(r.stats.costBreakdown.fuel);
-                                r.stats.costBreakdown.airport = fixNum(r.stats.costBreakdown.airport);
-                                r.stats.costBreakdown.maint = fixNum(r.stats.costBreakdown.maint);
-                                r.stats.costBreakdown.lease = fixNum(r.stats.costBreakdown.lease);
-                            }
-                            
-                            if (!r.stats.lastCost || typeof r.stats.lastCost !== 'object') {
-                                r.stats.lastCost = { fuel: 0, airport: 0, maint: 0, lease: 0 };
-                            } else {
-                                r.stats.lastCost.fuel = fixNum(r.stats.lastCost.fuel);
-                                r.stats.lastCost.airport = fixNum(r.stats.lastCost.airport);
-                                r.stats.lastCost.maint = fixNum(r.stats.lastCost.maint);
-                                r.stats.lastCost.lease = fixNum(r.stats.lastCost.lease);
-                            }
-                            
-                            r.stats.lastLf = fixNum(r.stats.lastLf);
-                            r.stats.lastPax = fixNum(r.stats.lastPax);
-                            r.stats.lastRev = fixNum(r.stats.lastRev);
-                            r.stats.lastProfit = fixNum(r.stats.lastProfit);
-                            r.stats.lastFlights = fixNum(r.stats.lastFlights);
-                            
-                            if (!Array.isArray(r.stats.lfHistory)) {
-                                r.stats.lfHistory = [];
-                            } else {
-                                r.stats.lfHistory = r.stats.lfHistory.map(v => fixNum(v));
-                            }
-                        }
-                        return true;
-                    });
-
-                    companyObj.fleet.forEach(f => {
-                        if (f.routeId && !companyObj.routes.find(r => r.id === f.routeId)) {
-                            f.routeId = null;
-                            f.status = 'idle';
-                            logRepair(`存在しない路線に割り当てられていた機材(${f.reg})を待機中に戻しました。`);
-                        }
-                        if (!f.routeId && f.status === 'active') f.status = 'idle';
-                    });
-                };
-
-                const checkSchedulesAndMigrate = (companyObj, isPlayer) => {
-                    if (!Array.isArray(companyObj.schedules)) {
-                        companyObj.schedules = [];
-                        if (isPlayer) logRepair("スケジュールデータが欠損していたため初期化しました。");
-                    } else {
-                        const validFIds = new Set();
-                        
-                        companyObj.schedules = companyObj.schedules.filter(s => {
-                            if (!s || typeof s !== 'object') return false;
-                            if (typeof s.flightId !== 'string' || s.flightId === '') {
-                                logRepair(`不正な flightId を持つ便を削除しました。`);
-                                return false;
-                            }
-                            if (validFIds.has(s.flightId)) {
-                                logRepair(`重複する flightId (${s.flightId}) を持つ便を削除しました。`);
-                                return false;
-                            }
-                            validFIds.add(s.flightId);
-                            
-                            if (typeof s.flightNumber !== 'string') s.flightNumber = 'UNKNOWN';
-                            if (typeof s.routeId !== 'string') s.routeId = '';
-                            if (typeof s.airlineId !== 'string') s.airlineId = companyObj.iata;
-                            if (s.aircraftId === undefined) s.aircraftId = null;
-                            if (s.originAirportId === undefined) s.originAirportId = null;
-                            if (s.destinationAirportId === undefined) s.destinationAirportId = null;
-                            
-                            const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-                            if (typeof s.departureTime !== 'string' || !timeRegex.test(s.departureTime)) s.departureTime = '00:00';
-                            if (typeof s.arrivalTime !== 'string' || !timeRegex.test(s.arrivalTime)) s.arrivalTime = '00:00';
-                            
-                            if (!Array.isArray(s.operatingDays)) {
-                                s.operatingDays = [0,1,2,3,4,5,6];
-                            } else {
-                                const dSet = new Set();
-                                s.operatingDays.forEach(d => {
-                                    if (typeof d === 'number' && d >= 0 && d <= 6) dSet.add(d);
-                                });
-                                s.operatingDays = Array.from(dSet).sort();
-                            }
-                            
-                            if (typeof s.isActive !== 'boolean') s.isActive = false;
-                            if (typeof s.createdAt !== 'string') s.createdAt = new Date().toISOString();
-                            if (typeof s.updatedAt !== 'string') s.updatedAt = new Date().toISOString();
-                            
-                            return true;
-                        });
-                    }
-                };
-
-                // Playerの財務・機材補正
-                if (!data.company.finances) data.company.finances = {};
-                fixFinances(data.company.finances, 'today');
-                fixFinances(data.company.finances, 'thisMonth');
-                fixFinances(data.company.finances, 'total');
-                fixTmStats(data.company, 'プレイヤー');
-
-                if (Array.isArray(data.company.finances.monthlyRecords)) {
-                    data.company.finances.monthlyRecords.forEach(m => {
-                        m.rev = Math.max(0, fixNum(m.rev));
-                        m.netProfit = fixNum(m.netProfit);
-                        if(m.cost) { m.cost.fuel = Math.max(0, fixNum(m.cost.fuel)); m.cost.airport = Math.max(0, fixNum(m.cost.airport)); m.cost.maint = Math.max(0, fixNum(m.cost.maint)); m.cost.lease = Math.max(0, fixNum(m.cost.lease)); }
-                    });
-                } else {
-                    data.company.finances.monthlyRecords = [];
-                }
-                checkFleetAndRoutes(data.company, true);
-                checkSchedulesAndMigrate(data.company, true);
-
-                // AIの財務・機材補正
-                data.competitors = data.competitors.filter(ai => {
-                    if (!ai || typeof ai.id !== 'string' || typeof ai.name !== 'string') {
-                        logRepair("不正なAI会社データを削除しました。");
-                        return false;
-                    }
-                    return true;
-                });
-
-                data.competitors.forEach(ai => {
-                    ai.funds = fixNum(ai.funds, 1000000000);
-                    ai.reputation = fixNum(ai.reputation, 50);
-                    ai.awareness = fixNum(ai.awareness, 10);
-                    if (!ai.finances) ai.finances = {};
-                    fixFinances(ai.finances, 'today');
-                    fixFinances(ai.finances, 'thisMonth');
-                    fixFinances(ai.finances, 'total');
-                    fixTmStats(ai, ai.name);
-                    checkFleetAndRoutes(ai, false);
-                    checkSchedulesAndMigrate(ai, false);
-                });
-
-                data.version = GameData.VERSION;
-                return data;
             },
-            startNewGame() { document.getElementById('form-setup').reset(); UI.switchScreen('screen-new-company'); },
+
             submitNewCompany(e) {
                 e.preventDefault();
-                const name = document.getElementById('c-name').value.trim(); const iata = document.getElementById('c-iata').value.toUpperCase(); const icao = document.getElementById('c-icao').value.toUpperCase();
+                const name = document.getElementById('c-name').value.trim();
+                const iata = document.getElementById('c-iata').value.toUpperCase();
+                const icao = document.getElementById('c-icao').value.toUpperCase();
+                const color = document.getElementById('c-color').value;
+                const hq = document.getElementById('c-hq').value;
                 const compEnabled = document.getElementById('c-comp').value === 'yes';
-                const aiDiff = document.getElementById('c-diff').value;
-                
-                Player = { company: { iata, fleet: [] }, competitors: [] }; 
-
-                const initialCompetitors = compEnabled ? GameData.Competitors.map(c => this._generateAIInitialState(c, GameData.START_DATE)) : [];
+                const diff = document.getElementById('c-diff').value;
 
                 Player = {
-                    version: GameData.VERSION,
-                    metadata: { createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString() },
+                    settings: { competitionEnabled: compEnabled, aiDifficulty: diff },
                     company: {
-                        name, iata, icao, color: document.getElementById('c-color').value, hq: document.getElementById('c-hq').value,
-                        funds: GameData.START_FUNDS, reputation: 50, awareness: 10, date: GameData.START_DATE,
-                        fleet: [], routes: [], schedules: [], employees: 0, debt: 0,
-                        finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [] }
+                        name: name, iata: iata, icao: icao, color: color, hq: hq,
+                        date: GameData.START_DATE, funds: GameData.START_FUNDS,
+                        fleet: [], routes: [], schedules: [], maintenanceRecords: [],
+                        finances: {
+                            today: Logic._resetFinanceObject(),
+                            thisMonth: Logic._resetFinanceObject(),
+                            total: Logic._resetFinanceObject(),
+                            monthlyRecords: [],
+                            _tmStats: { f: 0, p: 0, seats: 0 }
+                        }
                     },
-                    settings: { competitionEnabled: compEnabled, aiDifficulty: aiDiff },
-                    competitors: initialCompetitors,
-                    news: [{ date: GameData.START_DATE, msg: `${name} を設立しました。市場への参入を果たしました。`, type: 'success' }],
-                    history: [{ date: GameData.START_DATE, msg: `${name} を設立しました。` }]
+                    history: [{ date: GameData.START_DATE, msg: `${name} が設立されました。` }],
+                    news: [],
+                    competitors: []
                 };
-                if (this.saveData(false)) this.enterHQ();
-            },
-            continueGame() {
-                try {
-                    let rawText = localStorage.getItem(GameData.SAVE_KEY); 
-                    if (!rawText) return;
-                    let rawData = JSON.parse(rawText);
-                    
-                    if (this.compareVer(rawData.version, GameData.VERSION) > 0) { 
-                        UI.showModal('エラー', 'このセーブデータは現在のゲームより新しいバージョンで作成されています。データの破損を防ぐため読み込みを中止しました。'); 
-                        return; 
-                    }
-                    
-                    if (!this.validateSaveData(rawData)) {
-                        console.warn("セーブデータの検証に失敗。バックアップからの復元を試みます。");
-                        const backupText = localStorage.getItem(GameData.SAVE_KEY_BACKUP);
-                        if (backupText) {
-                            const backupData = JSON.parse(backupText);
-                            if (this.validateSaveData(backupData)) {
-                                rawData = backupData;
-                                UI.showModal('データ修復', '最新のセーブデータが破損していたため、前回の正常なバックアップから復元しました。');
-                            } else {
-                                throw new Error("バックアップデータも破損しています。ゲームを開始できません。");
+
+                if (compEnabled) {
+                    Player.competitors = JSON.parse(JSON.stringify(GameData.Competitors)).map(c => {
+                        return {
+                            ...c,
+                            id: c.iata,
+                            color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
+                            date: GameData.START_DATE,
+                            funds: GameData.START_FUNDS * (diff === 'hard' ? 2.5 : (diff === 'easy' ? 0.8 : 1.5)),
+                            fleet: [], routes: [], schedules: [], maintenanceRecords: [],
+                            awareness: 10, reputation: 50,
+                            finances: {
+                                today: Logic._resetFinanceObject(),
+                                thisMonth: Logic._resetFinanceObject(),
+                                total: Logic._resetFinanceObject(),
+                                monthlyRecords: [],
+                                _tmStats: { f: 0, p: 0, seats: 0 }
                             }
-                        } else {
-                            throw new Error("正常なセーブデータが見つかりません。");
-                        }
-                    }
-                    
-                    Player = this.migrateSaveData(rawData);
-                    if (Player._repairLog && Player._repairLog.length > 0) {
-                        setTimeout(() => UI.showToast("一部のデータを修復して読み込みました", "warning"), 500);
-                    }
-                    this.enterHQ();
-                } catch(e) { 
-                    console.error(e); 
-                    UI.showModal('重大なエラー', `セーブデータのロードに失敗しました。<br>エラー詳細: ${e.message}`); 
+                        };
+                    });
                 }
+
+                this.saveData(false);
+                UI.switchScreen('screen-hq');
+                UI.updateHeader();
+                UI.updateNews();
+                MapSystem.init();
+                UI.switchMainView('view-map', document.querySelector('.hq-sidebar .nav-item'));
+                UI.showToast("会社設立が完了しました！", "success");
             },
-            enterHQ() {
-                UI.switchScreen('screen-hq'); UI.updateHeader(); UI.updateNews(); MapSystem.initMap();
-                setTimeout(() => {
-                    const hq = GameData.Airports.find(a => a.id === Player.company.hq);
-                    if(hq) { const pt = MapSystem.project(hq.lat, hq.lon); MapSystem.applyZoom(1.8, pt.x, pt.y); }
-                }, 100);
-            },
+
             saveData(isAuto = false) {
-                if (!Player) return false;
-
-                if (!this.validateSaveData(Player)) {
-                    if (!isAuto) UI.showModal('保存エラー', 'セーブデータの整合性検証に失敗しました。不完全な状態での保存をブロックしました。');
-                    console.error("Save aborted: Player data validation failed.");
-                    return false;
-                }
-
+                if (!Player) return;
                 try {
-                    const exist = localStorage.getItem(GameData.SAVE_KEY);
-                    if (exist) {
-                        try {
-                            const ed = JSON.parse(exist);
-                            if (this.compareVer(ed.version, GameData.VERSION) > 0) { 
-                                console.error("Autosave blocked to prevent overwrite."); 
-                                return false; 
-                            }
-                            if (this.validateSaveData(ed)) {
-                                localStorage.setItem(GameData.SAVE_KEY_BACKUP, exist);
-                            }
-                        } catch(e) {
-                            console.warn("既存のセーブデータがJSONとして不正なためバックアップをスキップします", e);
-                        }
+                    const data = JSON.stringify(Player);
+                    localStorage.setItem(GameData.SAVE_KEY, data);
+                    if (!isAuto) {
+                        localStorage.setItem(GameData.SAVE_KEY_BACKUP, data);
+                        UI.showToast("ゲームデータを保存しました。", "success");
                     }
-                    Player.metadata.lastPlayed = new Date().toISOString();
-                    localStorage.setItem(GameData.SAVE_KEY, JSON.stringify(Player));
+                } catch(e) {
+                    if (!isAuto) UI.showToast("セーブに失敗しました: " + e.message, "error");
+                }
+            },
+
+            loadData() {
+                try {
+                    let sd = localStorage.getItem(GameData.SAVE_KEY);
+                    if (!sd) sd = localStorage.getItem(GameData.SAVE_KEY_BACKUP);
+                    if (!sd) { UI.showToast("セーブデータが見つかりません。", "error"); return false; }
+                    
+                    Player = JSON.parse(sd);
+                    
+                    // 互換性確保（古いセーブデータへの対応）
+                    if (!Player.company.maintenanceRecords) Player.company.maintenanceRecords = [];
+                    if (Player.competitors) {
+                        Player.competitors.forEach(ai => {
+                            if (!ai.maintenanceRecords) ai.maintenanceRecords = [];
+                        });
+                    }
+                    if (Player.settings === undefined) Player.settings = { competitionEnabled: true, aiDifficulty: 'normal' };
+
                     return true;
                 } catch(e) {
-                    if (isAuto) UI.showToast("自動セーブに失敗しました。ブラウザの保存領域を確認してください。", "warning");
-                    else UI.showModal('エラー', 'セーブデータの保存に失敗しました。ストレージの空き容量などを確認してください。');
+                    UI.showToast("ロードに失敗しました: " + e.message, "error");
                     return false;
                 }
             },
-            manualSave() { if(this.saveData(false)) UI.showToast("ゲームをセーブしました", "success"); },
-            returnToTitle() { this.saveData(true); Player = null; UI.switchScreen('screen-title'); this.init(); }
+
+            manualSave() {
+                this.saveData(false);
+            },
+
+            returnToTitle() {
+                UI.showModal('ログアウト確認', 'タイトルに戻りますか？未保存のデータは失われます。', null, `
+                    <button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button>
+                    <button class="btn btn-danger" onclick="Player = null; document.getElementById('map-svg').innerHTML = '<g id=\\'map-transform-group\\' transform=\\'matrix(1 0 0 1 0 0)\\'><g id=\\'map-outline\\'></g><g id=\\'map-routes\\'></g><g id=\\'map-markers\\'></g></g>'; UI.hideModal(); UI.switchScreen('screen-title'); Game.init();">タイトルへ戻る</button>
+                `);
+            }
         };
 
-        window.onload = () => { try { Game.init(); } catch(e) { console.error(e); alert("初期化エラーが発生しました"); } };
+        // 起動処理
+        window.addEventListener('DOMContentLoaded', () => {
+            Game.init();
+        });
     </script>
 </body>
 </html>
