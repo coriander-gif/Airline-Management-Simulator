@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.3.0.6.1</title>
+    <title>AIRLINE TYCOON JAPAN v0.3.0.8</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -272,6 +272,31 @@
         /* Mobile Adjustments */
         .routes-cards-mobile { display: none; }
         .schedule-cards-mobile { display: none; }
+        .operations-cards-mobile { display: none; }
+        .slot-table-container { width: 100%; overflow-x: auto; }
+        .slot-capacity-meter { height: 9px; background: var(--col-bg-hover); border: 1px solid var(--panel-border); border-radius: 99px; overflow: hidden; min-width: 70px; }
+        .slot-capacity-meter > span { display: block; height: 100%; background: var(--col-success); border-radius: 99px; }
+        .slot-capacity-meter.warning > span { background: var(--col-warning); }
+        .slot-capacity-meter.full > span { background: var(--col-danger); }
+        .slot-mobile-list { display: none; }
+        .slot-mobile-card { background: var(--col-bg-panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 11px 12px; min-width: 0; }
+        .slot-mobile-card .slot-mobile-top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:7px; }
+        .slot-mobile-card .slot-mobile-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; font-size:0.82rem; }
+        .slot-mobile-card .slot-mobile-stats > div { min-width:0; overflow-wrap:anywhere; }
+        .slot-select-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:15px; }
+        .slot-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:10px; margin-bottom:15px; }
+        .slot-summary-card { background:var(--col-bg-panel); border:1px solid var(--panel-border); border-radius:8px; padding:12px 14px; min-width:0; }
+        .slot-summary-card .slot-summary-value { font-size:1.2rem; font-weight:bold; margin-top:4px; overflow-wrap:anywhere; }
+        .slot-warning-panel { padding:11px 13px; border:1px solid var(--col-warning); border-radius:8px; background:rgba(245,158,11,0.09); margin-bottom:14px; }
+        .slot-warning-panel.danger { border-color:var(--col-danger); background:rgba(239,68,68,0.08); }
+        .slot-row-button { border:0; background:none; color:var(--col-primary); font-weight:bold; cursor:pointer; padding:3px 0; text-align:left; }
+        .slot-row-button:hover { text-decoration:underline; }
+        .operation-mobile-card { background: var(--col-bg-panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 12px 14px; box-shadow: 0 2px 4px var(--shadow-color); cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+        .operation-mobile-card:active { background: var(--col-bg-hover); }
+        .operation-mobile-card .operation-mobile-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .operation-mobile-card .operation-mobile-route { font-weight: bold; margin-bottom: 8px; overflow-wrap: anywhere; }
+        .operation-mobile-card .operation-mobile-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 12px; font-size: 0.82rem; }
+        .operation-mobile-card .operation-mobile-meta > div { min-width: 0; overflow-wrap: anywhere; }
         @media (max-width: 768px) {
             .hq-header { flex-wrap: wrap; height: auto; padding: 10px; padding-top: 50px; gap: 10px; }
             .header-stats { width: 100%; justify-content: flex-start; padding-right: 0; gap: 10px;}
@@ -285,6 +310,11 @@
             .schedule-table-container { display: none; }
             .routes-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
             .schedule-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+            .operations-cards-mobile { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
+            .slot-table-container { display:none; }
+            .slot-mobile-list { display:flex; flex-direction:column; gap:9px; width:100%; min-width:0; }
+            .slot-select-grid { grid-template-columns:1fr; }
+            .slot-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
             
             .rot-node { flex-direction: column; align-items: stretch; gap: 5px; }
             .rot-airport { align-self: center; margin: 10px 0; }
@@ -343,7 +373,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.3.0.6.1<br>故障・整備表示修正／日本地図操作改善
+            Version v0.3.0.8<br>空港容量・発着枠システムを追加
         </div>
     </div>
 
@@ -441,7 +471,9 @@
                 <div class="nav-item" onclick="UI.switchMainView('view-maintenance', this)">🛠️ 整備管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-routes', this)">路線管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-schedules', this)">スケジュール</div>
+                <div class="nav-item" onclick="UI.switchMainView('view-airport-slots', this)">空港発着枠管理</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-rotation', this)">航空機ローテーション</div>
+                <div class="nav-item" onclick="UI.switchMainView('view-operations', this)">運航状況</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-finance', this)">財務・統計</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-competitors', this)">競合他社 (AI)</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-faults', this)">⚠️ 航空機故障管理</div>
@@ -547,7 +579,7 @@
                     </div>
                 </div>
 
-                <!-- Aircraft Fault Management View (v0.3.0.6.1) -->
+                <!-- Aircraft Fault Management View (v0.3.0.7.1) -->
                 <div id="view-faults" class="mgmt-panel">
                     <div class="panel-header-title">航空機故障管理</div>
                     <p class="text-muted" style="margin-bottom:15px;font-size:0.9rem;">航空機の故障履歴、重大度、修理状況を管理します。修理費用は参考額であり、財務残高からは控除されません。</p>
@@ -690,6 +722,39 @@
                     <div id="schedules-cards-mobile" class="schedule-cards-mobile"></div>
                 </div>
 
+                <!-- Airport Slots & Capacity View (v0.3.0.8) -->
+                <div id="view-airport-slots" class="mgmt-panel">
+                    <div class="panel-header-title">空港発着枠管理</div>
+                    <p class="text-muted" style="margin-bottom:15px;font-size:0.9rem;">自社の運航スケジュールをもとに、空港ごとの30分単位の発着枠と日次容量を確認します。容量値はゲームバランス用の推定値です。</p>
+                    <div class="slot-select-grid">
+                        <div class="card" style="padding:12px 14px;">
+                            <label for="slot-airport-select" class="text-muted" style="font-size:0.82rem;">空港</label>
+                            <select id="slot-airport-select" class="input-field" style="margin-top:5px;width:100%;" onchange="Views.slotState.airportId=this.value;Views.renderAirportSlots();"></select>
+                        </div>
+                        <div class="card" style="padding:12px 14px;">
+                            <label for="slot-date-input" class="text-muted" style="font-size:0.82rem;">確認する日付</label>
+                            <input id="slot-date-input" type="date" class="input-field" style="margin-top:5px;width:100%;" onchange="Views.slotState.date=this.value;Views.renderAirportSlots();">
+                            <div id="slot-weekday-label" class="text-muted" style="font-size:0.8rem;margin-top:5px;"></div>
+                        </div>
+                    </div>
+                    <div id="slot-airport-info" class="card" style="padding:12px 15px;margin-bottom:14px;"></div>
+                    <div id="slot-capacity-warning"></div>
+                    <div id="slot-summary-grid" class="slot-summary-grid"></div>
+                    <div class="card" style="padding:14px;margin-bottom:12px;">
+                        <div class="card-row" style="gap:12px;align-items:center;flex-wrap:wrap;">
+                            <div style="font-weight:bold;">30分単位の発着枠</div>
+                            <div class="text-muted" style="font-size:0.8rem;">出発・到着を合算して表示</div>
+                        </div>
+                    </div>
+                    <div class="card slot-table-container">
+                        <table class="data-table">
+                            <thead><tr><th>時間帯</th><th>容量</th><th>使用数</th><th>空き</th><th>使用率</th><th>便の確認</th></tr></thead>
+                            <tbody id="slot-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="slot-mobile-list" class="slot-mobile-list"></div>
+                </div>
+
                 <!-- Aircraft Rotation View (NEW) -->
                 <div id="view-rotation" class="mgmt-panel">
                     <div class="panel-header-title">航空機ローテーション</div>
@@ -708,6 +773,28 @@
 
                     <div id="rot-timeline-container" style="padding-bottom: 40px;">
                         <!-- タイムライン -->
+                    </div>
+                </div>
+
+                <!-- Flight Operations View (v0.3.0.7.1) -->
+                <div id="view-operations" class="mgmt-panel">
+                    <div class="panel-header-title">運航状況</div>
+                    <div class="data-grid" id="operations-stats" style="margin-bottom:20px;"></div>
+                    <div class="card" style="margin-bottom:15px;">
+                        <div class="card-body" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end;">
+                            <div style="min-width:140px; flex:1;"><label for="ops-filter-status" class="text-muted" style="font-size:0.8rem;">運航状態</label><select id="ops-filter-status" class="input-field w-full" onchange="Views.updateOperationsGrid()"><option value="">全便</option><option value="scheduled">定刻予定</option><option value="delayed">遅延</option><option value="completed">運航完了</option><option value="cancelled">欠航</option></select></div>
+                            <div style="min-width:140px; flex:1;"><label for="ops-filter-airline" class="text-muted" style="font-size:0.8rem;">航空会社</label><select id="ops-filter-airline" class="input-field w-full" onchange="Views.updateOperationsGrid()"><option value="">全航空会社</option></select></div>
+                            <div style="min-width:160px; flex:1;"><label for="ops-filter-search" class="text-muted" style="font-size:0.8rem;">便名検索</label><input id="ops-filter-search" class="input-field w-full" type="search" placeholder="便名を入力" oninput="Views.updateOperationsGrid()"></div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-bottom:20px;">
+                        <div class="card-header">運航実績一覧</div>
+                        <div class="table-container"><table class="data-table"><thead><tr><th>運航日</th><th>便名</th><th>区間</th><th>機材</th><th>予定出発</th><th>実際出発</th><th>予定到着</th><th>実際到着</th><th>状態</th><th>遅延</th></tr></thead><tbody id="operations-table-body"></tbody></table></div>
+                        <div id="operations-cards-mobile" class="operations-cards-mobile"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">運航履歴・定時運航率</div>
+                        <div class="card-body" id="operations-history-summary"><div class="text-muted">運航記録はまだありません。</div></div>
                     </div>
                 </div>
 
@@ -745,8 +832,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.3.0.6.1
-         * 故障・整備表示修正／日本地図操作改善
+         * AIRLINE TYCOON JAPAN v0.3.0.8
+         * 空港容量・発着枠システムを追加
          */
 
         const ThemeManager = {
@@ -772,7 +859,7 @@
         };
 
         const GameData = {
-            VERSION: "0.3.0.6.1",
+            VERSION: "0.3.0.8",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -845,6 +932,42 @@
             ]
         };
 
+        // ==========================================
+        // Airport Capacity Master Data (game-balance estimates)
+        // All values are fictional gameplay estimates, not official airport capacities.
+        // ==========================================
+        const AIRPORT_CAPACITY_MASTER = {
+            CTS: { dailyMovementCapacity: 300, slotCapacityPer30Min: 10, capacityType: '中規模', capacityNotes: '北海道の主要拠点。ゲーム内推定値。' },
+            HKD: { dailyMovementCapacity: 110, slotCapacityPer30Min: 4, capacityType: '地方小規模', capacityNotes: '地方路線を想定したゲーム内推定値。' },
+            AKJ: { dailyMovementCapacity: 100, slotCapacityPer30Min: 4, capacityType: '地方小規模', capacityNotes: '地方路線を想定したゲーム内推定値。' },
+            AOJ: { dailyMovementCapacity: 110, slotCapacityPer30Min: 4, capacityType: '地方小規模', capacityNotes: '地方路線を想定したゲーム内推定値。' },
+            AXT: { dailyMovementCapacity: 100, slotCapacityPer30Min: 4, capacityType: '地方小規模', capacityNotes: '地方路線を想定したゲーム内推定値。' },
+            SDJ: { dailyMovementCapacity: 190, slotCapacityPer30Min: 7, capacityType: '地方主要', capacityNotes: '東北地方の主要拠点。ゲーム内推定値。' },
+            HND: { dailyMovementCapacity: 480, slotCapacityPer30Min: 14, capacityType: '大規模', capacityNotes: '国内最大級の拠点として設定したゲーム内推定値。' },
+            NRT: { dailyMovementCapacity: 420, slotCapacityPer30Min: 12, capacityType: '大規模', capacityNotes: '大規模拠点として設定したゲーム内推定値。' },
+            IBR: { dailyMovementCapacity: 90, slotCapacityPer30Min: 3, capacityType: '地方小規模', capacityNotes: '小規模空港を想定したゲーム内推定値。' },
+            KIJ: { dailyMovementCapacity: 130, slotCapacityPer30Min: 5, capacityType: '地方小規模', capacityNotes: '地方空港を想定したゲーム内推定値。' },
+            KMQ: { dailyMovementCapacity: 130, slotCapacityPer30Min: 5, capacityType: '地方小規模', capacityNotes: '地方空港を想定したゲーム内推定値。' },
+            NGO: { dailyMovementCapacity: 270, slotCapacityPer30Min: 9, capacityType: '中規模', capacityNotes: '中部地方の主要拠点。ゲーム内推定値。' },
+            ITM: { dailyMovementCapacity: 300, slotCapacityPer30Min: 10, capacityType: '中規模', capacityNotes: '国内線中心の主要拠点。ゲーム内推定値。' },
+            KIX: { dailyMovementCapacity: 360, slotCapacityPer30Min: 11, capacityType: '大規模', capacityNotes: '大規模拠点として設定したゲーム内推定値。' },
+            UKB: { dailyMovementCapacity: 150, slotCapacityPer30Min: 5, capacityType: '地方主要', capacityNotes: '関西圏の地方主要空港としてのゲーム内推定値。' },
+            HIJ: { dailyMovementCapacity: 170, slotCapacityPer30Min: 6, capacityType: '地方主要', capacityNotes: '中国地方の主要拠点。ゲーム内推定値。' },
+            TAK: { dailyMovementCapacity: 110, slotCapacityPer30Min: 4, capacityType: '地方小規模', capacityNotes: '地方路線を想定したゲーム内推定値。' },
+            FUK: { dailyMovementCapacity: 330, slotCapacityPer30Min: 11, capacityType: '中規模', capacityNotes: '九州地方の主要拠点。ゲーム内推定値。' },
+            KOJ: { dailyMovementCapacity: 180, slotCapacityPer30Min: 6, capacityType: '地方主要', capacityNotes: '南九州の主要拠点。ゲーム内推定値。' },
+            OKA: { dailyMovementCapacity: 300, slotCapacityPer30Min: 10, capacityType: '中規模', capacityNotes: '沖縄地方の主要拠点。ゲーム内推定値。' }
+        };
+        GameData.Airports.forEach(airport => {
+            const capacity = AIRPORT_CAPACITY_MASTER[airport.id] || { dailyMovementCapacity: 100, slotCapacityPer30Min: 4, capacityType: '地方小規模', capacityNotes: '容量マスター未登録時の安全なゲーム内推定値。' };
+            airport.airportId = airport.id;
+            airport.airportName = airport.name;
+            airport.dailyMovementCapacity = Number.isFinite(Number(capacity.dailyMovementCapacity)) && Math.floor(Number(capacity.dailyMovementCapacity)) > 0 ? Math.floor(Number(capacity.dailyMovementCapacity)) : 100;
+            airport.slotCapacityPer30Min = Number.isFinite(Number(capacity.slotCapacityPer30Min)) && Math.floor(Number(capacity.slotCapacityPer30Min)) > 0 ? Math.floor(Number(capacity.slotCapacityPer30Min)) : 4;
+            airport.capacityType = String(capacity.capacityType || '地方小規模');
+            airport.capacityNotes = String(capacity.capacityNotes || 'ゲーム内バランス用の推定値です。');
+        });
+
         const JapanPolygons = [
             [[41.4,140.2], [45.5,142.0], [44.3,145.3], [42.0,143.2], [41.4,140.2]],
             [[40.9,140.5], [37.9,139.0], [36.7,136.7], [34.7,131.5], [33.4,135.8], [34.6,138.8], [35.6,140.0], [38.3,141.5], [40.9,140.5]],
@@ -859,6 +982,7 @@
         // Utility Functions
         // ==========================================
         const Utils = {
+            escapeHtml: (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]),
             formatMoney: (n) => {
                 if (n === null || n === undefined || isNaN(n) || !isFinite(n)) return "0円";
                 const isNeg = n < 0; const abs = Math.abs(Math.round(n));
@@ -1187,7 +1311,7 @@
         // Rotation System 
         // ==========================================
         // ==========================================
-        // Aircraft Fault System (v0.3.0.6.1)
+        // Aircraft Fault System (v0.3.0.7.1)
         // ==========================================
         const FaultSystem = {
             TYPES: {
@@ -1606,6 +1730,230 @@
         };
 
         // ==========================================
+        // Flight Operations System (v0.3.0.7.1)
+        // Player schedules only. Existing route-level financial simulation remains intact.
+        // ==========================================
+        const OperationSystem = {
+            MIN_TURNAROUND: 45,
+
+            _toDate(dateStr, timeStr) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || '')) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(timeStr || ''))) return null;
+                const [y,m,d] = dateStr.split('-').map(Number);
+                const [hh,mm] = timeStr.split(':').map(Number);
+                return new Date(y, m-1, d, hh, mm, 0, 0);
+            },
+            _stamp(date) {
+                if (!(date instanceof Date) || !Number.isFinite(date.getTime())) return null;
+                const pad = n => String(n).padStart(2,'0');
+                return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+            },
+            _plusMinutes(date, minutes) { return new Date(date.getTime() + Math.max(0, minutes) * 60000); },
+            _statusText(status) {
+                return ({ scheduled:'定刻予定', delayed:'遅延', completed:'運航完了', cancelled:'欠航' })[status] || '不明';
+            },
+            _maintenanceConflict(reg, dateStr, dep, arr) {
+                const records = Array.isArray(Player.company.maintenanceRecords) ? Player.company.maintenanceRecords : [];
+                const depMin = dep.getHours()*60 + dep.getMinutes();
+                let arrMin = arr.getHours()*60 + arr.getMinutes();
+                const crosses = arr.toDateString() !== dep.toDateString();
+                if (crosses) arrMin += 1440;
+                return records.find(m => {
+                    if (!m || m.aircraftReg !== reg || m.status === 'cancelled' || m.status === 'completed') return false;
+                    if (!m.startDate || !m.endDate || dateStr < m.startDate || dateStr > m.endDate) return false;
+                    const start = /^([01]\d|2[0-3]):[0-5]\d$/.test(m.startTime || '') ? RotationSystem.timeToMins(m.startTime) : 0;
+                    const end = /^([01]\d|2[0-3]):[0-5]\d$/.test(m.endTime || '') ? RotationSystem.timeToMins(m.endTime) : 1439;
+                    const dayOffset = (dateValue) => Math.round((new Date(`${dateValue}T00:00:00`).getTime() - new Date(`${dateStr}T00:00:00`).getTime()) / 86400000);
+                    const absoluteStart = start + 1440 * dayOffset(m.startDate);
+                    const absoluteEnd = end + 1440 * dayOffset(m.endDate);
+                    return depMin < absoluteEnd && arrMin > absoluteStart;
+                });
+            },
+            _reasonForUnavailable(reg, dateStr, dep, arr) {
+                const maintenance = this._maintenanceConflict(reg, dateStr, dep, arr);
+                if (maintenance) return `整備期間と運航予定が重複（${maintenance.title || '整備'}）`;
+                const fault = FaultSystem.getAircraftStatus(reg);
+                if (fault && fault.activeRecords && fault.activeRecords.length) {
+                    const f = fault.activeRecords[0];
+                    return `機材故障（${FaultSystem.TYPES[f.faultType]?.name || f.faultType || '故障'}）`;
+                }
+                const m = MaintenanceSystem.getAircraftStatus(reg);
+                if (m && m.code === 'in_progress') return '機材整備中';
+                return '機材が運航可能な状態ではありません';
+            },
+            _previousAircraftOperation(reg, departure) {
+                const records = Array.isArray(Player.company.flightOperations) ? Player.company.flightOperations : [];
+                let latest = null, latestTime = -Infinity;
+                records.forEach(r => {
+                    if (!r || r.aircraftId !== reg || r.status === 'cancelled' || !r.actualArrival) return;
+                    const scheduledDep = this._toDate(r.operationDate, r.scheduledDeparture);
+                    if (!scheduledDep || scheduledDep.getTime() >= departure.getTime()) return;
+                    if (scheduledDep.getTime() > latestTime) { latest = r; latestTime = scheduledDep.getTime(); }
+                });
+                return latest;
+            },
+            _createRecord(schedule, dateStr) {
+                const route = (Player.company.routes || []).find(r => r.id === schedule.routeId);
+                const fromId = schedule.originAirportId || route?.from;
+                const toId = schedule.destinationAirportId || route?.to;
+                const from = GameData.Airports.find(a => a.id === fromId);
+                const to = GameData.Airports.find(a => a.id === toId);
+                const reg = schedule.aircraftId || route?.assignedReg || null;
+                const dep = this._toDate(dateStr, schedule.departureTime);
+                let arr = this._toDate(dateStr, schedule.arrivalTime);
+                if (dep && arr && arr.getTime() <= dep.getTime()) arr = this._plusMinutes(arr, 1440);
+                const now = new Date().toISOString();
+                const record = {
+                    operationId: `${dateStr}_${schedule.flightId}`,
+                    flightId: schedule.flightId,
+                    flightNumber: schedule.flightNumber || '便名不明',
+                    airlineId: Player.company.iata,
+                    aircraftId: reg,
+                    operationDate: dateStr,
+                    scheduledDeparture: schedule.departureTime || null,
+                    scheduledArrival: schedule.arrivalTime || null,
+                    actualDeparture: null,
+                    actualArrival: null,
+                    status: 'scheduled',
+                    delayMinutes: 0,
+                    cancellationReason: null,
+                    delayReason: null,
+                    originAirportId: fromId || null,
+                    destinationAirportId: toId || null,
+                    originAirportName: from?.name || fromId || '不明',
+                    destinationAirportName: to?.name || toId || '不明',
+                    newsNotified: false,
+                    createdAt: now,
+                    updatedAt: now
+                };
+                if (!dep || !arr || !from || !to) {
+                    record.status = 'cancelled';
+                    record.cancellationReason = '便スケジュールまたは空港データが不正';
+                    return record;
+                }
+                if (!reg) {
+                    record.status = 'cancelled';
+                    record.cancellationReason = '使用機材が割り当てられていない';
+                    return record;
+                }
+                const plane = (Player.company.fleet || []).find(f => f.reg === reg);
+                if (!plane) {
+                    record.status = 'cancelled';
+                    record.cancellationReason = '割り当て機材が保有機材に存在しない';
+                    return record;
+                }
+                const ac = GameData.Aircrafts.find(a => a.id === plane.typeId);
+                if (!route || !ac || ac.range < route.distance) {
+                    record.status = 'cancelled';
+                    record.cancellationReason = '路線または機材性能の条件を満たしていない';
+                    return record;
+                }
+                if (route.assignedReg && route.assignedReg !== reg) {
+                    record.status = 'cancelled';
+                    record.cancellationReason = '路線に割り当てられた機材と便の機材が一致しない';
+                    return record;
+                }
+                if (!FaultSystem.isAircraftOperational(reg)) {
+                    record.status = 'cancelled';
+                    record.cancellationReason = this._reasonForUnavailable(reg, dateStr, dep, arr);
+                    return record;
+                }
+                const maintenanceConflict = this._maintenanceConflict(reg, dateStr, dep, arr);
+                if (maintenanceConflict) {
+                    record.status = 'cancelled';
+                    record.cancellationReason = `整備期間と運航予定が重複（${maintenanceConflict.title || '整備'}）`;
+                    return record;
+                }
+
+                let delay = 0;
+                const previous = this._previousAircraftOperation(reg, dep);
+                if (previous) {
+                    const previousArrival = new Date(String(previous.actualArrival).replace(' ', 'T'));
+                    if (previous.destinationAirportId && previous.destinationAirportId !== fromId) {
+                        record.status = 'cancelled';
+                        record.cancellationReason = `前便の到着空港（${previous.destinationAirportName}）と出発空港が一致しない`;
+                        return record;
+                    }
+                    const requiredDeparture = previousArrival.getTime() + this.MIN_TURNAROUND * 60000;
+                    if (requiredDeparture > dep.getTime()) delay = Math.ceil((requiredDeparture - dep.getTime()) / 900000) * 15;
+                    if (delay > 240) {
+                        record.status = 'cancelled';
+                        record.cancellationReason = '前便の到着遅延により必要な折り返し時間を確保できない';
+                        return record;
+                    }
+                }
+
+                const faultStatus = FaultSystem.getAircraftStatus(reg);
+                const activeFaults = Array.isArray(faultStatus?.activeRecords) ? faultStatus.activeRecords : [];
+                let probability = 0.035;
+                let reason = '運航準備・地上作業の遅れ';
+                const previousGap = previous ? (dep.getTime() - new Date(String(previous.actualArrival).replace(' ', 'T')).getTime()) / 60000 : Infinity;
+                if (previous && previousGap < 90) { probability += 0.12; reason = '前便の到着遅延・折り返し時間不足'; }
+                if (activeFaults.length) { probability += 0.12; reason = '機材の軽微な不具合に伴う確認作業'; }
+                const maintenanceStatus = MaintenanceSystem.getAircraftStatus(reg);
+                if (maintenanceStatus?.code === 'scheduled' && maintenanceStatus.record?.startDate === dateStr) { probability += 0.05; reason = '整備入庫準備による運航準備の遅れ'; }
+                if (Math.random() < probability) {
+                    const options = [15, 30, 45, 60, 90];
+                    delay += options[Math.floor(Math.random() * options.length)];
+                    if (!previous || previousGap >= 90) reason = activeFaults.length ? '機材の軽微な不具合に伴う確認作業' : '運航準備・地上作業の遅れ';
+                }
+                delay = Math.min(240, Math.max(0, Math.ceil(delay / 15) * 15));
+                const actualDep = this._plusMinutes(dep, delay);
+                const actualArr = this._plusMinutes(arr, delay);
+                record.delayMinutes = delay;
+                record.actualDeparture = this._stamp(actualDep);
+                record.actualArrival = this._stamp(actualArr);
+                record.status = delay > 0 ? 'delayed' : 'completed';
+                record.delayReason = delay > 0 ? reason : null;
+                return record;
+            },
+            processDay(dateStr) {
+                if (!Player?.company) return [];
+                if (!Array.isArray(Player.company.flightOperations)) Player.company.flightOperations = [];
+                const existing = new Set(Player.company.flightOperations.map(r => r && r.operationId).filter(Boolean));
+                const weekday = new Date(`${dateStr}T00:00:00`).getDay();
+                const schedules = (Player.company.schedules || []).filter(s => s && s.isActive && s.flightId && Array.isArray(s.operatingDays) && s.operatingDays.includes(weekday));
+                schedules.sort((a,b) => String(a.departureTime || '').localeCompare(String(b.departureTime || '')));
+                const created = [];
+                schedules.forEach(schedule => {
+                    const operationId = `${dateStr}_${schedule.flightId}`;
+                    if (existing.has(operationId)) return;
+                    const record = this._createRecord(schedule, dateStr);
+                    Player.company.flightOperations.push(record);
+                    existing.add(operationId);
+                    created.push(record);
+                    if (record.status === 'cancelled' || (record.status === 'delayed' && record.delayMinutes >= 45)) {
+                        const reasonKey = record.status === 'cancelled' ? record.cancellationReason : record.delayReason;
+                        const noticeKey = `${record.flightId}_${record.status}_${reasonKey || ''}`;
+                        const recentNotice = Player.company.flightOperations.some(old => {
+                            if (!old || old === record || old.notificationKey !== noticeKey || !old.newsNotified) return false;
+                            const elapsed = Math.round((new Date(`${dateStr}T00:00:00`) - new Date(`${old.operationDate}T00:00:00`)) / 86400000);
+                            return elapsed >= 0 && elapsed < 7;
+                        });
+                        if (!recentNotice) {
+                            const msg = record.status === 'cancelled'
+                                ? `${record.airlineId} ${record.flightNumber}便、${record.cancellationReason || '運航上の理由'}により欠航`
+                                : `${record.airlineId} ${record.flightNumber}便、${record.delayReason || '運航上の理由'}で${record.delayMinutes}分の遅延`;
+                            Logic.addNews(msg, record.status === 'cancelled' ? 'danger' : 'warning');
+                            record.newsNotified = true;
+                            record.notificationKey = noticeKey;
+                        }
+                    }
+                });
+                return created;
+            },
+            getStats(records) {
+                const list = Array.isArray(records) ? records : [];
+                const total = list.length;
+                const onTime = list.filter(r => r.status === 'completed').length;
+                const delayed = list.filter(r => r.status === 'delayed').length;
+                const cancelled = list.filter(r => r.status === 'cancelled').length;
+                const completed = onTime + delayed;
+                const delaySum = list.filter(r => r.status === 'delayed').reduce((sum,r) => sum + Math.max(0, Number(r.delayMinutes) || 0), 0);
+                return { total, onTime, delayed, cancelled, completed, averageDelay: delayed ? Math.round(delaySum / delayed) : 0, onTimeRate: completed ? Math.round(onTime / completed * 1000) / 10 : 0 };
+            }
+        };
+
+        // ==========================================
         // UI Manager
         // ==========================================
         const UI = {
@@ -1621,9 +1969,11 @@
                 if(id === 'view-maintenance') Views.renderMaintenance();
                 if(id === 'view-routes') Views.renderRoutes();
                 if(id === 'view-schedules') Views.renderSchedules();
+                if(id === 'view-airport-slots') Views.renderAirportSlots();
                 if(id === 'view-finance') Views.renderFinance();
                 if(id === 'view-competitors') Views.renderCompetitors();
                 if(id === 'view-rotation') Views.renderRotation();
+                if(id === 'view-operations') Views.renderOperations();
                 if(id === 'view-faults') Views.renderFaults();
             },
             showModal(title, msg, contentHtml = null, btnsHtml = null) {
@@ -1684,6 +2034,151 @@
                 document.getElementById('panel-airport').classList.add('open');
             },
             closeAirportPanel() { document.getElementById('panel-airport').classList.remove('open'); MapSystem.clearSelection(); }
+        };
+
+        // ==========================================
+        // Airport Slot & Capacity System (v0.3.0.8)
+        // Occupancy is always derived from active player schedules; it is never duplicated in saves.
+        // ==========================================
+        const AirportSlotSystem = {
+            DAY_NAMES: ['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'],
+            parseTime(value) {
+                if (typeof value !== 'string' || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(value)) return null;
+                const parts = value.split(':').map(Number);
+                return parts[0] * 60 + parts[1];
+            },
+            formatTime(minutes) {
+                const safe = ((Math.floor(Number(minutes) || 0) % 1440) + 1440) % 1440;
+                return `${String(Math.floor(safe / 60)).padStart(2,'0')}:${String(safe % 60).padStart(2,'0')}`;
+            },
+            slotIndex(time) {
+                const minutes = this.parseTime(time);
+                return minutes === null ? -1 : Math.floor(minutes / 30);
+            },
+            slotLabel(index) {
+                const start = index * 30;
+                return `${this.formatTime(start)}〜${this.formatTime(start + 29)}`;
+            },
+            getAirport(airportId) {
+                return GameData.Airports.find(a => a.id === airportId) || null;
+            },
+            getValidCapacity(airport, field, fallback) {
+                const value = Number(airport && airport[field]);
+                const normalized = Number.isFinite(value) ? Math.floor(value) : 0;
+                return normalized > 0 ? normalized : fallback;
+            },
+            getScheduleEvents(schedule) {
+                if (!schedule || schedule.isActive !== true || !Array.isArray(schedule.operatingDays)) return [];
+                const depMinutes = this.parseTime(schedule.departureTime);
+                const arrMinutes = this.parseTime(schedule.arrivalTime);
+                if (depMinutes === null || arrMinutes === null || depMinutes === arrMinutes) return [];
+                const origin = schedule.originAirportId;
+                const destination = schedule.destinationAirportId;
+                if (!this.getAirport(origin) || !this.getAirport(destination)) return [];
+                const days = Array.from(new Set(schedule.operatingDays.filter(d => Number.isInteger(d) && d >= 0 && d <= 6)));
+                const events = [];
+                days.forEach(operatingDay => {
+                    const arrivalDay = (operatingDay + (arrMinutes < depMinutes ? 1 : 0)) % 7;
+                    events.push({ airportId: origin, weekday: operatingDay, time: schedule.departureTime, slotIndex: Math.floor(depMinutes / 30), direction: 'departure', schedule, operatingDay, isNextDay: false });
+                    events.push({ airportId: destination, weekday: arrivalDay, time: schedule.arrivalTime, slotIndex: Math.floor(arrMinutes / 30), direction: 'arrival', schedule, operatingDay, isNextDay: arrivalDay !== operatingDay });
+                });
+                return events;
+            },
+            getUsage(airportId, weekday, schedules = (Player?.company?.schedules || []), excludeFlightId = null) {
+                const airport = this.getAirport(airportId);
+                const slotCapacity = airport ? this.getValidCapacity(airport, 'slotCapacityPer30Min', 4) : 0;
+                const dailyCapacity = airport ? this.getValidCapacity(airport, 'dailyMovementCapacity', 100) : 0;
+                const slots = Array.from({length:48}, () => ({ used:0, entries:[] }));
+                let dailyUsed = 0;
+                (Array.isArray(schedules) ? schedules : []).forEach(schedule => {
+                    if (!schedule || (excludeFlightId && schedule.flightId === excludeFlightId)) return;
+                    this.getScheduleEvents(schedule).forEach(event => {
+                        if (event.airportId !== airportId || event.weekday !== weekday) return;
+                        if (event.slotIndex < 0 || event.slotIndex >= 48) return;
+                        slots[event.slotIndex].used += 1;
+                        slots[event.slotIndex].entries.push(event);
+                        dailyUsed += 1;
+                    });
+                });
+                return { airport, weekday, slots, dailyUsed, dailyCapacity, slotCapacity, remainingDaily: dailyCapacity - dailyUsed, overDaily: dailyUsed > dailyCapacity };
+            },
+            checkSchedule(candidate, excludeFlightId = null) {
+                const result = { ok:true, errors:[], conflicts:[], events:[] };
+                if (!candidate || candidate.isActive !== true) return result;
+                const events = this.getScheduleEvents(candidate);
+                const rawDays = Array.isArray(candidate.operatingDays) ? candidate.operatingDays : [];
+                const validDays = rawDays.filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
+                const uniqueDays = new Set(validDays);
+                if (!this.getAirport(candidate.originAirportId) || !this.getAirport(candidate.destinationAirportId) || this.parseTime(candidate.departureTime) === null || this.parseTime(candidate.arrivalTime) === null || this.parseTime(candidate.departureTime) === this.parseTime(candidate.arrivalTime) || rawDays.length === 0 || validDays.length !== rawDays.length || uniqueDays.size !== rawDays.length || events.length !== uniqueDays.size * 2) {
+                    result.ok = false;
+                    result.errors.push('空港・時刻・運航曜日のいずれかが不正なため、発着枠を確認できません。');
+                    return result;
+                }
+                const schedules = Player?.company?.schedules || [];
+                const candidateCounts = new Map();
+                const candidateDaily = new Map();
+                events.forEach(event => {
+                    const key = `${event.airportId}|${event.weekday}|${event.slotIndex}`;
+                    candidateCounts.set(key, (candidateCounts.get(key) || 0) + 1);
+                    const dayKey = `${event.airportId}|${event.weekday}`;
+                    candidateDaily.set(dayKey, (candidateDaily.get(dayKey) || 0) + 1);
+                });
+                events.forEach(event => {
+                    const airport = this.getAirport(event.airportId);
+                    const usage = this.getUsage(event.airportId, event.weekday, schedules, excludeFlightId);
+                    const slot = usage.slots[event.slotIndex];
+                    const key = `${event.airportId}|${event.weekday}|${event.slotIndex}`;
+                    const dayKey = `${event.airportId}|${event.weekday}`;
+                    const totalForSlot = slot.used + candidateCounts.get(key);
+                    const totalForDay = usage.dailyUsed + candidateDaily.get(dayKey);
+                    const slotCap = this.getValidCapacity(airport, 'slotCapacityPer30Min', 4);
+                    const dayCap = this.getValidCapacity(airport, 'dailyMovementCapacity', 100);
+                    if (totalForSlot > slotCap && !result.conflicts.some(c => c.type === 'slot' && c.airportId === event.airportId && c.weekday === event.weekday && c.slotIndex === event.slotIndex)) {
+                        result.conflicts.push({ type:'slot', airportId:event.airportId, airportName:airport.name, weekday:event.weekday, slotIndex:event.slotIndex, time:event.time, used:slot.used, adding:candidateCounts.get(key), capacity:slotCap, direction:event.direction });
+                    }
+                    if (totalForDay > dayCap && !result.conflicts.some(c => c.type === 'daily' && c.airportId === event.airportId && c.weekday === event.weekday)) {
+                        result.conflicts.push({ type:'daily', airportId:event.airportId, airportName:airport.name, weekday:event.weekday, used:usage.dailyUsed, adding:candidateDaily.get(dayKey), capacity:dayCap });
+                    }
+                });
+                result.events = events;
+                result.ok = result.conflicts.length === 0;
+                result.errors = result.conflicts.map(c => c.type === 'slot'
+                    ? `${c.airportName}の${this.slotLabel(c.slotIndex)}の発着枠が不足しています（${c.used + c.adding}/${c.capacity}回）。`
+                    : `${c.airportName}の${this.DAY_NAMES[c.weekday]}の日次発着容量が不足しています（${c.used + c.adding}/${c.capacity}回）。`);
+                return result;
+            },
+            findSuggestions(candidate, limit = 4) {
+                const suggestions = [];
+                const dep = this.parseTime(candidate.departureTime);
+                const arr = this.parseTime(candidate.arrivalTime);
+                if (dep === null || arr === null) return suggestions;
+                const duration = (arr - dep + 1440) % 1440;
+                for (let step = 1; step <= 8 && suggestions.length < limit; step++) {
+                    for (const direction of [-1, 1]) {
+                        if (suggestions.length >= limit) break;
+                        const nextDep = ((dep + direction * step * 30) % 1440 + 1440) % 1440;
+                        const nextArr = (nextDep + duration) % 1440;
+                        const proposed = { ...candidate, departureTime:this.formatTime(nextDep), arrivalTime:this.formatTime(nextArr) };
+                        if (this.checkSchedule(proposed, candidate.flightId || null).ok) {
+                            const proposedEvents = this.getScheduleEvents(proposed);
+                            let remainingSlots = Infinity;
+                            proposedEvents.forEach(event => {
+                                const usage = this.getUsage(event.airportId, event.weekday, Player?.company?.schedules || [], candidate.flightId || null);
+                                remainingSlots = Math.min(remainingSlots, usage.slotCapacity - usage.slots[event.slotIndex].used - 1);
+                            });
+                            suggestions.push({ departureTime:proposed.departureTime, arrivalTime:proposed.arrivalTime, remainingSlots:Number.isFinite(remainingSlots) ? Math.max(0, remainingSlots) : 0, delta:direction * step * 30 });
+                        }
+                    }
+                }
+                return suggestions;
+            },
+            getDateInfo(dateString) {
+                if (typeof dateString !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return null;
+                const [y,m,d] = dateString.split('-').map(Number);
+                const date = new Date(y, m - 1, d);
+                if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+                return { year:y, month:m, day:d, weekday:date.getDay(), date };
+            }
         };
 
         // ==========================================
@@ -1889,6 +2384,14 @@
                     updatedAt: now
                 };
                 
+                const slotCheck = AirportSlotSystem.checkSchedule(newSchedule, flightId || null);
+                if (!slotCheck.ok) {
+                    const suggestions = AirportSlotSystem.findSuggestions(newSchedule, 4);
+                    const suggestionHtml = suggestions.length ? `<div style="margin-top:12px;"><b>空きのある時間帯候補（提案）</b><div style="font-size:0.85rem;margin-top:5px;">入力時刻：出発 ${Utils.escapeHtml(depTime)} / 到着 ${Utils.escapeHtml(arrTime)}</div><ul style="padding-left:20px;margin-top:6px;">${suggestions.map(v => `<li>出発 ${Utils.escapeHtml(v.departureTime)} / 到着 ${Utils.escapeHtml(v.arrivalTime)}（候補枠の空き：${v.remainingSlots} 回）</li>`).join('')}</ul><p class="text-muted" style="font-size:0.8rem;">候補は自動適用されません。時刻を変更する場合は便の編集画面で入力してください。</p></div>` : '<p class="text-muted" style="margin-top:10px;">現在、近い時間帯に利用可能な候補は見つかりませんでした。</p>';
+                    UI.showModal('発着枠の容量不足', '', `<div>${slotCheck.errors.map(e => `<p style="margin-bottom:6px;">${Utils.escapeHtml(e)}</p>`).join('')}<p class="text-muted" style="margin-top:8px;">別の時間帯または運航曜日を選択してください。</p>${suggestionHtml}</div>`);
+                    return;
+                }
+
                 if (aircraftId && newSchedule.isActive) {
                     const mRecords = Player.company.maintenanceRecords.filter(m => m.aircraftReg === aircraftId && (m.status === 'scheduled' || m.status === 'in_progress'));
                     for (const m of mRecords) {
@@ -1930,6 +2433,11 @@
             },
 
             _forceSaveSchedule(newSchedule, isEdit) {
+                const slotCheck = AirportSlotSystem.checkSchedule(newSchedule, isEdit ? newSchedule.flightId : null);
+                if (!slotCheck.ok) {
+                    UI.showModal('発着枠の容量不足', '', slotCheck.errors.map(e => `<p>${Utils.escapeHtml(e)}</p>`).join('') + '<p class="text-muted" style="margin-top:8px;">時間帯または運航曜日を変更してください。</p>');
+                    return false;
+                }
                 if (isEdit) {
                     const idx = Player.company.schedules.findIndex(s => s.flightId === newSchedule.flightId);
                     if (idx !== -1) Player.company.schedules[idx] = newSchedule;
@@ -2082,6 +2590,7 @@
                         if (document.getElementById('view-fleet').classList.contains('active')) Views.renderFleet();
                         if (document.getElementById('view-faults').classList.contains('active')) Views.renderFaults();
                         if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
+                        if (document.getElementById('view-operations').classList.contains('active')) Views.renderOperations();
                     }
                     Game.saveData(true);
                 }
@@ -2104,6 +2613,9 @@
 
                 // 故障発生・修理予定日の更新は、その日の運航計算より前に行う。
                 FaultSystem.processDaily();
+
+                // 便・運航日単位の実績を生成。operationIdで二重生成を防止する。
+                OperationSystem.processDay(Player.company.date);
 
                 const isAIEnabled = (Player.settings?.competitionEnabled ?? true);
                 const allCompanies = [Player.company];
@@ -2457,8 +2969,139 @@
             currentGraphDays: 30,
             fleetStoreState: { maker: '', cat: '', sort: 'price', search: '' },
             scheduleState: { company: 'player', search: '', origin: '', dest: '', day: '', status: '', sort: 'depTime' },
+            slotState: { airportId: 'HND', date: '' },
             maintState: { search: '', status: '' },
             faultState: { search: '', type: '', severity: '', status: '', sort: 'detected_desc' },
+            operationsState: { status: '', airline: '', search: '' },
+
+            renderOperations() {
+                const airlineSelect = document.getElementById('ops-filter-airline');
+                const currentAirline = this.operationsState.airline || '';
+                // 現バージョンで運航記録を生成するのは自社のみ。選択肢も実データに限定する。
+                const airlines = new Map([[Player.company.iata, Player.company.name]]);
+                airlineSelect.innerHTML = '<option value="">全航空会社</option>' + Array.from(airlines.entries()).map(([id,name]) => `<option value="${Utils.escapeHtml(id)}">${Utils.escapeHtml(id)} - ${Utils.escapeHtml(name)}</option>`).join('');
+                airlineSelect.value = airlines.has(currentAirline) ? currentAirline : '';
+                this.operationsState.airline = airlineSelect.value;
+                document.getElementById('ops-filter-status').value = this.operationsState.status;
+                document.getElementById('ops-filter-search').value = this.operationsState.search;
+
+                // HTML属性へ動的なJavaScriptを埋め込まず、一覧コンテナでイベント委譲する。
+                const bindOperationClick = (container) => {
+                    if (!container || container.dataset.operationClickBound === '1') return;
+                    container.dataset.operationClickBound = '1';
+                    const openItem = (item) => {
+                        if (!item || !container.contains(item)) return;
+                        const operationId = item.getAttribute('data-operation-id');
+                        if (typeof operationId !== 'string' || !operationId || operationId.length > 256) return;
+                        this.showOperationDetails(operationId);
+                    };
+                    container.addEventListener('click', (event) => openItem(event.target.closest('[data-operation-id]')));
+                    if (container.id === 'operations-cards-mobile') {
+                        container.addEventListener('keydown', (event) => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                            const item = event.target.closest('[data-operation-id]');
+                            if (!item) return;
+                            event.preventDefault();
+                            openItem(item);
+                        });
+                    }
+                };
+                bindOperationClick(document.getElementById('operations-table-body'));
+                bindOperationClick(document.getElementById('operations-cards-mobile'));
+                this.updateOperationsGrid();
+            },
+            updateOperationsGrid() {
+                if (!Player?.company) return;
+                const statusEl = document.getElementById('ops-filter-status');
+                const airlineEl = document.getElementById('ops-filter-airline');
+                const searchEl = document.getElementById('ops-filter-search');
+                if (statusEl) this.operationsState.status = statusEl.value;
+                if (airlineEl) this.operationsState.airline = airlineEl.value;
+                if (searchEl) this.operationsState.search = searchEl.value.trim();
+                const records = (Array.isArray(Player.company.flightOperations) ? Player.company.flightOperations : []).filter(r => r && typeof r === 'object' && r.airlineId === Player.company.iata);
+                const stats = OperationSystem.getStats(records);
+                document.getElementById('operations-stats').innerHTML = `
+                    <div class="card"><div class="card-body"><div class="text-muted">運航便数</div><div class="font-bold" style="font-size:1.4rem;">${stats.total.toLocaleString()}便</div></div></div>
+                    <div class="card"><div class="card-body"><div class="text-muted">定刻運航</div><div class="font-bold text-success" style="font-size:1.4rem;">${stats.onTime.toLocaleString()}便</div></div></div>
+                    <div class="card"><div class="card-body"><div class="text-muted">遅延 / 欠航</div><div class="font-bold" style="font-size:1.4rem;"><span class="text-warning">${stats.delayed}</span> / <span class="text-danger">${stats.cancelled}</span></div></div></div>
+                    <div class="card"><div class="card-body"><div class="text-muted">平均遅延時間</div><div class="font-bold" style="font-size:1.4rem;">${stats.averageDelay}分</div></div></div>
+                    <div class="card"><div class="card-body"><div class="text-muted">定時運航率（完了便対象）</div><div class="font-bold text-primary" style="font-size:1.4rem;">${stats.completed ? stats.onTimeRate.toFixed(1) + '%' : 'データなし'}</div></div></div>`;
+                document.getElementById('operations-history-summary').innerHTML = stats.total ? `
+                    <div class="card-row"><span>運航便数</span><b>${stats.total.toLocaleString()}便</b></div>
+                    <div class="card-row"><span>定刻運航便数</span><b class="text-success">${stats.onTime.toLocaleString()}便</b></div>
+                    <div class="card-row"><span>遅延便数</span><b class="text-warning">${stats.delayed.toLocaleString()}便</b></div>
+                    <div class="card-row"><span>欠航便数</span><b class="text-danger">${stats.cancelled.toLocaleString()}便</b></div>
+                    <div class="card-row"><span>平均遅延時間（遅延便のみ）</span><b>${stats.averageDelay}分</b></div>
+                    <div class="card-row"><span>定時運航率</span><b>${stats.completed ? stats.onTimeRate.toFixed(1) + '%' : 'データなし'}</b></div>
+                    <div class="text-muted" style="font-size:0.75rem;margin-top:8px;">定時運航率 = 定刻運航便数 ÷（定刻運航便数 + 遅延便数）。欠航便は分母・分子に含めません。</div>` : '<div class="text-muted">運航記録はまだありません。</div>';
+                let filtered = records.filter(r => {
+                    if (this.operationsState.status && r.status !== this.operationsState.status) return false;
+                    if (this.operationsState.airline && r.airlineId !== this.operationsState.airline) return false;
+                    if (this.operationsState.search && !String(r.flightNumber || '').toLowerCase().includes(this.operationsState.search.toLowerCase())) return false;
+                    return true;
+                }).sort((a,b) => String(b.operationDate || '').localeCompare(String(a.operationDate || '')) || String(a.scheduledDeparture || '').localeCompare(String(b.scheduledDeparture || '')));
+                const tbody = document.getElementById('operations-table-body');
+                const mobileCards = document.getElementById('operations-cards-mobile');
+                const emptyMessage = records.length ? '条件に該当する運航記録がありません。' : '運航記録はまだありません。日次進行後に表示されます。';
+                if (!filtered.length) {
+                    tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">${emptyMessage}</td></tr>`;
+                    mobileCards.innerHTML = `<div class="text-center text-muted" style="padding:20px;">${emptyMessage}</div>`;
+                    return;
+                }
+                const visibleRecords = filtered.slice(0,500);
+                tbody.innerHTML = visibleRecords.map(r => {
+                    const statusText = Utils.escapeHtml(OperationSystem._statusText(r.status));
+                    const badge = r.status === 'cancelled' ? 'badge-maint-check' : r.status === 'delayed' ? 'badge-maint-progress' : r.status === 'completed' ? 'badge-maint-normal' : 'badge-maint-scheduled';
+                    const route = `${Utils.escapeHtml(r.originAirportId || '-')} → ${Utils.escapeHtml(r.destinationAirportId || '-')}`;
+                    const actualDep = r.actualDeparture ? String(r.actualDeparture).slice(-5) : '-';
+                    const actualArr = r.actualArrival ? String(r.actualArrival).slice(-5) : '-';
+                    return `<tr style="cursor:pointer;" data-operation-id="${Utils.escapeHtml(r.operationId)}"><td>${Utils.escapeHtml(Utils.formatDate(r.operationDate))}</td><td class="font-bold text-primary">${Utils.escapeHtml(r.flightNumber || '-')}</td><td>${route}</td><td>${Utils.escapeHtml(r.aircraftId || '-')}</td><td>${Utils.escapeHtml(r.scheduledDeparture || '-')}</td><td>${Utils.escapeHtml(actualDep)}</td><td>${Utils.escapeHtml(r.scheduledArrival || '-')}</td><td>${Utils.escapeHtml(actualArr)}</td><td><span class="badge ${badge}">${statusText}</span></td><td>${r.status === 'delayed' ? `${Number(r.delayMinutes)||0}分` : '-'}</td></tr>`;
+                }).join('');
+                mobileCards.innerHTML = visibleRecords.map(r => {
+                    const statusText = Utils.escapeHtml(OperationSystem._statusText(r.status));
+                    const badge = r.status === 'cancelled' ? 'badge-maint-check' : r.status === 'delayed' ? 'badge-maint-progress' : r.status === 'completed' ? 'badge-maint-normal' : 'badge-maint-scheduled';
+                    const origin = Utils.escapeHtml(r.originAirportName || r.originAirportId || '-');
+                    const destination = Utils.escapeHtml(r.destinationAirportName || r.destinationAirportId || '-');
+                    const actualDep = r.actualDeparture ? String(r.actualDeparture).slice(-5) : '-';
+                    const actualArr = r.actualArrival ? String(r.actualArrival).slice(-5) : '-';
+                    const delayLine = r.status === 'delayed' ? `<div><span class="text-muted">遅延時間：</span><b class="text-warning">${Number(r.delayMinutes)||0}分</b></div>` : '';
+                    return `<article class="operation-mobile-card" data-operation-id="${Utils.escapeHtml(r.operationId)}" role="button" tabindex="0" aria-label="${Utils.escapeHtml(r.flightNumber || '便')}の運航詳細を表示">
+                        <div class="operation-mobile-title"><b class="text-primary">${Utils.escapeHtml(r.flightNumber || '-')}</b><span class="badge ${badge}">${statusText}</span></div>
+                        <div class="text-muted" style="font-size:0.78rem;margin-bottom:5px;">${Utils.escapeHtml(Utils.formatDate(r.operationDate))}</div>
+                        <div class="operation-mobile-route">${origin} → ${destination}</div>
+                        <div class="operation-mobile-meta">
+                            <div><span class="text-muted">機材：</span>${Utils.escapeHtml(r.aircraftId || '未割当')}</div>
+                            <div><span class="text-muted">予定出発：</span>${Utils.escapeHtml(r.scheduledDeparture || '-')}</div>
+                            <div><span class="text-muted">実際出発：</span>${Utils.escapeHtml(actualDep)}</div>
+                            <div><span class="text-muted">予定到着：</span>${Utils.escapeHtml(r.scheduledArrival || '-')}</div>
+                            <div><span class="text-muted">実際到着：</span>${Utils.escapeHtml(actualArr)}</div>
+                            ${delayLine}
+                        </div>
+                    </article>`;
+                }).join('');
+            },
+            showOperationDetails(operationId) {
+                if (typeof operationId !== 'string' || operationId.length > 256) { UI.showToast('運航記録が見つかりません。', 'error'); return; }
+                const r = (Player.company.flightOperations || []).find(x => x && x.operationId === operationId);
+                if (!r) { UI.showToast('運航記録が見つかりません。', 'error'); return; }
+                const e = Utils.escapeHtml;
+                const status = e(OperationSystem._statusText(r.status));
+                const reason = r.status === 'cancelled' ? (r.cancellationReason || '理由記録なし') : r.status === 'delayed' ? (r.delayReason || '理由記録なし') : '定刻で運航';
+                const html = `<div class="card-body">
+                    <div class="card-row"><span>運航日</span><b>${e(Utils.formatDate(r.operationDate))}</b></div>
+                    <div class="card-row"><span>航空会社 / 便名</span><b>${e(r.airlineId || '-')} ${e(r.flightNumber || '-')}</b></div>
+                    <div class="card-row"><span>区間</span><b>${e(r.originAirportName || r.originAirportId || '-')} → ${e(r.destinationAirportName || r.destinationAirportId || '-')}</b></div>
+                    <div class="card-row"><span>使用機材</span><b>${e(r.aircraftId || '未割当')}</b></div>
+                    <div class="card-row"><span>予定出発 / 到着</span><b>${e(r.scheduledDeparture || '-')} / ${e(r.scheduledArrival || '-')}</b></div>
+                    <div class="card-row"><span>実際出発 / 到着</span><b>${e(r.actualDeparture || '-')} / ${e(r.actualArrival || '-')}</b></div>
+                    <div class="card-row"><span>運航状態</span><b>${status}</b></div>
+                    <div class="card-row"><span>遅延時間</span><b>${Number(r.delayMinutes)||0}分</b></div>
+                    <hr style="margin:10px 0;border:0;border-top:1px solid var(--panel-border);">
+                    <div class="font-bold">遅延・欠航理由</div><div style="margin-top:5px;">${e(reason)}</div>
+                    <div class="text-muted" style="font-size:0.75rem;margin-top:12px;">運航記録ID: ${e(r.operationId)}</div>
+                </div>`;
+                UI.showModal(`運航詳細 - ${e(r.flightNumber || '-')}`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+            },
 
             renderFleet() {
                 const c = document.getElementById('fleet-list-container'); c.innerHTML = '';
@@ -3501,6 +4144,70 @@
                 UI.showModal(`便詳細情報`, '', html, footerHtml);
             },
 
+            // --- Airport Slots & Capacity View ---
+            renderAirportSlots() {
+                if (!Player || !Player.company) return;
+                const airportSelect = document.getElementById('slot-airport-select');
+                const dateInput = document.getElementById('slot-date-input');
+                if (!airportSelect || !dateInput) return;
+                airportSelect.innerHTML = GameData.Airports.slice().sort((a,b) => a.name.localeCompare(b.name,'ja')).map(a => `<option value="${Utils.escapeHtml(a.id)}">${Utils.escapeHtml(a.name)} (${Utils.escapeHtml(a.iata)})</option>`).join('');
+                this.slotState.airportId = this.slotState.airportId && AirportSlotSystem.getAirport(this.slotState.airportId) ? this.slotState.airportId : (GameData.Airports[0]?.id || '');
+                airportSelect.value = this.slotState.airportId;
+                if (!this.slotState.date || !AirportSlotSystem.getDateInfo(this.slotState.date)) this.slotState.date = Player.company.date || GameData.START_DATE;
+                dateInput.value = this.slotState.date;
+                const info = AirportSlotSystem.getDateInfo(this.slotState.date);
+                const airport = AirportSlotSystem.getAirport(this.slotState.airportId);
+                if (!airport || !info) return;
+                document.getElementById('slot-weekday-label').textContent = `${AirportSlotSystem.DAY_NAMES[info.weekday]}の定期スケジュールを表示`;
+                const usage = AirportSlotSystem.getUsage(airport.id, info.weekday);
+                const pct = usage.dailyCapacity > 0 ? Math.round(usage.dailyUsed / usage.dailyCapacity * 100) : 0;
+                const dailyRemaining = Math.max(0, usage.dailyCapacity - usage.dailyUsed);
+                document.getElementById('slot-airport-info').innerHTML = `<div class="card-row" style="gap:10px;flex-wrap:wrap;align-items:center;"><div style="font-weight:bold;font-size:1.05rem;">${Utils.escapeHtml(airport.name)} (${Utils.escapeHtml(airport.iata)})</div><span class="badge badge-active">${Utils.escapeHtml(airport.capacityType)}</span></div><div class="text-muted" style="font-size:0.8rem;margin-top:6px;">${Utils.escapeHtml(airport.capacityNotes)} 容量値は実際の公式発着容量ではありません。</div>`;
+                document.getElementById('slot-summary-grid').innerHTML = `
+                    <div class="slot-summary-card"><div class="text-muted" style="font-size:0.8rem;">1日の最大発着回数</div><div class="slot-summary-value">${usage.dailyCapacity.toLocaleString('ja-JP')} 回</div></div>
+                    <div class="slot-summary-card"><div class="text-muted" style="font-size:0.8rem;">予約済み発着回数</div><div class="slot-summary-value">${usage.dailyUsed.toLocaleString('ja-JP')} 回</div></div>
+                    <div class="slot-summary-card"><div class="text-muted" style="font-size:0.8rem;">残り発着可能回数</div><div class="slot-summary-value ${usage.overDaily ? 'text-danger' : 'text-success'}">${dailyRemaining.toLocaleString('ja-JP')} 回</div></div>
+                    <div class="slot-summary-card"><div class="text-muted" style="font-size:0.8rem;">日次容量使用率</div><div class="slot-summary-value ${usage.overDaily ? 'text-danger' : (pct >= 80 ? 'text-warning' : '')}">${pct}%</div><div class="slot-capacity-meter ${usage.overDaily || pct >= 100 ? 'full' : (pct >= 80 ? 'warning' : '')}" style="margin-top:7px;"><span style="width:${Math.min(100,Math.max(0,pct))}%;"></span></div></div>`;
+                const overSlots = usage.slots.map((slot,index) => ({slot,index})).filter(x => x.slot.used > usage.slotCapacity);
+                const fullSlots = usage.slots.filter(slot => slot.used === usage.slotCapacity).length;
+                const warning = document.getElementById('slot-capacity-warning');
+                if (usage.overDaily || overSlots.length) {
+                    warning.innerHTML = `<div class="slot-warning-panel danger"><b>⚠ 既存スケジュールが容量を超過しています</b><div style="font-size:0.85rem;margin-top:4px;">${usage.overDaily ? `日次容量：${usage.dailyUsed}/${usage.dailyCapacity} 回。` : ''}${overSlots.length ? `30分枠の超過：${overSlots.map(x => AirportSlotSystem.slotLabel(x.index)).join('、')}。` : ''}既存便は削除・変更せず、今後の新規作成・編集時に容量制限を適用します。</div></div>`;
+                } else if (pct >= 80 || fullSlots > 0) {
+                    warning.innerHTML = `<div class="slot-warning-panel"><b>容量にご注意ください</b><div style="font-size:0.85rem;margin-top:4px;">日次容量使用率 ${pct}%、満杯の30分枠 ${fullSlots} 枠です。</div></div>`;
+                } else warning.innerHTML = '';
+                const tbody = document.getElementById('slot-table-body');
+                const mobile = document.getElementById('slot-mobile-list');
+                tbody.innerHTML = '';
+                mobile.innerHTML = '';
+                usage.slots.forEach((slot,index) => {
+                    const remaining = Math.max(0, usage.slotCapacity - slot.used);
+                    const rate = usage.slotCapacity > 0 ? Math.round(slot.used / usage.slotCapacity * 100) : 0;
+                    const isOver = slot.used > usage.slotCapacity;
+                    const isFull = slot.used === usage.slotCapacity;
+                    const status = isOver ? '<span class="badge badge-maint-check">容量超過</span>' : (isFull ? '<span class="badge badge-lease">満杯</span>' : (rate >= 80 ? '<span class="badge badge-lease">残りわずか</span>' : '<span class="badge badge-active">空きあり</span>'));
+                    const meterClass = isOver || isFull ? 'full' : (rate >= 80 ? 'warning' : '');
+                    const label = AirportSlotSystem.slotLabel(index);
+                    tbody.innerHTML += `<tr><td>${label}</td><td>${usage.slotCapacity} 回</td><td>${slot.used} 回</td><td>${remaining} 回</td><td><div style="display:flex;align-items:center;gap:8px;min-width:110px;"><div class="slot-capacity-meter ${meterClass}" style="flex:1;"><span style="width:${Math.min(100,Math.max(0,rate))}%;"></span></div><span>${rate}%</span></div></td><td><button class="slot-row-button" onclick="Views.showAirportSlotDetails('${airport.id}',${info.weekday},${index})">${slot.used}便を確認</button></td></tr>`;
+                    mobile.innerHTML += `<div class="slot-mobile-card"><div class="slot-mobile-top"><b>${label}</b>${status}</div><div class="slot-mobile-stats"><div><span class="text-muted">容量</span><br><b>${usage.slotCapacity} 回</b></div><div><span class="text-muted">使用数</span><br><b>${slot.used} 回</b></div><div><span class="text-muted">空き</span><br><b>${remaining} 回</b></div></div><div style="display:flex;align-items:center;gap:8px;margin-top:9px;"><div class="slot-capacity-meter ${meterClass}" style="flex:1;"><span style="width:${Math.min(100,Math.max(0,rate))}%;"></span></div><span style="font-size:0.8rem;min-width:36px;">${rate}%</span><button class="btn btn-outline btn-sm" onclick="Views.showAirportSlotDetails('${airport.id}',${info.weekday},${index})">便を確認</button></div></div>`;
+                });
+            },
+
+            showAirportSlotDetails(airportId, weekday, slotIndex) {
+                const airport = AirportSlotSystem.getAirport(airportId);
+                if (!airport || !Number.isInteger(weekday) || weekday < 0 || weekday > 6 || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 47) return;
+                const usage = AirportSlotSystem.getUsage(airportId, weekday);
+                const slot = usage.slots[slotIndex];
+                const rows = slot.entries.slice().sort((a,b) => a.time.localeCompare(b.time)).map(event => {
+                    const schedule = event.schedule;
+                    const direction = event.direction === 'departure' ? '出発' : '到着';
+                    const operatedDay = AirportSlotSystem.DAY_NAMES[event.operatingDay];
+                    return `<tr><td>${Utils.escapeHtml(schedule.flightNumber || '便名不明')}</td><td>${Utils.escapeHtml(Player.company.name)} (${Utils.escapeHtml(schedule.airlineId || Player.company.iata)})</td><td>${direction}</td><td>${Utils.escapeHtml(event.time)}</td><td>${Utils.escapeHtml(operatedDay)}${event.isNextDay ? '（前日運航便）' : ''}</td></tr>`;
+                }).join('');
+                const body = rows ? `<div class="table-container"><table class="data-table"><thead><tr><th>便名</th><th>航空会社</th><th>区分</th><th>時刻</th><th>運航曜日</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="text-muted">この発着枠を使用している自社便はありません。</p>';
+                UI.showModal(`${airport.name} ${AirportSlotSystem.slotLabel(slotIndex)} の発着便`, '', `<div style="margin-bottom:10px;">${AirportSlotSystem.DAY_NAMES[weekday]} / 使用 ${slot.used} 回 / 容量 ${usage.slotCapacity} 回</div>${body}`);
+            },
+
             // --- 航空機ローテーション画面の描画 ---
             renderRotation() {
                 const sel = document.getElementById('rot-aircraft-select');
@@ -4252,7 +4959,7 @@
                     company: {
                         name: name, iata: iata, icao: icao, color: color, hq: hq,
                         date: GameData.START_DATE, funds: GameData.START_FUNDS,
-                        fleet: [], routes: [], schedules: [], maintenanceRecords: [], faultRecords: [],
+                        fleet: [], routes: [], schedules: [], maintenanceRecords: [], faultRecords: [], flightOperations: [],
                         finances: {
                             today: Logic._resetFinanceObject(),
                             thisMonth: Logic._resetFinanceObject(),
@@ -4274,7 +4981,7 @@
                             color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
                             date: GameData.START_DATE,
                             funds: GameData.START_FUNDS * (diff === 'hard' ? 2.5 : (diff === 'easy' ? 0.8 : 1.5)),
-                            fleet: [], routes: [], schedules: [], maintenanceRecords: [], faultRecords: [],
+                            fleet: [], routes: [], schedules: [], maintenanceRecords: [], faultRecords: [], flightOperations: [],
                             awareness: 10, reputation: 50,
                             finances: {
                                 today: Logic._resetFinanceObject(),
@@ -4333,10 +5040,14 @@
                     
                     // 互換性確保（古いセーブデータへの対応）
                     if (!Player.company.maintenanceRecords) Player.company.maintenanceRecords = [];
+                    if (!Array.isArray(Player.company.flightOperations)) Player.company.flightOperations = [];
+                    // Keep valid historical operation records; only discard malformed entries that cannot be identified.
+                    Player.company.flightOperations = Player.company.flightOperations.filter(r => r && typeof r === 'object' && typeof r.operationId === 'string' && typeof r.flightId === 'string' && typeof r.operationDate === 'string');
                     if (!('faultRecords' in Player.company)) Player.company.faultRecords = [];
                     if (Player.competitors) {
                         Player.competitors.forEach(ai => {
                             if (!ai.maintenanceRecords) ai.maintenanceRecords = [];
+                            if (!Array.isArray(ai.flightOperations)) ai.flightOperations = [];
                             if (!('faultRecords' in ai)) ai.faultRecords = [];
                         });
                     }
