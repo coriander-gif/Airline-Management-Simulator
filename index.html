@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.3.0.5.1</title>
+    <title>AIRLINE TYCOON JAPAN v0.3.0.6.1</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -343,7 +343,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.3.0.5.1<br>航空機整備システムの不具合修正
+            Version v0.3.0.6.1<br>故障・整備表示修正／日本地図操作改善
         </div>
     </div>
 
@@ -444,6 +444,7 @@
                 <div class="nav-item" onclick="UI.switchMainView('view-rotation', this)">航空機ローテーション</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-finance', this)">財務・統計</div>
                 <div class="nav-item" onclick="UI.switchMainView('view-competitors', this)">競合他社 (AI)</div>
+                <div class="nav-item" onclick="UI.switchMainView('view-faults', this)">⚠️ 航空機故障管理</div>
                 <div style="flex:1;"></div>
                 <div class="nav-item" onclick="Views.showNewsModal()">📰 ニュース履歴</div>
                 <div class="nav-item" onclick="Game.manualSave()">💾 セーブ</div>
@@ -542,6 +543,43 @@
                                 </tr>
                             </thead>
                             <tbody id="maintenance-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Aircraft Fault Management View (v0.3.0.6.1) -->
+                <div id="view-faults" class="mgmt-panel">
+                    <div class="panel-header-title">航空機故障管理</div>
+                    <p class="text-muted" style="margin-bottom:15px;font-size:0.9rem;">航空機の故障履歴、重大度、修理状況を管理します。修理費用は参考額であり、財務残高からは控除されません。</p>
+                    <div class="data-grid" style="margin-bottom:20px;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));">
+                        <div class="card" style="padding:10px 15px;"><div class="card-row text-muted" style="font-size:0.8rem;">保有機材数</div><div class="card-row font-bold" style="font-size:1.2rem;margin-top:5px;" id="fault-stat-total">0</div></div>
+                        <div class="card" style="padding:10px 15px;"><div class="card-row text-muted" style="font-size:0.8rem;">故障中の機材</div><div class="card-row font-bold text-danger" style="font-size:1.2rem;margin-top:5px;" id="fault-stat-aircraft">0</div></div>
+                        <div class="card" style="padding:10px 15px;"><div class="card-row text-muted" style="font-size:0.8rem;">修理待ち</div><div class="card-row font-bold text-warning" style="font-size:1.2rem;margin-top:5px;" id="fault-stat-waiting">0</div></div>
+                        <div class="card" style="padding:10px 15px;"><div class="card-row text-muted" style="font-size:0.8rem;">修理中</div><div class="card-row font-bold text-primary" style="font-size:1.2rem;margin-top:5px;" id="fault-stat-repairing">0</div></div>
+                        <div class="card" style="padding:10px 15px;"><div class="card-row text-muted" style="font-size:0.8rem;">修理完了件数</div><div class="card-row font-bold text-success" style="font-size:1.2rem;margin-top:5px;" id="fault-stat-completed">0</div></div>
+                    </div>
+                    <div class="card" style="margin-bottom:15px;padding:15px;">
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                            <input id="fault-filter-reg" class="input-field" placeholder="登録記号・機種名で検索..." oninput="Views.faultState.search=this.value;Views.updateFaultGrid();" style="flex:1;min-width:150px;">
+                            <select id="fault-filter-type" class="input-field" onchange="Views.faultState.type=this.value;Views.updateFaultGrid();" style="flex:1;min-width:135px;">
+                                <option value="">故障カテゴリー (すべて)</option><option value="engine">エンジン関連</option><option value="hydraulic">油圧系統</option><option value="electrical">電気系統</option><option value="landing_gear">着陸装置</option><option value="avionics">航法・電子機器</option><option value="cabin">客室設備</option><option value="structural">機体構造</option><option value="other">その他</option>
+                            </select>
+                            <select id="fault-filter-severity" class="input-field" onchange="Views.faultState.severity=this.value;Views.updateFaultGrid();" style="flex:1;min-width:120px;">
+                                <option value="">重大度 (すべて)</option><option value="minor">軽度</option><option value="moderate">中度</option><option value="major">重度</option>
+                            </select>
+                            <select id="fault-filter-status" class="input-field" onchange="Views.faultState.status=this.value;Views.updateFaultGrid();" style="flex:1;min-width:130px;">
+                                <option value="">修理状態 (すべて)</option><option value="waiting_repair">修理待ち</option><option value="repairing">修理中</option><option value="repair_due">修理完了待ち</option><option value="completed">修理完了</option>
+                            </select>
+                            <select id="fault-filter-sort" class="input-field" onchange="Views.faultState.sort=this.value;Views.updateFaultGrid();" style="flex:1;min-width:145px;">
+                                <option value="detected_desc">発生日が新しい順</option><option value="detected_asc">発生日が古い順</option><option value="repair_asc">修理完了予定日順</option>
+                            </select>
+                            <button class="btn btn-outline" onclick="Views.resetFaultFilters()">条件リセット</button>
+                        </div>
+                    </div>
+                    <div class="card table-container">
+                        <table class="data-table">
+                            <thead><tr><th>故障ID</th><th>登録記号</th><th>機種名</th><th>カテゴリー</th><th>重大度</th><th>発生日</th><th>修理状態</th><th>修理完了予定日</th><th>修理費用参考額</th><th>詳細・操作</th></tr></thead>
+                            <tbody id="fault-table-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -707,8 +745,8 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.3.0.5.1
-         * 航空機整備システムの実装
+         * AIRLINE TYCOON JAPAN v0.3.0.6.1
+         * 故障・整備表示修正／日本地図操作改善
          */
 
         const ThemeManager = {
@@ -734,7 +772,7 @@
         };
 
         const GameData = {
-            VERSION: "0.3.0.5.1",
+            VERSION: "0.3.0.6.1",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -917,65 +955,39 @@
 
                 if (records.length === 0) return { code: 'normal', text: '正常', record: null };
 
-                // ゲーム内時計は日付のみ。将来、既存セーブに時刻がある場合のみ日時精度を使用し、
-                // 時刻フィールドや日次進行の仕様そのものは追加・変更しない。
-                const gameTime = Player.company.time || Player.company.gameTime || null;
-                const toStamp = (dateStr, timeStr) => {
-                    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return NaN;
-                    const [y, mo, d] = dateStr.split('-').map(Number);
-                    const [h, mi] = (timeStr || '00:00').split(':').map(Number);
-                    return Date.UTC(y, mo - 1, d, h || 0, mi || 0);
-                };
-                const gameStamp = gameTime ? toStamp(todayStr, gameTime) : NaN;
-
+                // 現行仕様は日付単位で進行するため、整備状態もゲーム内日付だけで判定する。
+                // startTime / endTime はデータとして保持し、便との重複判定にも引き続き使用する。
+                const today = String(Player.company.date || '');
+                const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
                 let inProgress = null;
                 let scheduled = null;
-                let needsCheck = false;
-                let completedPending = null;
+                let completedByDate = null;
                 let manuallyCompleted = null;
+                let needsCheck = false;
 
                 for (const r of records) {
-                    const startStamp = toStamp(r.startDate, r.startTime);
-                    const endStamp = toStamp(r.endDate, r.endTime);
-                    if (!Number.isFinite(startStamp) || !Number.isFinite(endStamp) || startStamp >= endStamp) {
+                    if (r.status === 'completed' || r.completedAt) {
+                        if (!manuallyCompleted || String(r.completedAt || r.updatedAt || '').localeCompare(String(manuallyCompleted.completedAt || manuallyCompleted.updatedAt || '')) > 0) manuallyCompleted = r;
+                        continue;
+                    }
+                    if (!validDate(r.startDate) || !validDate(r.endDate) || r.startDate > r.endDate) {
                         needsCheck = true;
                         continue;
                     }
-
-                    if (r.status === 'completed') {
-                        if (!manuallyCompleted || String(r.completedAt || r.updatedAt || '').localeCompare(String(manuallyCompleted.completedAt || manuallyCompleted.updatedAt || '')) > 0) {
-                            manuallyCompleted = r;
-                        }
-                        continue;
-                    }
-
-                    if (Number.isFinite(gameStamp)) {
-                        if (gameStamp >= startStamp && gameStamp < endStamp) {
-                            inProgress = r;
-                        } else if (gameStamp < startStamp) {
-                            if (!scheduled || startStamp < toStamp(scheduled.startDate, scheduled.startTime)) scheduled = r;
-                        } else if (!completedPending || endStamp > toStamp(completedPending.endDate, completedPending.endTime)) {
-                            completedPending = r;
-                        }
+                    if (today >= r.startDate && today <= r.endDate) {
+                        if (!inProgress || r.startDate > inProgress.startDate || (r.startDate === inProgress.startDate && r.startTime > inProgress.startTime)) inProgress = r;
+                    } else if (today < r.startDate) {
+                        if (!scheduled || r.startDate < scheduled.startDate || (r.startDate === scheduled.startDate && r.startTime < scheduled.startTime)) scheduled = r;
                     } else {
-                        // 現行ゲームは日付単位で進行するため、同一ゲーム日内は整備中として扱う。
-                        // 日内の09:00/17:00の区別はゲーム内時計が存在しないため表現できない。
-                        if (todayStr >= r.startDate && todayStr <= r.endDate) {
-                            inProgress = r;
-                        } else if (todayStr < r.startDate) {
-                            if (!scheduled || r.startDate < scheduled.startDate || (r.startDate === scheduled.startDate && r.startTime < scheduled.startTime)) scheduled = r;
-                        } else if (!completedPending || r.endDate > completedPending.endDate || (r.endDate === completedPending.endDate && r.endTime > completedPending.endTime)) {
-                            completedPending = r;
-                        }
+                        if (!completedByDate || r.endDate > completedByDate.endDate || (r.endDate === completedByDate.endDate && String(r.endTime || '') > String(completedByDate.endTime || ''))) completedByDate = r;
                     }
                 }
 
-                if (needsCheck) return { code: 'needs_check', text: '要確認', record: null };
                 if (inProgress) return { code: 'in_progress', text: '整備中', record: inProgress };
                 if (scheduled) return { code: 'scheduled', text: '整備予定', record: scheduled };
                 if (manuallyCompleted) return { code: 'completed', text: '整備完了', record: manuallyCompleted };
-                if (completedPending) return { code: 'completed', text: '整備完了', record: completedPending };
-
+                if (completedByDate) return { code: 'completed', text: '整備終了', record: completedByDate };
+                if (needsCheck) return { code: 'needs_check', text: '要確認', record: null };
                 return { code: 'normal', text: '正常', record: null };
             },
 
@@ -1174,6 +1186,297 @@
         // ==========================================
         // Rotation System 
         // ==========================================
+        // ==========================================
+        // Aircraft Fault System (v0.3.0.6.1)
+        // ==========================================
+        const FaultSystem = {
+            TYPES: {
+                engine: { name: 'エンジン関連', description: 'エンジン制御・補機系統に関する不具合' },
+                hydraulic: { name: '油圧系統', description: '油圧ポンプ・配管・作動系統に関する不具合' },
+                electrical: { name: '電気系統', description: '発電・配電・電源系統に関する不具合' },
+                landing_gear: { name: '着陸装置', description: '脚・ブレーキ・格納機構に関する不具合' },
+                avionics: { name: '航法・電子機器', description: '航法装置・通信装置・電子機器に関する不具合' },
+                cabin: { name: '客室設備', description: '客室内設備・空調・機内装備に関する不具合' },
+                structural: { name: '機体構造', description: '機体外板・構造部材に関する不具合' },
+                other: { name: 'その他', description: 'その他の機体システムに関する不具合' }
+            },
+            SEVERITIES: {
+                minor: { name: '軽度', minDays: 1, maxDays: 3, costRate: 0.00008, weight: 65 },
+                moderate: { name: '中度', minDays: 4, maxDays: 10, costRate: 0.00045, weight: 28 },
+                major: { name: '重度', minDays: 11, maxDays: 30, costRate: 0.0015, weight: 7 }
+            },
+            TYPE_PROFILES: {
+                engine: { severityWeights: { minor: 50, moderate: 35, major: 15 }, repairDaysMultiplier: 1.25 },
+                hydraulic: { severityWeights: { minor: 58, moderate: 30, major: 12 }, repairDaysMultiplier: 1.15 },
+                electrical: { severityWeights: { minor: 66, moderate: 27, major: 7 }, repairDaysMultiplier: 1.00 },
+                landing_gear: { severityWeights: { minor: 52, moderate: 34, major: 14 }, repairDaysMultiplier: 1.20 },
+                avionics: { severityWeights: { minor: 72, moderate: 23, major: 5 }, repairDaysMultiplier: 0.90 },
+                cabin: { severityWeights: { minor: 84, moderate: 14, major: 2 }, repairDaysMultiplier: 0.65 },
+                structural: { severityWeights: { minor: 45, moderate: 35, major: 20 }, repairDaysMultiplier: 1.40 },
+                other: { severityWeights: { minor: 68, moderate: 25, major: 7 }, repairDaysMultiplier: 0.95 }
+            },
+            CONFIG: {
+                baseDailyRisk: 0.00008,
+                maxDailyRisk: 0.0008,
+                flightHourRiskPer1000: 0.00007,
+                maintenanceAgeRiskPerYear: 0.00025,
+                usageRiskPerDailyFlight: 0.000025,
+                activeMaintenanceRiskMultiplier: 0.70
+            },
+
+            ensureData() {
+                if (!Player || !Player.company) return;
+                if (!('faultRecords' in Player.company)) Player.company.faultRecords = [];
+                (Player.company.fleet || []).forEach(plane => {
+                    if (!plane.stats) plane.stats = { flights: 0, pax: 0, rev: 0 };
+                    if (!Number.isFinite(Number(plane.stats.flightHours))) plane.stats.flightHours = 0;
+                });
+            },
+
+            getRecords(reg) {
+                const records = Player?.company?.faultRecords;
+                if (!Array.isArray(records)) return [];
+                return records.filter(r => r && (!reg || r.aircraftReg === reg));
+            },
+
+            getActiveRecords(reg) {
+                return this.getRecords(reg).filter(r => r.status !== 'completed');
+            },
+
+            getAircraftStatus(reg) {
+                const all = this.getRecords(reg);
+                const active = all.filter(r => r.status !== 'completed');
+                if (!active.length) {
+                    const latestCompleted = all.filter(r => r.status === 'completed').sort((a,b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')))[0] || null;
+                    return { code: latestCompleted ? 'completed' : 'normal', text: latestCompleted ? '修理完了' : '正常', record: latestCompleted, activeRecords: [] };
+                }
+                const rank = { major: 3, moderate: 2, minor: 1 };
+                active.sort((a,b) => {
+                    const stateRank = r => r.status === 'repairing' || r.status === 'repair_due' ? 4 : (rank[r.severity] || 0);
+                    return stateRank(b) - stateRank(a);
+                });
+                const record = active[0];
+                let code = 'fault_detected', text = '故障発生';
+                if (active.some(r => r.status === 'repairing')) { code = 'repairing'; text = '修理中'; }
+                else if (active.some(r => r.status === 'repair_due')) { code = 'repair_due'; text = '修理完了待ち'; }
+                else if (active.some(r => r.status === 'waiting_repair')) { code = 'waiting_repair'; text = '修理待ち'; }
+                return { code, text, record, activeRecords: active };
+            },
+
+            isAircraftOperational(reg) {
+                const fault = this.getAircraftStatus(reg);
+                const activeFaults = fault.activeRecords || [];
+                if (activeFaults.some(r =>
+                    r.status === 'repairing' || r.status === 'repair_due' ||
+                    r.severity === 'major' || r.severity === 'moderate' || r.groundingRequired === true
+                )) return false;
+                const maintenance = MaintenanceSystem.getAircraftStatus(reg);
+                if (maintenance.code === 'in_progress' || maintenance.code === 'needs_check') return false;
+                return true;
+            },
+
+            syncAircraftStatus(reg) {
+                const plane = Player?.company?.fleet?.find(f => f.reg === reg);
+                if (!plane) return;
+                const state = this.getAircraftStatus(reg);
+                plane.faultStatus = state.code;
+                plane.isGrounded = !this.isAircraftOperational(reg);
+                if (plane.isGrounded) plane.status = 'grounded';
+                else if (plane.status === 'grounded') plane.status = plane.routeId ? 'active' : 'idle';
+            },
+
+            _dayDiff(from, to) {
+                if (!from || !to) return 0;
+                const a = new Date(`${from}T00:00:00Z`).getTime();
+                const b = new Date(`${to}T00:00:00Z`).getTime();
+                return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, Math.floor((b-a)/86400000)) : 0;
+            },
+
+            calculateDailyRisk(plane) {
+                const company = Player.company;
+                const stats = plane.stats || {};
+                const totalHours = Math.max(0, Number(stats.flightHours) || 0);
+                const totalFlights = Math.max(0, Number(stats.flights) || 0);
+                const serviceStartDate = plane.acquiredDate || GameData.START_DATE;
+                const elapsedDays = Math.max(1, this._dayDiff(serviceStartDate, company.date) + 1);
+                const averageFlightsPerDay = totalFlights / elapsedDays;
+
+                const completedMaint = (company.maintenanceRecords || [])
+                    .filter(m => m.aircraftReg === plane.reg && m.status !== 'cancelled' && (m.status === 'completed' || (m.endDate && m.endDate < company.date)))
+                    .map(m => m.endDate || (m.completedAt ? String(m.completedAt).slice(0,10) : null))
+                    .filter(Boolean)
+                    .sort()
+                    .pop();
+                const lastMaintenanceDate = completedMaint || serviceStartDate;
+                const daysSinceMaintenance = this._dayDiff(lastMaintenanceDate, company.date);
+                const daysSinceAcquisition = this._dayDiff(serviceStartDate, company.date);
+
+                let risk = this.CONFIG.baseDailyRisk;
+                risk += Math.min(0.00012, (daysSinceAcquisition / 365) * 0.00004);
+                risk += Math.min(0.00035, (totalHours / 1000) * this.CONFIG.flightHourRiskPer1000);
+                risk += Math.min(0.00025, (daysSinceMaintenance / 365) * this.CONFIG.maintenanceAgeRiskPerYear);
+                risk += Math.min(0.00015, averageFlightsPerDay * this.CONFIG.usageRiskPerDailyFlight);
+
+                if (MaintenanceSystem.getAircraftStatus(plane.reg).code === 'in_progress') {
+                    risk *= this.CONFIG.activeMaintenanceRiskMultiplier;
+                }
+                return Math.max(this.CONFIG.baseDailyRisk * 0.25, Math.min(this.CONFIG.maxDailyRisk, risk));
+            },
+
+            _weightedChoice(items, weightFn) {
+                const total = items.reduce((sum, item) => sum + Math.max(0, weightFn(item)), 0);
+                if (total <= 0) return items[0] || null;
+                let roll = Math.random() * total;
+                for (const item of items) {
+                    roll -= Math.max(0, weightFn(item));
+                    if (roll <= 0) return item;
+                }
+                return items[items.length - 1] || null;
+            },
+
+            _createFault(plane) {
+                const company = Player.company;
+                const typeKeys = Object.keys(this.TYPES);
+                const typeKey = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+                const typeProfile = this.TYPE_PROFILES[typeKey] || this.TYPE_PROFILES.other;
+                const severity = this._weightedChoice(Object.keys(this.SEVERITIES), key => typeProfile.severityWeights[key] || 1);
+                const severityDef = this.SEVERITIES[severity];
+                const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
+                const baseDays = severityDef.minDays + Math.floor(Math.random() * (severityDef.maxDays - severityDef.minDays + 1));
+                const days = Math.max(1, Math.round(baseDays * typeProfile.repairDaysMultiplier));
+                const groundingRequired = severity !== 'minor' || Math.random() < 0.25;
+                const basePrice = Math.max(1000000000, Number(acDef?.price) || 1000000000);
+                const repairCostEstimate = Math.round(basePrice * severityDef.costRate * (0.75 + Math.random() * 0.5));
+                const now = new Date().toISOString();
+                let faultId;
+                do {
+                    faultId = `FLT-${Date.now().toString(36)}-${company.faultRecords.length.toString(36)}-${Math.floor(Math.random()*0xFFFFFF).toString(36)}`;
+                } while (company.faultRecords.some(r => r && r.faultId === faultId));
+
+                const record = {
+                    faultId,
+                    aircraftReg: plane.reg,
+                    aircraftType: plane.typeId,
+                    faultType: typeKey,
+                    severity,
+                    description: this.TYPES[typeKey].description,
+                    detectedDate: company.date,
+                    status: 'waiting_repair',
+                    repairStartDate: null,
+                    repairEndDate: null,
+                    completedAt: null,
+                    repairCostEstimate,
+                    repairDaysEstimate: days,
+                    groundingRequired,
+                    createdAt: now,
+                    updatedAt: now
+                };
+                company.faultRecords.unshift(record);
+                this.syncAircraftStatus(plane.reg);
+                Logic.addNews(`【航空機故障】${plane.reg}で${this.TYPES[typeKey].name}の不具合が発生しました（${this.SEVERITIES[severity].name}）。`, severity === 'major' ? 'error' : 'warning');
+                return record;
+            },
+
+            processDaily() {
+                this.ensureData();
+                this.updateRepairStatuses();
+                const company = Player?.company;
+                if (!company || !Array.isArray(company.faultRecords)) return null;
+                // 日付単位で1回だけ判定し、同じ日の重複呼び出しによる連続故障を防ぐ。
+                if (company.lastFaultCheckDate === company.date) return null;
+                company.lastFaultCheckDate = company.date;
+                const fleet = company.fleet || [];
+                fleet.forEach(plane => this.syncAircraftStatus(plane.reg));
+                const candidates = fleet.filter(plane => this.getActiveRecords(plane.reg).length === 0);
+                if (!candidates.length) return null;
+
+                const risks = candidates.map(plane => ({ plane, risk: this.calculateDailyRisk(plane) }));
+                const combinedRisk = 1 - risks.reduce((remaining, item) => remaining * (1 - item.risk), 1);
+                if (Math.random() >= combinedRisk) return null;
+
+                const chosen = this._weightedChoice(risks, item => item.risk);
+                if (!chosen) return null;
+                const record = this._createFault(chosen.plane);
+                return record;
+            },
+
+            updateRepairStatuses() {
+                const today = Player?.company?.date;
+                if (!today) return;
+                (Array.isArray(Player.company.faultRecords) ? Player.company.faultRecords : []).forEach(record => {
+                    if (record && record.status === 'repairing' && record.repairEndDate && today >= record.repairEndDate) {
+                        record.status = 'repair_due';
+                        record.updatedAt = new Date().toISOString();
+                        Logic.addNews(`【修理予定日】${record.aircraftReg}の修理予定日を迎えました。修理完了を確認してください。`, 'info');
+                        this.syncAircraftStatus(record.aircraftReg);
+                    }
+                });
+            },
+
+            startRepair(faultId) {
+                const record = (Array.isArray(Player?.company?.faultRecords) ? Player.company.faultRecords : []).find(r => r && r.faultId === faultId);
+                if (!record || record.status !== 'waiting_repair') {
+                    UI.showToast('修理を開始できる故障記録ではありません。', 'error');
+                    return;
+                }
+                const snapshot = JSON.stringify(Player);
+                const severity = this.SEVERITIES[record.severity] || this.SEVERITIES.minor;
+                const days = Math.max(1, Number(record.repairDaysEstimate) || (severity.minDays + severity.maxDays) / 2);
+                record.repairStartDate = Player.company.date;
+                record.repairEndDate = this._addDays(Player.company.date, days);
+                record.status = 'repairing';
+                record.updatedAt = new Date().toISOString();
+                Logic.addNews(`【修理開始】${record.aircraftReg}の${this.TYPES[record.faultType]?.name || '故障'}の修理を開始しました。`, 'info');
+                this.syncAircraftStatus(record.aircraftReg);
+                if (!Game.saveData(true)) {
+                    Player = JSON.parse(snapshot);
+                    Views.renderFaults();
+                    UI.showToast('修理開始の保存に失敗しました。変更は取り消されました。', 'error');
+                    return;
+                }
+                UI.hideModal();
+                UI.showToast(`${record.aircraftReg}の修理を開始しました。`, 'success');
+                Views.renderFaults();
+                Views.renderFleet();
+                if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
+            },
+
+            completeRepair(faultId) {
+                const record = (Array.isArray(Player?.company?.faultRecords) ? Player.company.faultRecords : []).find(r => r && r.faultId === faultId);
+                if (!record || record.status !== 'repair_due') {
+                    UI.showToast('修理完了予定日を迎えた故障記録のみ完了できます。', 'error');
+                    return;
+                }
+                const snapshot = JSON.stringify(Player);
+                record.status = 'completed';
+                record.completedAt = Player.company.date;
+                record.updatedAt = new Date().toISOString();
+                Logic.addNews(`【修理完了】${record.aircraftReg}の修理が完了しました。`, 'success');
+                this.syncAircraftStatus(record.aircraftReg);
+                if (!Game.saveData(true)) {
+                    Player = JSON.parse(snapshot);
+                    Views.renderFaults();
+                    UI.showToast('修理完了の保存に失敗しました。変更は取り消されました。', 'error');
+                    return;
+                }
+                UI.hideModal();
+                UI.showToast(`${record.aircraftReg}の修理を完了しました。`, 'success');
+                Views.renderFaults();
+                Views.renderFleet();
+                if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
+            },
+
+            _addDays(dateStr, days) {
+                const [y,m,d] = dateStr.split('-').map(Number);
+                const date = new Date(Date.UTC(y, m-1, d));
+                date.setUTCDate(date.getUTCDate() + days);
+                return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,'0')}-${String(date.getUTCDate()).padStart(2,'0')}`;
+            }
+        };
+
+        // ==========================================
+        // Rotation System 
+        // ==========================================
         const RotationSystem = {
             DAY_MAP: ['日','月','火','水','木','金','土'],
             
@@ -1321,6 +1624,7 @@
                 if(id === 'view-finance') Views.renderFinance();
                 if(id === 'view-competitors') Views.renderCompetitors();
                 if(id === 'view-rotation') Views.renderRotation();
+                if(id === 'view-faults') Views.renderFaults();
             },
             showModal(title, msg, contentHtml = null, btnsHtml = null) {
                 document.getElementById('modal-title').textContent = title;
@@ -1406,7 +1710,7 @@
                 this._logCapitalExpense(cost, isLease ? "リース初期費用" : "機材購入費");
                 const reg = Utils.genRegNum();
                 Player.company.fleet.push({
-                    reg: reg, typeId: ac.id, status: 'idle', routeId: null, isLeased: isLease, age: 0, stats: { flights: 0, pax: 0, rev: 0 }
+                    reg: reg, typeId: ac.id, status: 'idle', routeId: null, isLeased: isLease, age: 0, acquiredDate: Player.company.date, stats: { flights: 0, flightHours: 0, pax: 0, rev: 0 }
                 });
                 const t = isLease ? "リース契約" : "購入";
                 Player.history.unshift({ date: Player.company.date, msg: `${ac.name} (${reg}) を${t}しました。` });
@@ -1496,6 +1800,10 @@
                 }
                 const plane = Player.company.fleet.find(f => f.reg === reg);
                 if (!plane) { UI.showToast("指定された機体が見つかりません", "error"); return; }
+                if (!FaultSystem.isAircraftOperational(reg)) {
+                    UI.showToast(`機材 ${reg} は故障または整備のため運航できません。`, "error");
+                    return;
+                }
                 const acDef = GameData.Aircrafts.find(a => a.id === plane.typeId);
                 if (!acDef) { UI.showToast("機体のマスターデータに異常があります", "error"); return; }
                 if (plane.routeId && plane.routeId !== routeId) { UI.showToast("既に別路線に割り当てられています", "error"); return; }
@@ -1772,6 +2080,8 @@
                         if (document.getElementById('view-finance').classList.contains('active')) Views.renderFinance();
                         if (document.getElementById('view-competitors').classList.contains('active')) Views.renderCompetitors();
                         if (document.getElementById('view-fleet').classList.contains('active')) Views.renderFleet();
+                        if (document.getElementById('view-faults').classList.contains('active')) Views.renderFaults();
+                        if (document.getElementById('view-rotation').classList.contains('active')) Views.renderRotation();
                     }
                     Game.saveData(true);
                 }
@@ -1791,6 +2101,9 @@
                 const dateParts = Player.company.date.split('-').map(Number);
                 let y = dateParts[0], m = dateParts[1], d = dateParts[2];
                 const daysInMonth = new Date(y, m, 0).getDate();
+
+                // 故障発生・修理予定日の更新は、その日の運航計算より前に行う。
+                FaultSystem.processDaily();
 
                 const isAIEnabled = (Player.settings?.competitionEnabled ?? true);
                 const allCompanies = [Player.company];
@@ -1815,15 +2128,20 @@
                         let assignedRoute = null;
                         if (f.routeId) {
                             assignedRoute = comp.routes.find(r => r.id === f.routeId);
-                            if (assignedRoute && assignedRoute.assignedReg === f.reg && ac.range >= assignedRoute.distance) {
+                            if (assignedRoute && assignedRoute.assignedReg === f.reg && ac.range >= assignedRoute.distance &&
+                                (comp !== Player.company || FaultSystem.isAircraftOperational(f.reg))) {
                                 canFly = true;
-                            } else {
+                            } else if (!assignedRoute || assignedRoute.assignedReg !== f.reg || ac.range < assignedRoute.distance) {
                                 f.routeId = null;
                                 if (assignedRoute && assignedRoute.assignedReg === f.reg) assignedRoute.assignedReg = null;
                             }
                         }
 
-                        f.status = canFly ? 'active' : 'idle';
+                        if (comp === Player.company && !FaultSystem.isAircraftOperational(f.reg)) {
+                            f.status = 'grounded';
+                        } else {
+                            f.status = canFly ? 'active' : 'idle';
+                        }
 
                         if (f.isLeased) {
                             const lCost = ac.leaseDaily || 0;
@@ -1919,7 +2237,9 @@
                         mr.route.stats.costBreakdown.maint += rMaint;
                         mr.route.stats.costBreakdown.lease += rLease;
 
-                        mr.plane.stats.flights += mr.dailyFlights; 
+                        mr.plane.stats.flights += mr.dailyFlights;
+                        mr.plane.stats.flightHours = (Number(mr.plane.stats.flightHours) || 0) +
+                            ((mr.route.distance / Math.max(1, mr.ac.speed || 1)) * mr.dailyFlights);
                         mr.plane.stats.pax += rPax; 
                         mr.plane.stats.rev += rRev;
 
@@ -2115,7 +2435,7 @@
                             const reg = Utils.genRegNum(ai.iata);
                             const routeId = [ai.hq, target.id].sort().join('-');
                             
-                            ai.fleet.push({ reg: reg, typeId: acDef.id, status: 'active', routeId: routeId, isLeased: true, age: 0, stats: { flights:0, pax:0, rev:0 } });
+                            ai.fleet.push({ reg: reg, typeId: acDef.id, status: 'active', routeId: routeId, isLeased: true, age: 0, acquiredDate: Player.company.date, stats: { flights:0, flightHours:0, pax:0, rev:0 } });
                             ai.routes.push({
                                 id: routeId, from: ai.hq, to: target.id, distance: dist, assignedReg: reg, fareMult: 1.0,
                                 stats: { flights:0, pax:0, rev:0, profit:0, costBreakdown:{fuel:0,airport:0,maint:0,lease:0}, lastLf:0, lastPax:0, lastRev:0, lastCost:{fuel:0,airport:0,maint:0,lease:0}, lastProfit:0, lastFlights:0, lfHistory:[] }
@@ -2138,6 +2458,7 @@
             fleetStoreState: { maker: '', cat: '', sort: 'price', search: '' },
             scheduleState: { company: 'player', search: '', origin: '', dest: '', day: '', status: '', sort: 'depTime' },
             maintState: { search: '', status: '' },
+            faultState: { search: '', type: '', severity: '', status: '', sort: 'detected_desc' },
 
             renderFleet() {
                 const c = document.getElementById('fleet-list-container'); c.innerHTML = '';
@@ -2145,10 +2466,17 @@
                 Player.company.fleet.forEach(f => {
                     const ac = GameData.Aircrafts.find(a => a.id === f.typeId); const isFlying = f.status === 'active';
                     const mStatus = MaintenanceSystem.getAircraftStatus(f.reg);
-                    let mBadge = '';
-                    if (mStatus.code === 'scheduled') mBadge = '<span class="badge badge-maint-scheduled">整備予定</span>';
-                    else if (mStatus.code === 'in_progress') mBadge = '<span class="badge badge-maint-progress">整備中</span>';
-                    else if (mStatus.code === 'needs_check') mBadge = '<span class="badge badge-maint-check">要確認</span>';
+                    const faultStatus = FaultSystem.getAircraftStatus(f.reg);
+                    const operational = FaultSystem.isAircraftOperational(f.reg);
+                    const statusBadges = [];
+                    if (faultStatus.code !== 'normal' && faultStatus.code !== 'completed') {
+                        statusBadges.push(`<span class="badge" style="background:var(--col-danger);color:white;">${faultStatus.text}</span>`);
+                    }
+                    if (!operational) statusBadges.push('<span class="badge" style="background:var(--col-danger);color:white;">運航不可</span>');
+                    if (mStatus.code === 'scheduled') statusBadges.push('<span class="badge badge-maint-scheduled">整備予定</span>');
+                    else if (mStatus.code === 'in_progress') statusBadges.push('<span class="badge badge-maint-progress">整備中</span>');
+                    else if (mStatus.code === 'needs_check') statusBadges.push('<span class="badge badge-maint-check">要確認</span>');
+                    const mBadge = statusBadges.join('');
                     
                     c.innerHTML += `
                         <div class="card">
@@ -2275,6 +2603,109 @@
                 });
             },
             
+            renderFaults() {
+                FaultSystem.ensureData();
+                this.updateFaultGrid();
+            },
+
+            resetFaultFilters() {
+                this.faultState = { search: '', type: '', severity: '', status: '', sort: 'detected_desc' };
+                ['fault-filter-reg','fault-filter-type','fault-filter-severity','fault-filter-status'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.value = '';
+                });
+                const sort = document.getElementById('fault-filter-sort'); if (sort) sort.value = 'detected_desc';
+                this.updateFaultGrid();
+            },
+
+            updateFaultGrid() {
+                const body = document.getElementById('fault-table-body');
+                if (!body || !Player?.company) return;
+                FaultSystem.ensureData();
+                const records = Array.isArray(Player.company.faultRecords) ? Player.company.faultRecords : [];
+                const fleet = Player.company.fleet || [];
+                const validRecords = records.filter(r => r && typeof r === 'object');
+                const activeAircraft = new Set(validRecords.filter(r => r.status !== 'completed').map(r => r.aircraftReg));
+                document.getElementById('fault-stat-total').textContent = fleet.length;
+                document.getElementById('fault-stat-aircraft').textContent = activeAircraft.size;
+                document.getElementById('fault-stat-waiting').textContent = validRecords.filter(r => r.status === 'waiting_repair').length;
+                document.getElementById('fault-stat-repairing').textContent = validRecords.filter(r => r.status === 'repairing' || r.status === 'repair_due').length;
+                document.getElementById('fault-stat-completed').textContent = validRecords.filter(r => r.status === 'completed').length;
+
+                const state = this.faultState;
+                let filtered = validRecords.filter(r => {
+                    const plane = fleet.find(f => f.reg === r.aircraftReg);
+                    const ac = GameData.Aircrafts.find(a => a.id === (plane?.typeId || r.aircraftType));
+                    const searchText = `${r.aircraftReg || ''} ${ac?.name || r.aircraftType || ''}`.toLowerCase();
+                    if (state.search && !searchText.includes(state.search.toLowerCase())) return false;
+                    if (state.type && r.faultType !== state.type) return false;
+                    if (state.severity && r.severity !== state.severity) return false;
+                    if (state.status && r.status !== state.status) return false;
+                    return true;
+                });
+                if (state.sort === 'detected_asc') filtered.sort((a,b) => String(a.detectedDate || '').localeCompare(String(b.detectedDate || '')));
+                else if (state.sort === 'repair_asc') filtered.sort((a,b) => String(a.repairEndDate || '9999-99-99').localeCompare(String(b.repairEndDate || '9999-99-99')));
+                else filtered.sort((a,b) => String(b.detectedDate || '').localeCompare(String(a.detectedDate || '')));
+
+                if (!filtered.length) {
+                    body.innerHTML = '<tr><td colspan="10" class="text-center text-muted">条件に該当する故障記録はありません。</td></tr>';
+                    return;
+                }
+                body.innerHTML = filtered.map(r => {
+                    const plane = fleet.find(f => f.reg === r.aircraftReg);
+                    const ac = GameData.Aircrafts.find(a => a.id === (plane?.typeId || r.aircraftType));
+                    const sev = FaultSystem.SEVERITIES[r.severity];
+                    const type = FaultSystem.TYPES[r.faultType];
+                    const statusNames = { waiting_repair: '修理待ち', repairing: '修理中', repair_due: '修理完了待ち', completed: '修理完了' };
+                    const statusColor = r.status === 'completed' ? 'var(--col-success)' : (r.status === 'repairing' || r.status === 'repair_due' ? 'var(--col-primary)' : 'var(--col-danger)');
+                    const severityColor = r.severity === 'major' ? 'var(--col-danger)' : (r.severity === 'moderate' ? 'var(--col-warning)' : 'var(--col-text-muted)');
+                    return `<tr>
+                        <td class="font-bold" style="font-size:0.78rem;">${r.faultId}</td>
+                        <td class="font-bold text-primary">${r.aircraftReg}</td>
+                        <td>${ac?.name || r.aircraftType || '-'}</td>
+                        <td>${type?.name || r.faultType}</td>
+                        <td><span class="badge" style="background:${severityColor};color:white;">${sev?.name || r.severity}</span></td>
+                        <td style="font-family:monospace;">${r.detectedDate || '-'}</td>
+                        <td><span class="badge" style="background:${statusColor};color:white;">${statusNames[r.status] || r.status}</span></td>
+                        <td style="font-family:monospace;">${r.repairEndDate || '-'}</td>
+                        <td>${Utils.formatMoney(r.repairCostEstimate || 0)}</td>
+                        <td><button class="btn btn-sm btn-outline" onclick="Views.showFaultDetails('${r.faultId}')">詳細</button></td>
+                    </tr>`;
+                }).join('');
+            },
+
+            showFaultDetails(faultId) {
+                const r = (Array.isArray(Player?.company?.faultRecords) ? Player.company.faultRecords : []).find(x => x && x.faultId === faultId);
+                if (!r) return;
+                const plane = Player.company.fleet.find(f => f.reg === r.aircraftReg);
+                const ac = GameData.Aircrafts.find(a => a.id === (plane?.typeId || r.aircraftType));
+                const type = FaultSystem.TYPES[r.faultType] || { name: r.faultType, description: '' };
+                const sev = FaultSystem.SEVERITIES[r.severity] || { name: r.severity };
+                const statusNames = { waiting_repair: '修理待ち', repairing: '修理中', repair_due: '修理完了待ち', completed: '修理完了' };
+                const related = (Player.company.maintenanceRecords || []).filter(m => m.aircraftReg === r.aircraftReg).sort((a,b) => String(b.startDate || '').localeCompare(String(a.startDate || '')));
+                const relatedHtml = related.length ? related.map(m => `<div class="card-row" style="font-size:0.82rem;"><span>${m.title || m.maintenanceType || '整備'}</span><span>${m.startDate || '-'}〜${m.endDate || '-'}（${m.status || '-'}）</span></div>`).join('') : '<div class="text-muted" style="font-size:0.85rem;">関連する整備記録はありません。</div>';
+                let buttons = '<button class="btn btn-outline" onclick="UI.hideModal()">閉じる</button>';
+                if (r.status === 'waiting_repair') buttons = `<button class="btn btn-outline" onclick="UI.hideModal()">閉じる</button><button class="btn" onclick="FaultSystem.startRepair('${r.faultId}')">修理を開始</button>`;
+                else if (r.status === 'repair_due') buttons = `<button class="btn btn-outline" onclick="UI.hideModal()">閉じる</button><button class="btn" onclick="FaultSystem.completeRepair('${r.faultId}')">修理完了を確認</button>`;
+                const grounding = r.groundingRequired ? '運航停止対象' : '軽微なため運航継続可能（他の故障・整備状態による）';
+                const html = `
+                    <div class="card-row"><span class="text-muted">対象機材</span><b>${r.aircraftReg} / ${ac?.name || r.aircraftType}</b></div>
+                    <div class="card-row"><span class="text-muted">故障ID</span><span>${r.faultId}</span></div>
+                    <div class="card-row"><span class="text-muted">カテゴリー</span><b>${type.name}</b></div>
+                    <div class="card-row"><span class="text-muted">重大度</span><b>${sev.name}</b></div>
+                    <div class="card-row"><span class="text-muted">故障内容</span><span>${r.description || type.description}</span></div>
+                    <div class="card-row"><span class="text-muted">発生日</span><span>${r.detectedDate || '-'}</span></div>
+                    <div class="card-row"><span class="text-muted">修理状態</span><b>${statusNames[r.status] || r.status}</b></div>
+                    <div class="card-row"><span class="text-muted">運航制限</span><span>${grounding}</span></div>
+                    <div class="card-row"><span class="text-muted">修理開始日</span><span>${r.repairStartDate || '-'}</span></div>
+                    <div class="card-row"><span class="text-muted">修理完了予定日</span><span>${r.repairEndDate || '-'}</span></div>
+                    <div class="card-row"><span class="text-muted">修理完了日</span><span>${r.completedAt || '-'}</span></div>
+                    <div class="card-row"><span class="text-muted">修理費用参考額</span><b>${Utils.formatMoney(r.repairCostEstimate || 0)}</b></div>
+                    <p class="text-muted" style="font-size:0.78rem;margin-top:8px;">※修理費用は参考額です。今回のバージョンでは資金から控除しません。</p>
+                    <hr style="border:0;border-top:1px solid var(--panel-border);margin:12px 0;">
+                    <div class="font-bold" style="margin-bottom:7px;">関連する整備記録</div>${relatedHtml}`;
+                UI.showModal('航空機故障の詳細', '', html, buttons);
+            },
+
             showMaintenanceDetails(reg) {
                 const f = Player.company.fleet.find(x => x.reg === reg);
                 if (!f) return;
@@ -2283,6 +2714,7 @@
                 const acName = acDef ? acDef.name : f.typeId;
                 const st = MaintenanceSystem.getAircraftStatus(reg);
                 const mRecords = (Player.company.maintenanceRecords || []).filter(m => m.aircraftReg === reg).sort((a,b)=>b.startDate.localeCompare(a.startDate));
+                const relatedFaults = (Array.isArray(Player.company.faultRecords) ? Player.company.faultRecords : []).filter(r => r && r.aircraftReg === reg).sort((a,b) => String(b.detectedDate || '').localeCompare(String(a.detectedDate || '')));
                 
                 let badge = '<span class="badge badge-maint-normal" style="font-size:1rem; padding:4px 10px;">正常</span>';
                 if (st.code === 'scheduled') badge = '<span class="badge badge-maint-scheduled" style="font-size:1rem; padding:4px 10px;">整備予定</span>';
@@ -2328,6 +2760,16 @@
                     });
                 }
                 
+                const faultHistoryHtml = relatedFaults.length ? relatedFaults.map(r => {
+                    const type = FaultSystem.TYPES[r.faultType];
+                    const severity = FaultSystem.SEVERITIES[r.severity];
+                    const state = { waiting_repair:'修理待ち', repairing:'修理中', repair_due:'修理完了待ち', completed:'修理完了' }[r.status] || r.status;
+                    return `<div class="card-row" style="font-size:0.82rem;padding:6px 0;border-bottom:1px solid var(--panel-border);">
+                        <span><b>${type?.name || r.faultType}</b> / ${severity?.name || r.severity}<br><span class="text-muted">${r.detectedDate || '-'} ・ ${state}</span></span>
+                        <button class="btn btn-sm btn-outline" onclick="Views.showFaultDetails('${r.faultId}')">故障詳細</button>
+                    </div>`;
+                }).join('') : '<div class="text-muted" style="font-size:0.85rem;">故障記録はありません。</div>';
+
                 let html = `
                     <div class="card" style="margin-bottom:15px;">
                         <div class="card-header">
@@ -2344,6 +2786,10 @@
                         <div class="card-body" style="max-height:300px; overflow-y:auto; padding:10px;">
                             ${recHtml}
                         </div>
+                    </div>
+                    <div class="card" style="margin-top:12px;">
+                        <div class="card-header">関連する故障記録</div>
+                        <div class="card-body" style="max-height:220px;overflow-y:auto;padding:10px;">${faultHistoryHtml}</div>
                     </div>
                 `;
                 
@@ -2528,12 +2974,15 @@
                     const lfHtml = Utils.getLoadFactorBadgeHtml(st.lastLf || 0);
                     const stdFare = Utils.getStandardFare(r.distance);
                     const fareMult = r.fareMult || 1.0; const actualFare = Math.floor(stdFare * fareMult);
+                    const assignedPlane = r.assignedReg ? Player.company.fleet.find(f => f.reg === r.assignedReg) : null;
+                    const assignedWarning = assignedPlane && !FaultSystem.isAircraftOperational(assignedPlane.reg)
+                        ? '<span class="badge" style="background:var(--col-danger);color:white;margin-left:5px;">運航不可</span>' : '';
 
                     tb.innerHTML += `
                         <tr>
                             <td class="font-bold"><a href="#" onclick="Views.showRouteDetails('${r.id}')" style="color:var(--col-primary);">${r.id}</a></td>
                             <td>${r.distance} km</td>
-                            <td>${r.assignedReg || '<span class="text-muted">未割り当て</span>'}</td>
+                            <td>${r.assignedReg || '<span class="text-muted">未割り当て</span>'} ${assignedWarning}</td>
                             <td><span class="${fareMult>1.0?'text-danger':(fareMult<1.0?'text-success':'')}">${actualFare.toLocaleString()}円 (${Math.round(fareMult*100)}%)</span></td>
                             <td>${lfHtml}</td>
                             <td class="${profClass} font-bold">${Utils.formatMoney(lastProfit)}</td>
@@ -2554,7 +3003,7 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="card-row"><span>割当機材</span><span>${r.assignedReg || '未割当'}</span></div>
+                                <div class="card-row"><span>割当機材</span><span>${r.assignedReg || '未割当'} ${assignedWarning}</span></div>
                                 <div class="card-row"><span>運賃設定</span><span>${actualFare.toLocaleString()}円 (${Math.round(fareMult*100)}%)</span></div>
                                 <div class="card-row"><span>直近LF / 利益</span><span>${lfHtml} <span class="${profClass}">${Utils.formatMoney(lastProfit)}</span></span></div>
                             </div>
@@ -3082,6 +3531,8 @@
                 const rot = RotationSystem.checkRotationBySchedules(reg, Player.company.schedules);
                 
                 const mSt = MaintenanceSystem.getAircraftStatus(reg);
+                const faultSt = FaultSystem.getAircraftStatus(reg);
+                const aircraftOperational = FaultSystem.isAircraftOperational(reg);
                 
                 let statusBadge = '';
                 if (rot.status === '成立') statusBadge = '<span class="badge badge-active" style="font-size:1rem; padding: 4px 10px;">成立</span>';
@@ -3089,9 +3540,15 @@
                 else if (rot.status === '不成立') statusBadge = '<span class="badge" style="background:var(--col-danger);color:white;font-size:1rem; padding: 4px 10px;">不成立</span>';
                 else statusBadge = '<span class="badge badge-idle" style="font-size:1rem; padding: 4px 10px;">便なし</span>';
 
+                if (!aircraftOperational) statusBadge = '<span class="badge" style="background:var(--col-danger);color:white;font-size:1rem;padding:4px 10px;">故障・整備により運航不可</span>';
+
                 let mInfoHtml = '';
+                if (faultSt.code !== 'normal' && faultSt.code !== 'completed') {
+                    const faultNames = (faultSt.activeRecords || []).map(r => `${FaultSystem.TYPES[r.faultType]?.name || r.faultType}（${FaultSystem.SEVERITIES[r.severity]?.name || r.severity}・${r.status}）`).join('、');
+                    mInfoHtml += `<div style="background:rgba(239,68,68,0.10);border:1px solid var(--col-danger);padding:10px;margin:10px 0;border-radius:8px;"><div class="text-danger font-bold">⚠️ 故障情報：${faultSt.text}</div><div style="font-size:0.85rem;margin-top:5px;">${faultNames}</div><div class="text-danger" style="font-size:0.8rem;margin-top:5px;">この機材の故障・整備状態を確認してください。</div></div>`;
+                }
                 if (mSt.code === 'scheduled' || mSt.code === 'in_progress') {
-                    mInfoHtml = `
+                    mInfoHtml += `
                         <hr style="border:0; border-top:1px solid var(--panel-border); margin:10px 0;">
                         <div class="font-bold" style="margin-bottom:5px;">整備予定情報</div>
                         <div class="card-row text-muted" style="font-size:0.85rem;"><span>現在の状態</span><span><b class="text-warning">${mSt.text}</b></span></div>
@@ -3496,24 +3953,32 @@
         const MapSystem = {
             svg: null, tGroup: null, 
             scale: 1, minScale: 0.5, maxScale: 8,
-            panX: 0, panY: 0, 
+            panX: 0, panY: 0,
             isDragging: false, startX: 0, startY: 0, selectedAp: null,
+            activeTouchPointers: new Map(), pinchStartDistance: 0, pinchStartScale: 1,
+            pinchAnchorX: 0, pinchAnchorY: 0, pinchMapX: 0, pinchMapY: 0,
             baseW: 1000, baseH: 1000,
 
             init() {
                 this.svg = document.getElementById('map-svg'); this.tGroup = document.getElementById('map-transform-group');
                 this.drawJapanOutline(); this.drawAirports();
-                
+
                 this.svg.addEventListener('mousedown', e => this.startDrag(e));
                 window.addEventListener('mousemove', e => this.drag(e));
                 window.addEventListener('mouseup', () => this.endDrag());
                 this.svg.addEventListener('wheel', e => this.zoomWheel(e), {passive: false});
 
-                this.svg.addEventListener('touchstart', e => this.startDragTouch(e), {passive: false});
-                window.addEventListener('touchmove', e => this.dragTouch(e), {passive: false});
-                window.addEventListener('touchend', () => this.endDrag());
+                // Touch-only Pointer Events: mouse操作と既存の空港クリックを維持しつつ、
+                // 1本指パンと2本指ピンチを同じ座標系で管理する。
+                this.svg.addEventListener('pointerdown', e => this.pointerDown(e));
+                this.svg.addEventListener('pointermove', e => this.pointerMove(e));
+                this.svg.addEventListener('pointerup', e => this.pointerEnd(e));
+                this.svg.addEventListener('pointercancel', e => this.pointerEnd(e));
+                this.svg.addEventListener('lostpointercapture', e => this.pointerEnd(e));
 
-                window.addEventListener('resize', () => { if(document.getElementById('view-map').classList.contains('active')) this.updateTransform(); });
+                window.addEventListener('resize', () => {
+                    if (document.getElementById('view-map').classList.contains('active')) this.updateTransform();
+                });
                 setTimeout(() => this.resetView(), 100);
             },
             
@@ -3594,10 +4059,15 @@
                 const bW = svgRect.width, bH = svgRect.height;
                 const scaledW = this.baseW * this.scale; const scaledH = this.baseH * this.scale;
 
-                let minX = bW - scaledW; let minY = bH - scaledH;
-                if (minX > 0) minX = (bW - scaledW) / 2;
-                if (minY > 0) minY = (bH - scaledH) / 2;
-                let maxX = minX > 0 ? minX : 0; let maxY = minY > 0 ? minY : 0;
+                // 拡大時は画面サイズの35%分の余白を追加し、地図端の先まで動かせるようにする。
+                // 縮小時は従来どおり地図全体が画面内に残る中央配置を維持する。
+                const marginX = bW * 0.35;
+                const marginY = bH * 0.35;
+                let minX, maxX, minY, maxY;
+                if (scaledW <= bW) minX = maxX = (bW - scaledW) / 2;
+                else { minX = bW - scaledW - marginX; maxX = marginX; }
+                if (scaledH <= bH) minY = maxY = (bH - scaledH) / 2;
+                else { minY = bH - scaledH - marginY; maxY = marginY; }
 
                 this.panX = Math.max(minX, Math.min(maxX, this.panX));
                 this.panY = Math.max(minY, Math.min(maxY, this.panY));
@@ -3649,9 +4119,82 @@
 
             startDrag(e) { if(e.target.closest('.map-controls') || e.target.closest('.airport-marker')) return; this.isDragging = true; this.startX = e.clientX - this.panX; this.startY = e.clientY - this.panY; this.svg.classList.add('dragging'); },
             drag(e) { if (!this.isDragging) return; this.panX = e.clientX - this.startX; this.panY = e.clientY - this.startY; this.updateTransform(); },
-            startDragTouch(e) { if(e.target.closest('.map-controls') || e.target.closest('.airport-marker') || e.touches.length > 1) return; e.preventDefault(); this.isDragging = true; this.startX = e.touches[0].clientX - this.panX; this.startY = e.touches[0].clientY - this.panY; },
-            dragTouch(e) { if (!this.isDragging || e.touches.length > 1) return; e.preventDefault(); this.panX = e.touches[0].clientX - this.startX; this.panY = e.touches[0].clientY - this.startY; this.updateTransform(); },
-            endDrag() { this.isDragging = false; this.svg.classList.remove('dragging'); }
+            endDrag() { this.isDragging = false; if (this.svg) this.svg.classList.remove('dragging'); },
+
+            _touchPoint(e) {
+                const rect = this.svg.getBoundingClientRect();
+                return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            },
+            _distanceBetween(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); },
+            _midpointBetween(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; },
+            _resetTouchGesture() {
+                const points = Array.from(this.activeTouchPointers.values());
+                if (points.length >= 2) {
+                    const a = points[0], b = points[1];
+                    const mid = this._midpointBetween(a, b);
+                    this.pinchStartDistance = Math.max(1, this._distanceBetween(a, b));
+                    this.pinchStartScale = this.scale;
+                    this.pinchAnchorX = mid.x;
+                    this.pinchAnchorY = mid.y;
+                    this.pinchMapX = (mid.x - this.panX) / this.scale;
+                    this.pinchMapY = (mid.y - this.panY) / this.scale;
+                    this.isDragging = false;
+                    this.svg.classList.remove('dragging');
+                } else if (points.length === 1) {
+                    this.isDragging = true;
+                    this.startX = points[0].x - this.panX;
+                    this.startY = points[0].y - this.panY;
+                    this.svg.classList.add('dragging');
+                } else {
+                    this.isDragging = false;
+                    this.svg.classList.remove('dragging');
+                }
+            },
+            pointerDown(e) {
+                if (e.pointerType !== 'touch') return;
+                if (e.target.closest('.map-controls')) return;
+                e.preventDefault();
+                const point = this._touchPoint(e);
+                this.activeTouchPointers.set(e.pointerId, point);
+                // マーカー上の単指タップはPointer Captureを行わず、既存click/selectAirportに任せる。
+                if (this.activeTouchPointers.size === 1 && e.target.closest('.airport-marker')) {
+                    this.touchStartedOnMarker = true;
+                    return;
+                }
+                this.touchStartedOnMarker = false;
+                // ピンチ開始時は両方の指を捕捉し、SVG外へ指が動いても追跡を継続する。
+                for (const pointerId of this.activeTouchPointers.keys()) {
+                    try { this.svg.setPointerCapture(pointerId); } catch (_) {}
+                }
+                this._resetTouchGesture();
+            },
+            pointerMove(e) {
+                if (e.pointerType !== 'touch' || !this.activeTouchPointers.has(e.pointerId)) return;
+                e.preventDefault();
+                this.activeTouchPointers.set(e.pointerId, this._touchPoint(e));
+                const points = Array.from(this.activeTouchPointers.values());
+                if (points.length >= 2) {
+                    const a = points[0], b = points[1];
+                    const mid = this._midpointBetween(a, b);
+                    const distance = Math.max(1, this._distanceBetween(a, b));
+                    const nextScale = Math.max(this.minScale, Math.min(this.maxScale, this.pinchStartScale * (distance / this.pinchStartDistance)));
+                    this.scale = nextScale;
+                    this.panX = mid.x - this.pinchMapX * nextScale;
+                    this.panY = mid.y - this.pinchMapY * nextScale;
+                    this.updateTransform();
+                } else if (points.length === 1 && this.isDragging && !this.touchStartedOnMarker) {
+                    this.panX = points[0].x - this.startX;
+                    this.panY = points[0].y - this.startY;
+                    this.updateTransform();
+                }
+            },
+            pointerEnd(e) {
+                if (e.pointerType !== 'touch' || !this.activeTouchPointers.has(e.pointerId)) return;
+                this.activeTouchPointers.delete(e.pointerId);
+                try { if (this.svg.hasPointerCapture(e.pointerId)) this.svg.releasePointerCapture(e.pointerId); } catch (_) {}
+                if (this.activeTouchPointers.size === 0) this.touchStartedOnMarker = false;
+                this._resetTouchGesture();
+            }
         };
 
         // ==========================================
@@ -3709,7 +4252,7 @@
                     company: {
                         name: name, iata: iata, icao: icao, color: color, hq: hq,
                         date: GameData.START_DATE, funds: GameData.START_FUNDS,
-                        fleet: [], routes: [], schedules: [], maintenanceRecords: [],
+                        fleet: [], routes: [], schedules: [], maintenanceRecords: [], faultRecords: [],
                         finances: {
                             today: Logic._resetFinanceObject(),
                             thisMonth: Logic._resetFinanceObject(),
@@ -3731,7 +4274,7 @@
                             color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
                             date: GameData.START_DATE,
                             funds: GameData.START_FUNDS * (diff === 'hard' ? 2.5 : (diff === 'easy' ? 0.8 : 1.5)),
-                            fleet: [], routes: [], schedules: [], maintenanceRecords: [],
+                            fleet: [], routes: [], schedules: [], maintenanceRecords: [], faultRecords: [],
                             awareness: 10, reputation: 50,
                             finances: {
                                 today: Logic._resetFinanceObject(),
@@ -3790,9 +4333,11 @@
                     
                     // 互換性確保（古いセーブデータへの対応）
                     if (!Player.company.maintenanceRecords) Player.company.maintenanceRecords = [];
+                    if (!('faultRecords' in Player.company)) Player.company.faultRecords = [];
                     if (Player.competitors) {
                         Player.competitors.forEach(ai => {
                             if (!ai.maintenanceRecords) ai.maintenanceRecords = [];
+                            if (!('faultRecords' in ai)) ai.faultRecords = [];
                         });
                     }
                     if (Player.settings === undefined) Player.settings = { competitionEnabled: true, aiDifficulty: 'normal' };
