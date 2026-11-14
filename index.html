@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.9.3</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.9.4</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -327,7 +327,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.9.3<br>国際線詳細表示の廃止
+            Version v0.2.1.9.4<br>国内線・国際線の廃線機能
         </div>
     </div>
 
@@ -560,7 +560,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.9.3
+         * AIRLINE TYCOON JAPAN v0.2.1.9.4
          * セーブデータ保護・整合性検証 強化アップデート
          */
 
@@ -587,7 +587,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.9.3",
+            VERSION: "0.2.1.9.4",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -757,7 +757,7 @@
                 document.getElementById('hq-date').textContent = Utils.formatDate(Player.company.date);
                 document.getElementById('hq-funds').textContent = Utils.formatMoney(Player.company.funds);
                 document.getElementById('hq-fleet').textContent = Player.company.fleet.length;
-                document.getElementById('hq-routes').textContent = Player.company.routes.length;
+                document.getElementById('hq-routes').textContent = Player.company.routes.filter(r => !r.closed).length;
                 
                 if (Player.company.funds < 0) document.getElementById('hq-funds').classList.replace('text-success', 'text-danger');
                 else document.getElementById('hq-funds').classList.replace('text-danger', 'text-success');
@@ -838,6 +838,62 @@
                 UI.showToast(`${reg} を返却しました。`); Views.renderFleet(); UI.updateHeader(); Game.saveData(true);
             },
 
+            confirmRouteRetirement(routeId, routeType) {
+                if (!Player || !Player.company) return;
+                const isIntl = routeType === 'international';
+                const routes = isIntl ? (Player.company.intlRoutes || []) : (Player.company.routes || []);
+                const route = routes.find(r => r && r.id === routeId && !r.closed);
+                if (!route) { UI.showToast('対象の運航中路線が見つかりません', 'error'); return; }
+                const from = isIntl ? IntlSystem.getAirport(route.from) : GameData.Airports.find(a => a.id === route.from);
+                const to = isIntl ? IntlSystem.getAirport(route.to) : GameData.Airports.find(a => a.id === route.to);
+                const fromName = from ? `${from.name} (${route.from})` : route.from;
+                const toName = to ? `${to.name} (${route.to})` : route.to;
+                const typeLabel = isIntl ? '国際線' : '国内線';
+                const content = `
+                    <div class="card" style="margin-bottom:12px;"><div class="card-body">
+                        <div class="font-bold" style="font-size:1.05rem;margin-bottom:8px;">${route.id}</div>
+                        <div class="card-row"><span>出発空港</span><b>${fromName}</b></div>
+                        <div class="card-row"><span>到着空港</span><b>${toName}</b></div>
+                        <div class="text-danger" style="font-weight:600;margin-top:12px;">廃線後、この路線は再開できません。</div>
+                    </div></div>
+                    <p>${typeLabel} ${route.id} を廃線してよろしいですか？</p>`;
+                UI.showModal('路線廃線の確認', '', content,
+                    `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn btn-danger" onclick="Logic.retireRoute('${routeId}','${routeType}')">廃線を確定</button>`);
+            },
+
+            retireRoute(routeId, routeType) {
+                if (!Player || !Player.company) return;
+                const isIntl = routeType === 'international';
+                const routes = isIntl ? (Player.company.intlRoutes || []) : (Player.company.routes || []);
+                const route = routes.find(r => r && r.id === routeId && !r.closed);
+                if (!route) { UI.hideModal(); UI.showToast('対象の路線が見つかりません', 'error'); return; }
+
+                // 路線レコードと統計は保持し、廃線フラグで将来の運航・表示対象から除外する。
+                const assignedReg = route.assignedReg;
+                const plane = Player.company.fleet.find(f => f.reg === assignedReg && (isIntl ? f.intlRouteId === routeId : f.routeId === routeId)) || Player.company.fleet.find(f => isIntl ? f.intlRouteId === routeId : f.routeId === routeId);
+                if (plane) {
+                    if (isIntl && plane.intlRouteId === routeId) plane.intlRouteId = null;
+                    if (!isIntl && plane.routeId === routeId) plane.routeId = null;
+                    if (!plane.routeId && !plane.intlRouteId) plane.status = 'idle';
+                    else if (plane.routeId || plane.intlRouteId) plane.status = 'active';
+                }
+                route.assignedReg = null;
+                route.closed = true;
+                route.closedDate = Player.company.date;
+
+                const from = isIntl ? IntlSystem.getAirport(route.from) : GameData.Airports.find(a => a.id === route.from);
+                const to = isIntl ? IntlSystem.getAirport(route.to) : GameData.Airports.find(a => a.id === route.to);
+                Player.history = Player.history || [];
+                Player.history.unshift({date: Player.company.date, msg: `${isIntl ? '国際線' : '国内線'} ${from?.name || route.from} - ${to?.name || route.to} を廃線しました。`});
+                if (Player.history.length > 300) Player.history.pop();
+
+                UI.hideModal();
+                if (isIntl) IntlSystem.render();
+                else { Views.renderRoutes(); MapSystem.drawRoutes(); }
+                Views.renderFleet(); UI.updateHeader(); Game.saveData(true);
+                UI.showToast(`${route.id} を廃線しました。機材は保有状態で残ります。`, 'success');
+            },
+
             createRoute(fromId, toId) {
                 if (fromId === toId) { UI.showToast("同じ空港は選択できません", "error"); return; }
                 const routeId = [fromId, toId].sort().join('-');
@@ -866,7 +922,7 @@
 
             assignAircraft(routeId, reg) {
                 if (!Player || !Player.company || !Player.company.routes) return;
-                const route = Player.company.routes.find(r => r.id === routeId);
+                const route = Player.company.routes.find(r => r.id === routeId && !r.closed);
                 if (!route) { UI.showToast("指定された路線が存在しません", "error"); return; }
                 
                 if (reg === 'none') {
@@ -1070,7 +1126,7 @@
                         let assignedRoute = null;
                         const assignedInternational = !!f.intlRouteId;
                         if (f.routeId) {
-                            assignedRoute = comp.routes.find(r => r.id === f.routeId);
+                            assignedRoute = comp.routes.find(r => r.id === f.routeId && !r.closed);
                             if (assignedRoute && assignedRoute.assignedReg === f.reg && ac.range >= assignedRoute.distance) {
                                 canFly = true;
                             } else {
@@ -1526,13 +1582,14 @@
                 const tb = document.getElementById('routes-table-body'); const mobCards = document.getElementById('routes-cards-mobile');
                 tb.innerHTML = ''; mobCards.innerHTML = '';
 
-                if (!Player.company.routes || Player.company.routes.length === 0) {
+                const activeRoutes = (Player.company.routes || []).filter(r => !r.closed);
+                if (activeRoutes.length === 0) {
                     tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted">開設済みの路線はありません。</td></tr>';
                     mobCards.innerHTML = '<div class="text-muted text-center" style="padding:20px;">開設済みの路線はありません。</div>';
                     return;
                 }
 
-                Player.company.routes.forEach(r => {
+                activeRoutes.forEach(r => {
                     const st = r.stats || {}; const lastProfit = st.lastProfit || 0;
                     const profClass = lastProfit >= 0 ? 'text-success' : 'text-danger';
                     const lfHtml = Utils.getLoadFactorBadgeHtml(st.lastLf || 0);
@@ -1550,6 +1607,7 @@
                             <td>
                                 <button class="btn btn-sm btn-outline" onclick="Views.showFareModal('${r.id}')">運賃設定</button>
                                 <button class="btn btn-sm" onclick="Views.showAssignModal('${r.id}')">${r.assignedReg ? '機材変更' : '機材割当'}</button>
+                                <button class="btn btn-sm btn-danger" onclick="Logic.confirmRouteRetirement('${r.id}','domestic')">廃線</button>
                             </td>
                         </tr>
                     `;
@@ -1561,6 +1619,7 @@
                                 <div>
                                     <button class="btn btn-sm btn-outline" onclick="Views.showFareModal('${r.id}')">運賃</button>
                                     <button class="btn btn-sm" onclick="Views.showAssignModal('${r.id}')">${r.assignedReg ? '機材変更' : '割当'}</button>
+                                    <button class="btn btn-sm btn-danger" onclick="Logic.confirmRouteRetirement('${r.id}','domestic')">廃線</button>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -1574,7 +1633,7 @@
             },
             
             showFareModal(routeId) {
-                const r = Player.company.routes.find(ro => ro.id === routeId); if(!r) return;
+                const r = Player.company.routes.find(ro => ro.id === routeId && !ro.closed); if(!r) return;
                 const stdFare = Utils.getStandardFare(r.distance);
                 const currentPct = Math.round((r.fareMult || 1.0) * 100);
                 let html = `
@@ -1595,7 +1654,7 @@
 
             showRouteDetails(routeId, graphDays = 30) {
                 this.currentGraphDays = graphDays;
-                const r = Player.company.routes.find(ro => ro.id === routeId); if(!r) return;
+                const r = Player.company.routes.find(ro => ro.id === routeId && !ro.closed); if(!r) return;
                 const st = r.stats || {}; 
                 const stdFare = Utils.getStandardFare(r.distance); 
                 const actualFare = Math.floor(stdFare * (r.fareMult||1.0));
@@ -1803,7 +1862,8 @@
             },
 
             showAssignModal(routeId) {
-                const route = Player.company.routes.find(r => r.id === routeId);
+                const route = Player.company.routes.find(r => r.id === routeId && !r.closed);
+                if (!route) return;
                 let html = `<p class="text-muted" style="margin-bottom:15px;">路線 <b>${routeId}</b> (距離: ${route.distance}km) に使用する機材を選択してください。</p><div class="data-grid">`;
                 if (route.assignedReg) { html += `<div class="card"><div class="card-body">現在の割当: <b>${route.assignedReg}</b></div><div class="card-footer"><button class="btn btn-sm btn-danger" onclick="Logic.assignAircraft('${routeId}', 'none')">割り当て解除</button></div></div>`; }
                 const available = Player.company.fleet.filter(f => !f.intlRouteId && (!f.routeId || f.routeId === routeId));
@@ -1938,6 +1998,7 @@
                 if(!Player || !Player.company.routes) return;
                 const rg = document.getElementById('map-routes'); rg.innerHTML = '';
                 Player.company.routes.forEach(r => {
+                    if (r.closed) return;
                     const f = GameData.Airports.find(a=>a.id===r.from); const t = GameData.Airports.find(a=>a.id===r.to); if (!f || !t) return;
                     const pf = this.project(f.lat, f.lon); const pt = this.project(t.lat, t.lon);
                     const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1994,7 +2055,7 @@
         };
 
         // ==========================================
-        // International Economy Extension (v0.2.1.9.3)
+        // International Economy Extension (v0.2.1.9.4)
         // Independent, aggregated daily model. Domestic logic remains unchanged.
         // ==========================================
         const IntlSystem = {
@@ -2035,12 +2096,18 @@
                     if (!Array.isArray(comp.routes)) comp.routes = [];
                     const fleetByReg = new Map(comp.fleet.map(f => [f.reg, f]));
                     const fleetByIntlRoute = new Map(comp.fleet.filter(f => f.intlRouteId).map(f => [f.intlRouteId, f]));
-                    const domesticRegs = new Set(comp.routes.map(r => r && r.assignedReg).filter(Boolean));
+                    const domesticRegs = new Set(comp.routes.filter(r => r && !r.closed).map(r => r.assignedReg).filter(Boolean));
                     const intlRegs = new Set();
                     const intlRouteById = new Map(comp.intlRoutes.map(r => [r && r.id, r]));
 
                     comp.intlRoutes.forEach(r => {
                         if (!r || typeof r !== 'object') return;
+                        if (r.closed) {
+                            const retiredPlane = r.assignedReg ? fleetByReg.get(r.assignedReg) : fleetByIntlRoute.get(r.id);
+                            if (retiredPlane && retiredPlane.intlRouteId === r.id) retiredPlane.intlRouteId = null;
+                            r.assignedReg = null;
+                            return;
+                        }
                         if (!r.stats || typeof r.stats !== 'object') r.stats = defaultStats();
                         ['flights','pax','rev','profit','lastLf','lastPax','lastRev','lastCost','lastProfit'].forEach(k => {
                             const n = Number(r.stats[k]); r.stats[k] = Number.isFinite(n) && n >= 0 ? n : 0;
@@ -2114,7 +2181,7 @@
                 UI.showModal('新規国際線 開設申請','',html,`<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="IntlSystem.createRoute(document.getElementById('intl-from').value,document.getElementById('intl-to').value)">開設実行</button>`);
             },
             assign(routeId,reg) {
-                const r=Player.company.intlRoutes.find(x=>x.id===routeId); if(!r)return;
+                const r=Player.company.intlRoutes.find(x=>x.id===routeId && !x.closed); if(!r)return;
                 if(reg==='none') {
                     const old=Player.company.fleet.find(f=>f.reg===r.assignedReg); if(old){old.intlRouteId=null;old.status=old.routeId?'active':'idle';}
                     r.assignedReg=null; Game.saveData(true); this.render(); Views.renderFleet(); return;
@@ -2130,7 +2197,7 @@
                 plane.intlRouteId=routeId; plane.status='active'; r.assignedReg=reg;
                 Game.saveData(true); this.render(); Views.renderFleet(); UI.showToast(`${reg} を国際線に割り当てました`,'success');
             },
-            setFare(id,val) { const r=Player.company.intlRoutes.find(x=>x.id===id);if(!r)return;r.fareMult=Math.max(.5,Math.min(2,Number(val)||1));Game.saveData(true);this.render(); },
+            setFare(id,val) { const r=Player.company.intlRoutes.find(x=>x.id===id && !x.closed);if(!r)return;r.fareMult=Math.max(.5,Math.min(2,Number(val)||1));Game.saveData(true);this.render(); },
             processDay(companies,dayRes) {
                 // 呼び出し元の日次処理でensureData済み。ここでは再走査せずMapで参照する。
                 const active=[];
@@ -2139,6 +2206,7 @@
                 companies.forEach(comp=>{
                     const fleetByReg=new Map((comp.fleet||[]).map(f=>[f.reg,f]));
                     (comp.intlRoutes||[]).forEach(r=>{
+                        if (r.closed) return;
                         const plane=r.isVirtualAI?null:fleetByReg.get(r.assignedReg);
                         const virtual=!!r.isVirtualAI;
                         const ac=virtual?aircraftById.get(r.virtualAircraftId):(plane&&aircraftById.get(plane.typeId));
@@ -2192,7 +2260,7 @@
             render() {
                 if (!Player || !Player.company) return;
                 this.ensureData();
-                const routes = Player.company.intlRoutes || [];
+                const routes = (Player.company.intlRoutes || []).filter(r => !r.closed);
                 const fleet = Player.company.fleet || [];
                 const summary = document.getElementById('intl-summary');
                 const tbody = document.getElementById('intl-routes-table-body');
@@ -2234,6 +2302,7 @@
                         <div class="intl-action-group">
                             <button class="btn btn-sm btn-outline" onclick="IntlSystem.showFareEditor('${r.id}')">運賃設定</button>
                             <button class="btn btn-sm" onclick="IntlSystem.showAssignEditor('${r.id}')">${assigned?'機材変更':'機材割当'}</button>
+                            <button class="btn btn-sm btn-danger" onclick="Logic.confirmRouteRetirement('${r.id}','international')">廃線</button>
                         </div>`;
                     tbody.insertAdjacentHTML('beforeend', `
                         <tr>
@@ -2264,12 +2333,13 @@
                             <div class="card-footer" style="justify-content:flex-start;flex-wrap:wrap;">
                                 <button class="btn btn-sm btn-outline" onclick="IntlSystem.showFareEditor('${r.id}')">運賃設定</button>
                                 <button class="btn btn-sm" onclick="IntlSystem.showAssignEditor('${r.id}')">${assigned?'機材変更':'機材割当'}</button>
+                                <button class="btn btn-sm btn-danger" onclick="Logic.confirmRouteRetirement('${r.id}','international')">廃線</button>
                             </div>
                         </div>`);
                 });
             },
             showFareEditor(routeId) {
-                const r = Player.company.intlRoutes.find(x=>x.id===routeId);
+                const r = Player.company.intlRoutes.find(x=>x.id===routeId && !x.closed);
                 if (!r) return;
                 const pct = Math.round((r.fareMult||1)*100);
                 const html = `
@@ -2283,7 +2353,7 @@
                     `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="IntlSystem.setFare('${routeId}',document.getElementById('intl-fare-editor').value/100);UI.hideModal()">設定適用</button>`);
             },
             showAssignEditor(routeId) {
-                const r = Player.company.intlRoutes.find(x=>x.id===routeId);
+                const r = Player.company.intlRoutes.find(x=>x.id===routeId && !x.closed);
                 if (!r) return;
                 const fleet = Player.company.fleet || [];
                 const available = fleet.filter(f =>
@@ -2556,7 +2626,15 @@
                         }
                         routeIdSet.add(r.id);
 
-                        if (r.assignedReg) {
+                        if (r.closed) {
+                            const retiredPlane = r.assignedReg ? companyObj.fleet.find(f => f.reg === r.assignedReg) : companyObj.fleet.find(f => f.routeId === r.id);
+                            if (retiredPlane && retiredPlane.routeId === r.id) {
+                                retiredPlane.routeId = null;
+                                if (!retiredPlane.intlRouteId) retiredPlane.status = 'idle';
+                            }
+                            r.assignedReg = null;
+                        }
+                        if (r.assignedReg && !r.closed) {
                             const plane = companyObj.fleet.find(f => f.reg === r.assignedReg);
                             // 機材未発見、既に他路線に割当済、または機材側のrouteIdが不一致なら解除
                             if (!plane || assignedRegSet.has(r.assignedReg) || plane.routeId !== r.id) {
@@ -2625,6 +2703,15 @@
                         const fromAp = GameData.Airports.find(a => a.id === r.from) || IntlSystem.Airports.find(a => a.id === r.from);
                         const toAp = GameData.Airports.find(a => a.id === r.to) || IntlSystem.Airports.find(a => a.id === r.to);
                         if ((!Number.isFinite(Number(r.distance)) || Number(r.distance) <= 0) && fromAp && toAp) r.distance = Utils.haversine(fromAp.lat, fromAp.lon, toAp.lat, toAp.lon);
+                        if (r.closed) {
+                            const retiredPlane = r.assignedReg ? companyObj.fleet.find(f => f.reg === r.assignedReg) : companyObj.fleet.find(f => f.intlRouteId === r.id);
+                            if (retiredPlane && retiredPlane.intlRouteId === r.id) {
+                                retiredPlane.intlRouteId = null;
+                                if (!retiredPlane.routeId) retiredPlane.status = 'idle';
+                            }
+                            r.assignedReg = null;
+                            return;
+                        }
                         if (r.isVirtualAI) return;
                         let plane = r.assignedReg ? companyObj.fleet.find(f => f.reg === r.assignedReg) : null;
                         if (!plane) plane = companyObj.fleet.find(f => f.intlRouteId === r.id) || null;
