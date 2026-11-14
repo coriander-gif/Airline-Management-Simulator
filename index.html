@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.9.4</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.9.5</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -125,6 +125,12 @@
         #screen-hq { display: flex; flex-direction: column; }
         .hq-header { background-color: var(--col-bg-panel); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--panel-border); height: 65px; flex-shrink: 0; z-index: 25; }
         .header-company { display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 1.2rem; min-width: max-content; }
+        #hq-company-logo { display: none; max-width: 108px; max-height: 34px; width: auto; height: auto; object-fit: contain; flex: 0 1 auto; }
+        .header-company.has-logo { min-width: 0; max-width: min(55vw, 420px); }
+        .header-company.has-logo #hq-comp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .company-logo-preview { display: none; margin-top: 8px; padding: 10px; border: 1px dashed var(--panel-border); border-radius: 8px; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .company-logo-preview img { display: block; max-width: 180px; max-height: 90px; width: auto; height: auto; object-fit: contain; }
+        .company-logo-help { color: var(--col-text-muted); font-size: .8rem; margin-top: 4px; }
         .brand-color-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--col-bg-panel); box-shadow: 0 0 2px var(--shadow-color);}
         .header-stats { display: flex; gap: 15px; font-size: 0.9rem; flex-wrap: wrap; justify-content: flex-end; align-items: center; padding-right: 120px; }
         .stat-item { display: flex; flex-direction: column; align-items: flex-end;}
@@ -262,6 +268,8 @@
         @media (max-width: 768px) {
             .hq-header { flex-wrap: wrap; height: auto; padding: 10px; padding-top: 50px; gap: 10px; }
             .header-stats { width: 100%; justify-content: flex-start; padding-right: 0; gap: 10px;}
+            .header-company.has-logo { max-width: calc(100vw - 75px); font-size: 1rem; gap: 7px; }
+            #hq-company-logo { max-width: 68px; max-height: 28px; }
             .hq-sidebar { position: absolute; transform: translateX(-100%); transition: transform 0.3s; z-index: 30; height: 100%; box-shadow: 2px 0 10px var(--shadow-color); }
             .hq-sidebar.open { transform: translateX(0); }
             .side-panel { width: 100%; max-width: 400px; border-left: none; box-shadow: -2px 0 10px var(--shadow-strong); }
@@ -327,7 +335,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.9.4<br>国内線・国際線の廃線機能
+            Version v0.2.1.9.5<br>会社ロゴ登録・ヘッダー表示機能
         </div>
     </div>
 
@@ -348,6 +356,15 @@
                     <div class="input-group w-full">
                         <label for="c-icao">ICAOコード (英大3文字)</label>
                         <input type="text" id="c-icao" class="input-field" pattern="[A-Za-z]{3}" oninput="this.value = this.value.toUpperCase()" required placeholder="例: JSK" title="半角英字3文字">
+                    </div>
+                </div>
+                <div class="input-group" style="margin-top: 5px;">
+                    <label for="c-logo">会社ロゴ（任意）</label>
+                    <input type="file" id="c-logo" class="input-field" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" onchange="Game.handleLogoSelect(this)">
+                    <div class="company-logo-help">PNG / JPG / JPEG / WebP（画像は保存時に最大600×240pxへ縮小されます）</div>
+                    <div id="c-logo-preview" class="company-logo-preview">
+                        <img id="c-logo-preview-img" alt="会社ロゴのプレビュー">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="Game.clearCompanyLogo()">画像を削除</button>
                     </div>
                 </div>
                 <div class="flex" style="gap: 15px;">
@@ -393,6 +410,7 @@
                 <div class="header-company">
                     <div id="hq-brand-dot" class="brand-color-dot"></div>
                     <span id="hq-comp-name">Company Name</span>
+                    <img id="hq-company-logo" alt="会社ロゴ">
                 </div>
             </div>
             
@@ -560,7 +578,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.9.4
+         * AIRLINE TYCOON JAPAN v0.2.1.9.5
          * セーブデータ保護・整合性検証 強化アップデート
          */
 
@@ -587,7 +605,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.9.4",
+            VERSION: "0.2.1.9.5",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -753,6 +771,18 @@
             updateHeader() {
                 if (!Player || !Player.company) return;
                 document.getElementById('hq-comp-name').textContent = Player.company.name;
+                const companyLogoEl = document.getElementById('hq-company-logo');
+                const companyHeaderEl = document.querySelector('.header-company');
+                const companyLogo = typeof Player.company.logo === 'string' && Player.company.logo.startsWith('data:image/') ? Player.company.logo : null;
+                if (companyLogo) {
+                    companyLogoEl.src = companyLogo;
+                    companyLogoEl.style.display = 'block';
+                    companyHeaderEl.classList.add('has-logo');
+                } else {
+                    companyLogoEl.removeAttribute('src');
+                    companyLogoEl.style.display = 'none';
+                    companyHeaderEl.classList.remove('has-logo');
+                }
                 document.getElementById('hq-brand-dot').style.backgroundColor = Player.company.color;
                 document.getElementById('hq-date').textContent = Utils.formatDate(Player.company.date);
                 document.getElementById('hq-funds').textContent = Utils.formatMoney(Player.company.funds);
@@ -2055,7 +2085,7 @@
         };
 
         // ==========================================
-        // International Economy Extension (v0.2.1.9.4)
+        // International Economy Extension (v0.2.1.9.5)
         // Independent, aggregated daily model. Domestic logic remains unchanged.
         // ==========================================
         const IntlSystem = {
@@ -2529,6 +2559,8 @@
 
                 data.company.reputation = fixNum(data.company.reputation, 50);
                 data.company.awareness = fixNum(data.company.awareness, 10);
+                // v0.2.1.9.5: 旧セーブデータ互換。ロゴ未登録はnullとして扱う。
+                if (typeof data.company.logo !== 'string' || !data.company.logo.startsWith('data:image/')) data.company.logo = null;
                 
                 // v0.2.1.9修正：競合会社データの誤再生成防止
                 // settingsで有効になっているのに存在しない場合は致命的エラー(バックアップに委ねる)
@@ -2789,35 +2821,112 @@
                 data.version = GameData.VERSION;
                 return data;
             },
-            startNewGame() { document.getElementById('form-setup').reset(); UI.switchScreen('screen-new-company'); },
-            submitNewCompany(e) {
+            startNewGame() {
+                document.getElementById('form-setup').reset();
+                this.clearCompanyLogo();
+                UI.switchScreen('screen-new-company');
+            },
+            handleLogoSelect(input) {
+                const file = input && input.files ? input.files[0] : null;
+                const preview = document.getElementById('c-logo-preview');
+                const previewImg = document.getElementById('c-logo-preview-img');
+                if (!file) { preview.style.display = 'none'; previewImg.removeAttribute('src'); return; }
+                const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+                const extOk = /\.(png|jpe?g|webp)$/i.test(file.name || '');
+                if ((!allowed.includes(file.type) && !extOk) || file.size > 15 * 1024 * 1024) {
+                    input.value = '';
+                    preview.style.display = 'none';
+                    previewImg.removeAttribute('src');
+                    UI.showToast('PNG・JPG・WebP形式、15MB以下の画像を選択してください。', 'warning');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => { previewImg.src = reader.result; preview.style.display = 'flex'; };
+                reader.onerror = () => { input.value = ''; UI.showToast('画像を読み込めませんでした。別の画像を選択してください。', 'warning'); };
+                reader.readAsDataURL(file);
+            },
+            clearCompanyLogo() {
+                const input = document.getElementById('c-logo');
+                const preview = document.getElementById('c-logo-preview');
+                const previewImg = document.getElementById('c-logo-preview-img');
+                if (input) input.value = '';
+                if (previewImg) previewImg.removeAttribute('src');
+                if (preview) preview.style.display = 'none';
+            },
+            async prepareCompanyLogo(file) {
+                if (!file) return null;
+                const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+                const extOk = /\.(png|jpe?g|webp)$/i.test(file.name || '');
+                if ((!allowed.includes(file.type) && !extOk) || file.size > 15 * 1024 * 1024) {
+                    throw new Error('会社ロゴはPNG・JPG・WebP形式、15MB以下の画像を選択してください。');
+                }
+                return await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error('会社ロゴ画像を読み込めませんでした。'));
+                    reader.onload = () => {
+                        const img = new Image();
+                        img.onerror = () => reject(new Error('画像ファイルを開けませんでした。'));
+                        img.onload = () => {
+                            try {
+                                const maxW = 600, maxH = 240;
+                                const scale = Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight);
+                                const width = Math.max(1, Math.round(img.naturalWidth * scale));
+                                const height = Math.max(1, Math.round(img.naturalHeight * scale));
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width; canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                if (!ctx) { reject(new Error('画像の縮小処理を実行できませんでした。')); return; }
+                                ctx.drawImage(img, 0, 0, width, height);
+                                let dataUrl = canvas.toDataURL('image/webp', 0.84);
+                                if (!dataUrl || !dataUrl.startsWith('data:image/webp')) dataUrl = canvas.toDataURL('image/png');
+                                resolve(dataUrl);
+                            } catch (err) { reject(new Error('会社ロゴ画像の変換に失敗しました。')); }
+                        };
+                        img.src = reader.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            },
+            async submitNewCompany(e) {
                 e.preventDefault();
-                const name = document.getElementById('c-name').value.trim(); const iata = document.getElementById('c-iata').value.toUpperCase(); const icao = document.getElementById('c-icao').value.toUpperCase();
-                const compEnabled = document.getElementById('c-comp').value === 'yes';
-                const aiDiff = document.getElementById('c-diff').value;
-                
-                // Temporarily assign partial Player object so genRegNum works during AI init
-                Player = { company: { iata, fleet: [] }, competitors: [] }; 
+                const submitButton = e.submitter || document.querySelector('#form-setup button[type="submit"]');
+                if (submitButton) submitButton.disabled = true;
+                try {
+                    const logoInput = document.getElementById('c-logo');
+                    const logoFile = logoInput && logoInput.files ? logoInput.files[0] : null;
+                    const logoData = await this.prepareCompanyLogo(logoFile);
+                    const name = document.getElementById('c-name').value.trim(); const iata = document.getElementById('c-iata').value.toUpperCase(); const icao = document.getElementById('c-icao').value.toUpperCase();
+                    const compEnabled = document.getElementById('c-comp').value === 'yes';
+                    const aiDiff = document.getElementById('c-diff').value;
 
-                // Init AI Competitors with established starting fleets
-                const initialCompetitors = compEnabled ? GameData.Competitors.map(c => this._generateAIInitialState(c, GameData.START_DATE)) : [];
+                    // Temporarily assign partial Player object so genRegNum works during AI init
+                    Player = { company: { iata, fleet: [] }, competitors: [] };
 
-                Player = {
-                    version: GameData.VERSION,
-                    metadata: { createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString() },
-                    company: {
-                        name, iata, icao, color: document.getElementById('c-color').value, hq: document.getElementById('c-hq').value,
-                        funds: GameData.START_FUNDS, reputation: 50, awareness: 10, date: GameData.START_DATE,
-                        fleet: [], routes: [], employees: 0, debt: 0,
-                        finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [] }
-                    },
-                    settings: { competitionEnabled: compEnabled, aiDifficulty: aiDiff },
-                    competitors: initialCompetitors,
-                    news: [{ date: GameData.START_DATE, msg: `${name} を設立しました。市場への参入を果たしました。`, type: 'success' }],
-                    history: [{ date: GameData.START_DATE, msg: `${name} を設立しました。` }]
-                };
-                IntlSystem.ensureData();
-                if (this.saveData(false)) this.enterHQ();
+                    // Init AI Competitors with established starting fleets
+                    const initialCompetitors = compEnabled ? GameData.Competitors.map(c => this._generateAIInitialState(c, GameData.START_DATE)) : [];
+
+                    Player = {
+                        version: GameData.VERSION,
+                        metadata: { createdAt: new Date().toISOString(), lastPlayed: new Date().toISOString() },
+                        company: {
+                            name, iata, icao, color: document.getElementById('c-color').value, hq: document.getElementById('c-hq').value, logo: logoData,
+                            funds: GameData.START_FUNDS, reputation: 50, awareness: 10, date: GameData.START_DATE,
+                            fleet: [], routes: [], employees: 0, debt: 0,
+                            finances: { today: Logic._resetFinanceObject(), thisMonth: Logic._resetFinanceObject(), total: Logic._resetFinanceObject(), monthlyRecords: [] }
+                        },
+                        settings: { competitionEnabled: compEnabled, aiDifficulty: aiDiff },
+                        competitors: initialCompetitors,
+                        news: [{ date: GameData.START_DATE, msg: `${name} を設立しました。市場への参入を果たしました。`, type: 'success' }],
+                        history: [{ date: GameData.START_DATE, msg: `${name} を設立しました。` }]
+                    };
+                    IntlSystem.ensureData();
+                    if (this.saveData(false)) this.enterHQ();
+                } catch (err) {
+                    console.error(err);
+                    UI.showModal('ロゴ画像エラー', err && err.message ? err.message : '会社設立処理に失敗しました。');
+                } finally {
+                    if (submitButton) submitButton.disabled = false;
+                }
             },
             continueGame() {
                 try {
