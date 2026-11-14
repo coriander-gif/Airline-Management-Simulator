@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.9.1</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.9.2</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -250,8 +250,15 @@
         .share-bar-container { width: 100%; height: 24px; background: var(--col-bg-dark); border-radius: 6px; overflow: hidden; display: flex; margin-bottom: 20px; border: 1px solid var(--panel-border); }
         .share-bar-segment { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: white; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: width 0.3s; }
 
-        /* Mobile Adjustments */
-        .routes-cards-mobile { display: none; }
+        /* International route list follows the domestic Route Management layout */
+        .intl-cards-mobile { display: none; }
+        .intl-route-name { color: var(--col-primary); font-weight: bold; text-decoration: none; }
+        .intl-route-name:hover { text-decoration: underline; }
+        .intl-status { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; white-space: nowrap; }
+        .intl-status.active { color: var(--col-success); background: rgba(16,185,129,.15); }
+        .intl-status.idle { color: var(--col-text-muted); background: rgba(100,116,139,.15); }
+        .intl-action-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .intl-summary-grid { margin-bottom: 16px; }
         @media (max-width: 768px) {
             .hq-header { flex-wrap: wrap; height: auto; padding: 10px; padding-top: 50px; gap: 10px; }
             .header-stats { width: 100%; justify-content: flex-start; padding-right: 0; gap: 10px;}
@@ -262,7 +269,11 @@
             .theme-toggle { top: 10px; right: 10px; padding: 6px 12px; }
 
             .table-container { display: none; }
-            .routes-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+            .routes-cards-mobile, .intl-cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+            .intl-summary-grid { grid-template-columns: 1fr; }
+            #view-international .panel-header-title { margin-bottom: 16px; }
+            #view-international .intl-toolbar { gap: 8px; }
+            #view-international .intl-toolbar .btn { flex: 1 1 auto; }
         }
         .mobile-menu-btn { display: none; cursor: pointer; }
     </style>
@@ -316,7 +327,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.9.1<br>国際線機材・運航便数・空港データ修正
+            Version v0.2.1.9.2<br>国際線管理UI統一
         </div>
     </div>
 
@@ -485,16 +496,34 @@
                     <div id="routes-cards-mobile" class="routes-cards-mobile"></div>
                 </div>
 
-                <!-- International Routes: isolated extension to v0.2.1.9 domestic engine -->
+                <!-- International Routes: independent data and logic, domestic Route Management visual pattern -->
                 <div id="view-international" class="mgmt-panel">
                     <div class="panel-header-title">国際線管理</div>
-                    <p class="text-muted" style="margin-bottom:14px;">国内線とは独立した簡易国際線システムです。既存の機材を割り当てて運航します。国際線の運航記録は日次集計で処理されます。</p>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-                        <button class="btn" onclick="IntlSystem.showCreateModal()">＋ 国際線を開設</button>
+                    <p class="text-muted" style="margin-bottom:20px;">国内線とは独立した国際線システムです。海外空港・国際線専用の機材割り当てと日次集計を使用します。</p>
+                    <div class="intl-toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+                        <button class="btn" onclick="IntlSystem.showCreateModal()">＋ 新規国際線の開設</button>
                         <button class="btn btn-outline" onclick="IntlSystem.render()">更新</button>
                     </div>
-                    <div id="intl-summary" class="data-grid" style="margin-bottom:16px;"></div>
-                    <div id="intl-routes-list" class="data-grid"></div>
+                    <div id="intl-summary" class="data-grid intl-summary-grid"></div>
+                    <div class="card table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>国際線</th>
+                                    <th>距離</th>
+                                    <th>割当機材</th>
+                                    <th>運航状況</th>
+                                    <th>累計便数相当</th>
+                                    <th>直近LF / 旅客</th>
+                                    <th>直近売上</th>
+                                    <th>直近利益</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="intl-routes-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="intl-routes-cards-mobile" class="intl-cards-mobile"></div>
                 </div>
 
                 <!-- 4. Finance & Stats View -->
@@ -531,7 +560,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.9.1
+         * AIRLINE TYCOON JAPAN v0.2.1.9.2
          * セーブデータ保護・整合性検証 強化アップデート
          */
 
@@ -558,7 +587,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.9.1",
+            VERSION: "0.2.1.9.2",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -1965,7 +1994,7 @@
         };
 
         // ==========================================
-        // International Economy Extension (v0.2.1.9.1)
+        // International Economy Extension (v0.2.1.9.2)
         // Independent, aggregated daily model. Domestic logic remains unchanged.
         // ==========================================
         const IntlSystem = {
@@ -2081,8 +2110,8 @@
                 const overseas=this.Airports;
                 const optsA=domestic.map(a=>`<option value="${a.id}">${a.name} (${a.id})</option>`).join('');
                 const optsB=overseas.map(a=>`<option value="${a.id}">${a.name}・${a.country} (${a.id})</option>`).join('');
-                const html=`<p class="text-muted" style="margin-bottom:12px;">日本国内の空港から海外空港への直行便を開設します。</p><label>出発空港</label><select id="intl-from" class="form-control" style="width:100%;margin:6px 0 14px;">${optsA}</select><label>到着空港</label><select id="intl-to" class="form-control" style="width:100%;margin:6px 0 14px;">${optsB}</select><div class="text-muted" style="font-size:.82rem;">開設後、機材を割り当てると翌日から運航・収支計算が始まります。</div>`;
-                UI.showModal('国際線の新規開設','',html,`<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="IntlSystem.createRoute(document.getElementById('intl-from').value,document.getElementById('intl-to').value)">開設する</button>`);
+                const html=`<p class="text-muted" style="margin-bottom:16px;">日本国内の空港から海外空港への直行便を開設します。</p><div class="input-group"><label for="intl-from">出発空港（国内）</label><select id="intl-from" class="input-field" style="width:100%;">${optsA}</select></div><div class="input-group"><label for="intl-to">到着空港（海外）</label><select id="intl-to" class="input-field" style="width:100%;">${optsB}</select></div><div class="text-muted" style="font-size:.82rem;line-height:1.5;">開設後、国際線に対応した機材を割り当てると翌日から運航・収支計算が始まります。</div>`;
+                UI.showModal('新規国際線 開設申請','',html,`<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="IntlSystem.createRoute(document.getElementById('intl-from').value,document.getElementById('intl-to').value)">開設実行</button>`);
             },
             assign(routeId,reg) {
                 const r=Player.company.intlRoutes.find(x=>x.id===routeId); if(!r)return;
@@ -2160,22 +2189,166 @@
                     });
                 }
             },
+            showDetails(routeId) {
+                const r = Player.company.intlRoutes.find(x => x.id === routeId);
+                if (!r) return;
+                const a = this.getAirport(r.from), b = this.getAirport(r.to);
+                const st = r.stats || {};
+                const plane = Player.company.fleet.find(f => f.reg === r.assignedReg);
+                const ac = plane && GameData.Aircrafts.find(x => x.id === plane.typeId);
+                const lf = Number(st.lastLf || 0);
+                const lfHtml = Utils.getLoadFactorBadgeHtml(lf);
+                const profitClass = Number(st.lastProfit || 0) >= 0 ? 'text-success' : 'text-danger';
+                const html = `
+                    <div class="card" style="margin-bottom:12px;">
+                        <div class="card-header">路線情報</div>
+                        <div class="card-body">
+                            <div class="card-row"><span>出発空港</span><b>${a?.name || r.from} (${r.from})</b></div>
+                            <div class="card-row"><span>出発国・地域</span><span>${a?.country || '日本'}</span></div>
+                            <div class="card-row"><span>到着空港</span><b>${b?.name || r.to} (${r.to})</b></div>
+                            <div class="card-row"><span>到着国・地域</span><span>${b?.country || '-'}</span></div>
+                            <div class="card-row"><span>路線距離</span><span>${Math.round(r.distance).toLocaleString()} km</span></div>
+                            <div class="card-row"><span>割当機材</span><span>${plane ? `${plane.reg} / ${ac?.name || plane.typeId}` : '未割当'}</span></div>
+                            <div class="card-row"><span>運航状況</span><span>${plane ? '運航中' : '機材未割当'}</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">運航実績</div>
+                        <div class="card-body">
+                            <div class="card-row"><span>累計便数相当</span><span>${Number(st.flights || 0).toLocaleString(undefined,{maximumFractionDigits:2})} 便相当</span></div>
+                            <div class="card-row"><span>累計旅客数</span><span>${Number(st.pax || 0).toLocaleString()} 人</span></div>
+                            <div class="card-row"><span>累計売上</span><span>${Utils.formatMoney(st.rev || 0)}</span></div>
+                            <div class="card-row"><span>累計損益</span><b class="${Number(st.profit || 0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.profit || 0)}</b></div>
+                            <hr style="margin:8px 0;border:0;border-top:1px solid var(--panel-border);">
+                            <div class="card-row"><span>直近搭乗率</span><span>${lfHtml}</span></div>
+                            <div class="card-row"><span>直近旅客数</span><span>${Number(st.lastPax || 0).toLocaleString()} 人</span></div>
+                            <div class="card-row"><span>直近売上</span><span>${Utils.formatMoney(st.lastRev || 0)}</span></div>
+                            <div class="card-row"><span>直近損益</span><b class="${profitClass}">${Utils.formatMoney(st.lastProfit || 0)}</b></div>
+                        </div>
+                    </div>`;
+                UI.showModal(`${r.from} → ${r.to} 国際線詳細`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
+            },
             render() {
-                if(!Player||!Player.company)return;this.ensureData();
-                const routes=Player.company.intlRoutes||[];
-                const totalRev=routes.reduce((n,r)=>n+(r.stats?.rev||0),0);
-                const totalPax=routes.reduce((n,r)=>n+(r.stats?.pax||0),0);
-                const summary=document.getElementById('intl-summary');
-                const list=document.getElementById('intl-routes-list');if(!summary||!list)return;
-                summary.innerHTML=`<div class="card"><div class="card-header">国際線路線数</div><div class="card-body"><div class="stat-value">${routes.length} 路線</div></div></div><div class="card"><div class="card-header">累計旅客数</div><div class="card-body"><div class="stat-value">${totalPax.toLocaleString()} 人</div></div></div><div class="card"><div class="card-header">累計売上</div><div class="card-body"><div class="stat-value">${Utils.formatMoney(totalRev)}</div></div></div>`;
-                if(!routes.length){list.innerHTML='<div class="card"><div class="card-body text-muted">国際線はまだありません。「国際線を開設」から新しい路線を作成してください。</div></div>';return;}
-                list.innerHTML=routes.map(r=>{
-                    const a=this.getAirport(r.from),b=this.getAirport(r.to),st=r.stats||{};
-                    const assigned=Player.company.fleet.find(f=>f.reg===r.assignedReg);
-                    const ac=assigned&&GameData.Aircrafts.find(x=>x.id===assigned.typeId);
-                    const candidates=Player.company.fleet.filter(f=>!f.routeId&&!Player.company.routes.some(dr=>dr.assignedReg===f.reg)&&(!f.intlRouteId||f.intlRouteId===r.id)&&(!Player.company.intlRoutes.some(ir=>ir.id!==r.id&&ir.assignedReg===f.reg))).map(f=>{const d=GameData.Aircrafts.find(x=>x.id===f.typeId);return d&&d.range>=r.distance?`<option value="${f.reg}" ${f.reg===r.assignedReg?'selected':''}>${f.reg} / ${d.name} (${d.range.toLocaleString()}km)</option>`:''}).join('');
-                    return `<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><b>${a?.name||r.from} → ${b?.name||r.to}</b><span>${Math.round(r.distance).toLocaleString()} km</span></div><div class="card-body"><div class="card-row"><span>割当機材</span><span>${assigned?`${assigned.reg} (${ac?.name||''})`:'未割当'}</span></div><div class="card-row"><span>直近搭乗率 / 旅客</span><span>${st.lastLf||0}% / ${(st.lastPax||0).toLocaleString()}人</span></div><div class="card-row"><span>直近売上 / 損益</span><span>${Utils.formatMoney(st.lastRev||0)} / <span class="${(st.lastProfit||0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.lastProfit||0)}</span></span></div><div class="card-row"><span>累計運航便数 / 旅客</span><span>${(st.flights||0).toLocaleString(undefined,{maximumFractionDigits:2})}便相当 / ${(st.pax||0).toLocaleString()}人</span></div><div style="margin-top:12px;"><label>運航機材</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><select class="form-control" style="flex:1;min-width:190px;" id="intl-plane-${r.id}"><option value="none">未割当</option>${candidates}</select><button class="btn btn-sm" onclick="IntlSystem.assign('${r.id}',document.getElementById('intl-plane-${r.id}').value)">機材設定</button></div></div><div style="margin-top:12px;"><label>運賃設定：${Math.round((r.fareMult||1)*100)}%</label><input type="range" min="50" max="200" step="5" value="${Math.round((r.fareMult||1)*100)}" style="width:100%;" oninput="document.getElementById('intl-fare-${r.id}').textContent=this.value+'%'" onchange="IntlSystem.setFare('${r.id}',this.value/100)"><div class="text-muted" id="intl-fare-${r.id}" style="font-size:.8rem;">${Math.round((r.fareMult||1)*100)}%</div></div><div class="text-muted" style="font-size:.8rem;margin-top:8px;">航続距離条件を満たす機材のみ選択できます。国内線に割当中の機材は選択できません。</div></div></div>`;
-                }).join('');
+                if (!Player || !Player.company) return;
+                this.ensureData();
+                const routes = Player.company.intlRoutes || [];
+                const fleet = Player.company.fleet || [];
+                const summary = document.getElementById('intl-summary');
+                const tbody = document.getElementById('intl-routes-table-body');
+                const mobile = document.getElementById('intl-routes-cards-mobile');
+                if (!summary || !tbody || !mobile) return;
+
+                const totalRev = routes.reduce((n,r)=>n+Number(r.stats?.rev||0),0);
+                const totalPax = routes.reduce((n,r)=>n+Number(r.stats?.pax||0),0);
+                const totalProfit = routes.reduce((n,r)=>n+Number(r.stats?.profit||0),0);
+                const activeCount = routes.filter(r=>!!r.assignedReg).length;
+                summary.innerHTML = `
+                    <div class="card"><div class="card-header">国際線路線数</div><div class="card-body"><div class="stat-value">${routes.length} 路線</div><div class="text-muted" style="font-size:.8rem;margin-top:4px;">運航中 ${activeCount} 路線</div></div></div>
+                    <div class="card"><div class="card-header">累計旅客数</div><div class="card-body"><div class="stat-value">${totalPax.toLocaleString()} 人</div></div></div>
+                    <div class="card"><div class="card-header">累計売上</div><div class="card-body"><div class="stat-value">${Utils.formatMoney(totalRev)}</div></div></div>
+                    <div class="card"><div class="card-header">累計損益</div><div class="card-body"><div class="stat-value ${totalProfit>=0?'text-success':'text-danger'}">${Utils.formatMoney(totalProfit)}</div></div></div>`;
+
+                tbody.innerHTML = '';
+                mobile.innerHTML = '';
+                if (!routes.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">開設済みの国際線はありません。</td></tr>';
+                    mobile.innerHTML = '<div class="text-muted text-center" style="padding:20px;">開設済みの国際線はありません。「新規国際線の開設」から路線を作成してください。</div>';
+                    return;
+                }
+
+                routes.forEach(r => {
+                    const a = this.getAirport(r.from), b = this.getAirport(r.to);
+                    const st = r.stats || {};
+                    const assigned = fleet.find(f=>f.reg===r.assignedReg);
+                    const ac = assigned && GameData.Aircrafts.find(x=>x.id===assigned.typeId);
+                    const isActive = !!assigned;
+                    const lfHtml = Utils.getLoadFactorBadgeHtml(st.lastLf || 0);
+                    const profitClass = Number(st.lastProfit || 0) >= 0 ? 'text-success' : 'text-danger';
+                    const farePct = Math.round((r.fareMult || 1) * 100);
+                    const routeLabel = `${a?.name || r.from} → ${b?.name || r.to}`;
+                    const assignedText = assigned ? `${assigned.reg} (${ac?.name || ''})` : '<span class="text-muted">未割り当て</span>';
+                    const statusHtml = `<span class="intl-status ${isActive?'active':'idle'}">${isActive?'運航中':'機材未割当'}</span>`;
+                    const routeLink = `<a class="intl-route-name" href="#" onclick="event.preventDefault();IntlSystem.showDetails('${r.id}')">${routeLabel}</a>`;
+                    const actionHtml = `
+                        <div class="intl-action-group">
+                            <button class="btn btn-sm btn-outline" onclick="IntlSystem.showDetails('${r.id}')">詳細</button>
+                            <button class="btn btn-sm btn-outline" onclick="IntlSystem.showFareEditor('${r.id}')">運賃設定</button>
+                            <button class="btn btn-sm" onclick="IntlSystem.showAssignEditor('${r.id}')">${assigned?'機材変更':'機材割当'}</button>
+                        </div>`;
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td class="font-bold">${routeLink}<div class="text-muted" style="font-size:.75rem;margin-top:3px;">${a?.country || '日本'} → ${b?.country || '-'}</div></td>
+                            <td>${Math.round(r.distance).toLocaleString()} km</td>
+                            <td>${assignedText}</td>
+                            <td>${statusHtml}</td>
+                            <td>${Number(st.flights||0).toLocaleString(undefined,{maximumFractionDigits:2})} 便相当</td>
+                            <td>${lfHtml} <span class="text-muted">/ ${Number(st.lastPax||0).toLocaleString()}人</span></td>
+                            <td>${Utils.formatMoney(st.lastRev||0)}</td>
+                            <td class="${profitClass} font-bold">${Utils.formatMoney(st.lastProfit||0)}</td>
+                            <td>${actionHtml}</td>
+                        </tr>`);
+                    mobile.insertAdjacentHTML('beforeend', `
+                        <div class="card">
+                            <div class="card-header" style="gap:8px;flex-wrap:wrap;">
+                                <div style="min-width:0;overflow-wrap:anywhere;">${routeLink}<div class="text-muted" style="font-size:.75rem;font-weight:normal;margin-top:3px;">${a?.country || '日本'} → ${b?.country || '-'} ・ ${Math.round(r.distance).toLocaleString()} km</div></div>
+                                ${statusHtml}
+                            </div>
+                            <div class="card-body">
+                                <div class="card-row"><span>割当機材</span><span>${assignedText}</span></div>
+                                <div class="card-row"><span>累計便数相当</span><span>${Number(st.flights||0).toLocaleString(undefined,{maximumFractionDigits:2})} 便</span></div>
+                                <div class="card-row"><span>直近搭乗率 / 旅客</span><span>${lfHtml} / ${Number(st.lastPax||0).toLocaleString()}人</span></div>
+                                <div class="card-row"><span>直近売上</span><span>${Utils.formatMoney(st.lastRev||0)}</span></div>
+                                <div class="card-row"><span>直近利益</span><b class="${profitClass}">${Utils.formatMoney(st.lastProfit||0)}</b></div>
+                                <div class="card-row"><span>運賃設定</span><span>${farePct}%</span></div>
+                            </div>
+                            <div class="card-footer" style="justify-content:flex-start;flex-wrap:wrap;">
+                                <button class="btn btn-sm btn-outline" onclick="IntlSystem.showDetails('${r.id}')">詳細</button>
+                                <button class="btn btn-sm btn-outline" onclick="IntlSystem.showFareEditor('${r.id}')">運賃設定</button>
+                                <button class="btn btn-sm" onclick="IntlSystem.showAssignEditor('${r.id}')">${assigned?'機材変更':'機材割当'}</button>
+                            </div>
+                        </div>`);
+                });
+            },
+            showFareEditor(routeId) {
+                const r = Player.company.intlRoutes.find(x=>x.id===routeId);
+                if (!r) return;
+                const pct = Math.round((r.fareMult||1)*100);
+                const html = `
+                    <div class="input-group">
+                        <label>運賃設定割合（50%〜200%）</label>
+                        <input type="range" id="intl-fare-editor" min="50" max="200" step="5" value="${pct}" style="width:100%;" oninput="document.getElementById('intl-fare-editor-value').textContent=this.value+'%'">
+                        <div class="font-bold text-center" id="intl-fare-editor-value" style="margin-top:8px;color:var(--col-primary);">${pct}%</div>
+                    </div>
+                    <p class="text-muted" style="font-size:.8rem;line-height:1.5;">設定は国際線専用の運賃係数に反映され、国内線の運賃設定には影響しません。</p>`;
+                UI.showModal(`${routeId} 運賃設定`, '', html,
+                    `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn" onclick="IntlSystem.setFare('${routeId}',document.getElementById('intl-fare-editor').value/100);UI.hideModal()">設定適用</button>`);
+            },
+            showAssignEditor(routeId) {
+                const r = Player.company.intlRoutes.find(x=>x.id===routeId);
+                if (!r) return;
+                const fleet = Player.company.fleet || [];
+                const available = fleet.filter(f =>
+                    !f.routeId &&
+                    !Player.company.routes.some(dr=>dr.assignedReg===f.reg) &&
+                    (!f.intlRouteId || f.intlRouteId===routeId) &&
+                    !Player.company.intlRoutes.some(ir=>ir.id!==routeId && ir.assignedReg===f.reg)
+                ).filter(f => {
+                    const ac = GameData.Aircrafts.find(x=>x.id===f.typeId);
+                    return ac && ac.range>=r.distance;
+                });
+                let html = `<p class="text-muted" style="margin-bottom:14px;">${r.from} → ${r.to}（${Math.round(r.distance).toLocaleString()} km）に使用する機材を選択してください。</p>`;
+                if (r.assignedReg) {
+                    const current = fleet.find(f=>f.reg===r.assignedReg);
+                    html += `<div class="card" style="margin-bottom:12px;"><div class="card-body">現在の割当：<b>${current?.reg || r.assignedReg}</b></div><div class="card-footer"><button class="btn btn-sm btn-danger" onclick="IntlSystem.assign('${r.id}','none');UI.hideModal()">割り当て解除</button></div></div>`;
+                }
+                html += '<div class="data-grid">';
+                if (!available.length) html += '<div class="text-muted" style="padding:12px;">航続距離条件を満たし、他路線に割り当てられていない機材がありません。</div>';
+                available.forEach(f => {
+                    const ac = GameData.Aircrafts.find(x=>x.id===f.typeId);
+                    html += `<div class="card"><div class="card-header">${f.reg}<span style="font-size:.8rem;font-weight:normal;">${ac.name}</span></div><div class="card-body">航続距離：${ac.range.toLocaleString()} km / 必要距離：${Math.round(r.distance).toLocaleString()} km / 座席数：${ac.seats}席</div><div class="card-footer"><button class="btn btn-sm" onclick="IntlSystem.assign('${r.id}','${f.reg}');UI.hideModal()">割り当てる</button></div></div>`;
+                });
+                html += '</div>';
+                UI.showModal('国際線 機材割り当て設定', '', html, '<button class="btn btn-outline" onclick="UI.hideModal()">閉じる</button>');
             }
         };
 
