@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.9.2</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.9.3</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -327,7 +327,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.9.2<br>国際線管理UI統一
+            Version v0.2.1.9.3<br>国際線詳細表示の廃止
         </div>
     </div>
 
@@ -560,7 +560,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.9.2
+         * AIRLINE TYCOON JAPAN v0.2.1.9.3
          * セーブデータ保護・整合性検証 強化アップデート
          */
 
@@ -587,7 +587,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.9.2",
+            VERSION: "0.2.1.9.3",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -1994,7 +1994,7 @@
         };
 
         // ==========================================
-        // International Economy Extension (v0.2.1.9.2)
+        // International Economy Extension (v0.2.1.9.3)
         // Independent, aggregated daily model. Domestic logic remains unchanged.
         // ==========================================
         const IntlSystem = {
@@ -2189,45 +2189,6 @@
                     });
                 }
             },
-            showDetails(routeId) {
-                const r = Player.company.intlRoutes.find(x => x.id === routeId);
-                if (!r) return;
-                const a = this.getAirport(r.from), b = this.getAirport(r.to);
-                const st = r.stats || {};
-                const plane = Player.company.fleet.find(f => f.reg === r.assignedReg);
-                const ac = plane && GameData.Aircrafts.find(x => x.id === plane.typeId);
-                const lf = Number(st.lastLf || 0);
-                const lfHtml = Utils.getLoadFactorBadgeHtml(lf);
-                const profitClass = Number(st.lastProfit || 0) >= 0 ? 'text-success' : 'text-danger';
-                const html = `
-                    <div class="card" style="margin-bottom:12px;">
-                        <div class="card-header">路線情報</div>
-                        <div class="card-body">
-                            <div class="card-row"><span>出発空港</span><b>${a?.name || r.from} (${r.from})</b></div>
-                            <div class="card-row"><span>出発国・地域</span><span>${a?.country || '日本'}</span></div>
-                            <div class="card-row"><span>到着空港</span><b>${b?.name || r.to} (${r.to})</b></div>
-                            <div class="card-row"><span>到着国・地域</span><span>${b?.country || '-'}</span></div>
-                            <div class="card-row"><span>路線距離</span><span>${Math.round(r.distance).toLocaleString()} km</span></div>
-                            <div class="card-row"><span>割当機材</span><span>${plane ? `${plane.reg} / ${ac?.name || plane.typeId}` : '未割当'}</span></div>
-                            <div class="card-row"><span>運航状況</span><span>${plane ? '運航中' : '機材未割当'}</span></div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">運航実績</div>
-                        <div class="card-body">
-                            <div class="card-row"><span>累計便数相当</span><span>${Number(st.flights || 0).toLocaleString(undefined,{maximumFractionDigits:2})} 便相当</span></div>
-                            <div class="card-row"><span>累計旅客数</span><span>${Number(st.pax || 0).toLocaleString()} 人</span></div>
-                            <div class="card-row"><span>累計売上</span><span>${Utils.formatMoney(st.rev || 0)}</span></div>
-                            <div class="card-row"><span>累計損益</span><b class="${Number(st.profit || 0)>=0?'text-success':'text-danger'}">${Utils.formatMoney(st.profit || 0)}</b></div>
-                            <hr style="margin:8px 0;border:0;border-top:1px solid var(--panel-border);">
-                            <div class="card-row"><span>直近搭乗率</span><span>${lfHtml}</span></div>
-                            <div class="card-row"><span>直近旅客数</span><span>${Number(st.lastPax || 0).toLocaleString()} 人</span></div>
-                            <div class="card-row"><span>直近売上</span><span>${Utils.formatMoney(st.lastRev || 0)}</span></div>
-                            <div class="card-row"><span>直近損益</span><b class="${profitClass}">${Utils.formatMoney(st.lastProfit || 0)}</b></div>
-                        </div>
-                    </div>`;
-                UI.showModal(`${r.from} → ${r.to} 国際線詳細`, '', html, '<button class="btn" onclick="UI.hideModal()">閉じる</button>');
-            },
             render() {
                 if (!Player || !Player.company) return;
                 this.ensureData();
@@ -2268,10 +2229,9 @@
                     const routeLabel = `${a?.name || r.from} → ${b?.name || r.to}`;
                     const assignedText = assigned ? `${assigned.reg} (${ac?.name || ''})` : '<span class="text-muted">未割り当て</span>';
                     const statusHtml = `<span class="intl-status ${isActive?'active':'idle'}">${isActive?'運航中':'機材未割当'}</span>`;
-                    const routeLink = `<a class="intl-route-name" href="#" onclick="event.preventDefault();IntlSystem.showDetails('${r.id}')">${routeLabel}</a>`;
+                    const routeLink = `<span class="intl-route-name">${routeLabel}</span>`;
                     const actionHtml = `
                         <div class="intl-action-group">
-                            <button class="btn btn-sm btn-outline" onclick="IntlSystem.showDetails('${r.id}')">詳細</button>
                             <button class="btn btn-sm btn-outline" onclick="IntlSystem.showFareEditor('${r.id}')">運賃設定</button>
                             <button class="btn btn-sm" onclick="IntlSystem.showAssignEditor('${r.id}')">${assigned?'機材変更':'機材割当'}</button>
                         </div>`;
@@ -2302,7 +2262,6 @@
                                 <div class="card-row"><span>運賃設定</span><span>${farePct}%</span></div>
                             </div>
                             <div class="card-footer" style="justify-content:flex-start;flex-wrap:wrap;">
-                                <button class="btn btn-sm btn-outline" onclick="IntlSystem.showDetails('${r.id}')">詳細</button>
                                 <button class="btn btn-sm btn-outline" onclick="IntlSystem.showFareEditor('${r.id}')">運賃設定</button>
                                 <button class="btn btn-sm" onclick="IntlSystem.showAssignEditor('${r.id}')">${assigned?'機材変更':'機材割当'}</button>
                             </div>
