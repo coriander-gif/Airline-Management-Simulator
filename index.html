@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.9.6</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.9.8</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -335,7 +335,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.9.6<br>会社ロゴ登録・ヘッダー表示機能
+            Version v0.2.1.9.8<br>廃線済み路線の再開設対応
         </div>
     </div>
 
@@ -578,7 +578,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.9.6
+         * AIRLINE TYCOON JAPAN v0.2.1.9.8
          * セーブデータ保護・整合性検証 強化アップデート
          */
 
@@ -605,7 +605,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.9.6",
+            VERSION: "0.2.1.9.8",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -779,7 +779,7 @@
                     </div>
                     <div style="border-top:1px solid var(--panel-border); padding-top:12px; text-align:center;">
                         <span style="font-size:.85rem; color:var(--col-text-muted);">VERSION</span>
-                        <div style="font-weight:bold;">v0.2.1.9.6</div>
+                        <div style="font-weight:bold;">v0.2.1.9.7</div>
                     </div>`;
                 UI.showModal(
                     'CREDITS',
@@ -918,11 +918,35 @@
                         <div class="font-bold" style="font-size:1.05rem;margin-bottom:8px;">${route.id}</div>
                         <div class="card-row"><span>出発空港</span><b>${fromName}</b></div>
                         <div class="card-row"><span>到着空港</span><b>${toName}</b></div>
-                        <div class="text-danger" style="font-weight:600;margin-top:12px;">廃線後、この路線は再開できません。</div>
+                        <div class="text-muted" style="font-weight:600;margin-top:12px;">廃線後、この路線は運航を終了します。同じ空港間の路線は、後から再開設できます。</div>
                     </div></div>
                     <p>${typeLabel} ${route.id} を廃線してよろしいですか？</p>`;
+                const isProfitable = Number(route.stats?.lastProfit || 0) > 0;
+                const confirmAction = isProfitable
+                    ? `Logic.confirmProfitableRouteRetirement('${routeId}','${routeType}')`
+                    : `Logic.retireRoute('${routeId}','${routeType}')`;
                 UI.showModal('路線廃線の確認', '', content,
-                    `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn btn-danger" onclick="Logic.retireRoute('${routeId}','${routeType}')">廃線を確定</button>`);
+                    `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn btn-danger" onclick="${confirmAction}">廃線を確定</button>`);
+            },
+
+            confirmProfitableRouteRetirement(routeId, routeType) {
+                if (!Player || !Player.company) return;
+                const isIntl = routeType === 'international';
+                const routes = isIntl ? (Player.company.intlRoutes || []) : (Player.company.routes || []);
+                const route = routes.find(r => r && r.id === routeId && !r.closed);
+                if (!route) { UI.hideModal(); UI.showToast('対象の運航中路線が見つかりません', 'error'); return; }
+                // 直近運航利益が正の路線は、誤操作防止のため追加確認を行う。
+                if (Number(route.stats?.lastProfit || 0) <= 0) {
+                    this.retireRoute(routeId, routeType);
+                    return;
+                }
+                UI.showModal('黒字路線の廃線確認', '',
+                    `<div class="card"><div class="card-body">
+                        <div class="font-bold" style="font-size:1.05rem;margin-bottom:8px;">${route.id}</div>
+                        <p style="margin:0 0 8px;">この路線は黒字です。本当に廃線にしますか？</p>
+                        <div class="card-row"><span>直近運航利益</span><b class="text-success">${Utils.formatMoney(Number(route.stats?.lastProfit || 0))}</b></div>
+                    </div></div>`,
+                    `<button class="btn btn-outline" onclick="UI.hideModal()">キャンセル</button><button class="btn btn-danger" onclick="Logic.retireRoute('${routeId}','${routeType}')">それでも廃線する</button>`);
             },
 
             retireRoute(routeId, routeType) {
@@ -961,25 +985,35 @@
             createRoute(fromId, toId) {
                 if (fromId === toId) { UI.showToast("同じ空港は選択できません", "error"); return; }
                 const routeId = [fromId, toId].sort().join('-');
-                if (Player.company.routes.find(r => r.id === routeId)) { UI.showToast("既に路線が存在します", "error"); return; }
+                const existingRoute = Player.company.routes.find(r => r && r.id === routeId);
+                if (existingRoute && !existingRoute.closed) { UI.showToast("既に路線が存在します", "error"); return; }
                 
                 const from = GameData.Airports.find(a => a.id === fromId); const to = GameData.Airports.find(a => a.id === toId);
+                if (!from || !to) { UI.showToast("空港データを確認できません", "error"); return; }
                 const dist = Utils.haversine(from.lat, from.lon, to.lat, to.lon);
                 const cost = Math.floor(dist * 100000 + (from.scale + to.scale) * 5000000);
                 
                 if (Player.company.funds < cost) { UI.showToast("開設費用が不足しています", "error"); return; }
                 
                 this._logCapitalExpense(cost, "路線開設費");
-                Player.company.routes.push({
-                    id: routeId, from: fromId, to: toId, distance: dist, assignedReg: null, fareMult: 1.0,
-                    stats: { 
-                        flights: 0, pax: 0, rev: 0, profit: 0, 
-                        costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 },
-                        lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] 
-                    }
-                });
-                Player.history.unshift({ date: Player.company.date, msg: `${from.name} - ${to.name} 線を開設しました。` });
-                UI.hideModal(); UI.updateHeader(); UI.showToast("路線を開設しました", "success");
+                if (existingRoute && existingRoute.closed) {
+                    // 廃線済みレコードを再利用し、過去の運航統計・運賃・距離を保持する。
+                    existingRoute.closed = false;
+                    delete existingRoute.closedDate;
+                    existingRoute.assignedReg = null;
+                    Player.history.unshift({ date: Player.company.date, msg: `${from.name} - ${to.name} 線を再開設しました。` });
+                } else {
+                    Player.company.routes.push({
+                        id: routeId, from: fromId, to: toId, distance: dist, assignedReg: null, fareMult: 1.0,
+                        stats: { 
+                            flights: 0, pax: 0, rev: 0, profit: 0, 
+                            costBreakdown: { fuel: 0, airport: 0, maint: 0, lease: 0 },
+                            lastLf: 0, lastPax: 0, lastRev: 0, lastCost: { fuel:0, airport:0, maint:0, lease:0 }, lastProfit: 0, lastFlights: 0, lfHistory: [] 
+                        }
+                    });
+                    Player.history.unshift({ date: Player.company.date, msg: `${from.name} - ${to.name} 線を開設しました。` });
+                }
+                UI.hideModal(); UI.updateHeader(); UI.showToast(existingRoute ? "路線を再開設しました" : "路線を開設しました", "success");
                 MapSystem.drawRoutes(); Views.renderRoutes(); UI.switchMainView('view-routes', document.querySelectorAll('.nav-item')[2]);
                 Game.saveData(true);
             },
@@ -2219,22 +2253,37 @@
                 const from=this.getAirport(fromId), to=this.getAirport(toId);
                 if(!from||!to||fromId===toId) { UI.showToast('出発地・到着地を確認してください','error'); return; }
                 const id=this.routeId(fromId,toId);
-                if(Player.company.intlRoutes.some(r=>r.id===id || r.id===this.routeId(toId,fromId))) { UI.showToast('同じ国際線は既に開設されています','error'); return; }
+                const reverseId=this.routeId(toId,fromId);
+                const routes=Player.company.intlRoutes;
+                const matchingRoutes=routes.filter(r => r && (r.id===id || r.id===reverseId || (r.from===fromId && r.to===toId) || (r.from===toId && r.to===fromId)));
+                if(matchingRoutes.some(r => !r.closed)) { UI.showToast('同じ国際線は既に開設されています','error'); return; }
+                const existingRoute=matchingRoutes.find(r => r.closed);
                 const dist=this.distance(from,to);
                 const cost=Math.floor(dist*180000 + (from.scale+to.scale)*12000000);
                 if(Player.company.funds<cost) { UI.showToast(`開設費用が不足しています（${Utils.formatMoney(cost)}）`,'error'); return; }
                 Logic._logCapitalExpense(cost,'国際線開設費');
-                Player.company.intlRoutes.push({id,from:fromId,to:toId,distance:dist,assignedReg:null,fareMult:1,
-                    stats:{flights:0,pax:0,rev:0,profit:0,lastLf:0,lastPax:0,lastRev:0,lastCost:0,lastProfit:0}});
-                // CPU airlines also enter the same international market using a lightweight virtual schedule.
-                if (Player.settings?.competitionEnabled) (Player.competitors || []).forEach((ai,idx) => {
-                    if (ai.status === 'bankrupt') return;
-                    if (!Array.isArray(ai.intlRoutes)) ai.intlRoutes = [];
-                    if (!ai.intlRoutes.some(x => x.id === id)) ai.intlRoutes.push({id,from:fromId,to:toId,distance:dist,assignedReg:null,isVirtualAI:true,virtualAircraftId:idx===0?'a320n':(idx===1?'b738':'a321n'),fareMult:idx===0?1.04:(idx===1?0.98:1.02),stats:{flights:0,pax:0,rev:0,profit:0,lastLf:0,lastPax:0,lastRev:0,lastCost:0,lastProfit:0}});
-                });
-                Player.history.unshift({date:Player.company.date,msg:`国際線 ${fromId} - ${toId} を開設しました。`});
+                let routeForMarket;
+                if(existingRoute) {
+                    // 廃線済みの同一路線レコードを再利用し、統計・運賃・距離・元の方向を保持する。
+                    existingRoute.closed=false;
+                    delete existingRoute.closedDate;
+                    existingRoute.assignedReg=null;
+                    routeForMarket=existingRoute;
+                    Player.history.unshift({date:Player.company.date,msg:`国際線 ${existingRoute.from} - ${existingRoute.to} を再開設しました。`});
+                } else {
+                    routeForMarket={id,from:fromId,to:toId,distance:dist,assignedReg:null,fareMult:1,
+                        stats:{flights:0,pax:0,rev:0,profit:0,lastLf:0,lastPax:0,lastRev:0,lastCost:0,lastProfit:0}};
+                    routes.push(routeForMarket);
+                    Player.history.unshift({date:Player.company.date,msg:`国際線 ${fromId} - ${toId} を開設しました。`});
+                    // CPU airlines also enter the same international market on first creation only.
+                    if (Player.settings?.competitionEnabled) (Player.competitors || []).forEach((ai,idx) => {
+                        if (ai.status === 'bankrupt') return;
+                        if (!Array.isArray(ai.intlRoutes)) ai.intlRoutes = [];
+                        if (!ai.intlRoutes.some(x => x.id === id || x.id === reverseId)) ai.intlRoutes.push({id,from:fromId,to:toId,distance:dist,assignedReg:null,isVirtualAI:true,virtualAircraftId:idx===0?'a320n':(idx===1?'b738':'a321n'),fareMult:idx===0?1.04:(idx===1?0.98:1.02),stats:{flights:0,pax:0,rev:0,profit:0,lastLf:0,lastPax:0,lastRev:0,lastCost:0,lastProfit:0}});
+                    });
+                }
                 UI.hideModal(); this.render(); Game.saveData(true); UI.updateHeader();
-                UI.showToast(`${from.name} - ${to.name} 線を開設しました`,'success');
+                UI.showToast(existingRoute ? `${routeForMarket.from} - ${routeForMarket.to} 線を再開設しました` : `${from.name} - ${to.name} 線を開設しました`,'success');
             },
             showCreateModal() {
                 const domestic=GameData.Airports;
