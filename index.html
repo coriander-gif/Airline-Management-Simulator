@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIRLINE TYCOON JAPAN v0.2.1.9.5</title>
+    <title>AIRLINE TYCOON JAPAN v0.2.1.9.6</title>
     <style>
         /* ==========================================================================
            CSS Reset & Variables (Theme Support)
@@ -335,7 +335,7 @@
             <button class="btn btn-outline" onclick="UI.showCredits()">CREDITS</button>
         </div>
         <div style="position: absolute; bottom: 20px; color: var(--col-text-muted); font-size: 0.8rem; text-align: center; line-height: 1.4;">
-            Version v0.2.1.9.5<br>会社ロゴ登録・ヘッダー表示機能
+            Version v0.2.1.9.6<br>会社ロゴ登録・ヘッダー表示機能
         </div>
     </div>
 
@@ -578,7 +578,7 @@
 
     <script>
         /**
-         * AIRLINE TYCOON JAPAN v0.2.1.9.5
+         * AIRLINE TYCOON JAPAN v0.2.1.9.6
          * セーブデータ保護・整合性検証 強化アップデート
          */
 
@@ -605,7 +605,7 @@
         };
 
         const GameData = {
-            VERSION: "0.2.1.9.5",
+            VERSION: "0.2.1.9.6",
             SAVE_KEY: "atj_save_v1",
             SAVE_KEY_BACKUP: "atj_save_v1_backup",
             START_DATE: "2026-04-01",
@@ -753,6 +753,40 @@
                 if(id === 'view-international') IntlSystem.render();
                 if(id === 'view-finance') Views.renderFinance();
                 if(id === 'view-competitors') Views.renderCompetitors();
+            },
+            showCredits() {
+                const content = `
+                    <div style="text-align:center; padding: 4px 0 12px;">
+                        <div style="font-size:1.35rem; font-weight:800; letter-spacing:.04em; color:var(--col-text-main);">
+                            AIRLINE TYCOON JAPAN
+                        </div>
+                        <div style="font-size:.85rem; font-weight:bold; letter-spacing:.18em; color:var(--col-primary); margin-top:4px;">
+                            CREDITS
+                        </div>
+                    </div>
+                    <div style="border-top:1px solid var(--panel-border); padding-top:14px;">
+                        <div style="font-size:.78rem; color:var(--col-text-muted); font-weight:bold; margin-bottom:5px;">DEVELOPER</div>
+                        <div style="font-size:1.05rem; font-weight:bold; margin-bottom:16px;">こりあんだー</div>
+                        <div style="font-size:.78rem; color:var(--col-text-muted); font-weight:bold; margin-bottom:8px;">TOOLS</div>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-weight:bold;">Gemini</div>
+                            <div style="color:var(--col-text-muted);">プログラムの生成・編集</div>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <div style="font-weight:bold;">ChatGPT</div>
+                            <div style="color:var(--col-text-muted);">企画立案・仕様設計・コードレビュー</div>
+                        </div>
+                    </div>
+                    <div style="border-top:1px solid var(--panel-border); padding-top:12px; text-align:center;">
+                        <span style="font-size:.85rem; color:var(--col-text-muted);">VERSION</span>
+                        <div style="font-weight:bold;">v0.2.1.9.6</div>
+                    </div>`;
+                UI.showModal(
+                    'CREDITS',
+                    '',
+                    content,
+                    '<button class="btn" onclick="UI.hideModal()">閉じる</button>'
+                );
             },
             showModal(title, msg, contentHtml = null, btnsHtml = null) {
                 document.getElementById('modal-title').textContent = title;
@@ -2085,7 +2119,7 @@
         };
 
         // ==========================================
-        // International Economy Extension (v0.2.1.9.5)
+        // International Economy Extension (v0.2.1.9.6)
         // Independent, aggregated daily model. Domestic logic remains unchanged.
         // ==========================================
         const IntlSystem = {
@@ -2559,7 +2593,7 @@
 
                 data.company.reputation = fixNum(data.company.reputation, 50);
                 data.company.awareness = fixNum(data.company.awareness, 10);
-                // v0.2.1.9.5: 旧セーブデータ互換。ロゴ未登録はnullとして扱う。
+                // v0.2.1.9.6: 旧セーブデータ互換。ロゴ未登録はnullとして扱う。
                 if (typeof data.company.logo !== 'string' || !data.company.logo.startsWith('data:image/')) data.company.logo = null;
                 
                 // v0.2.1.9修正：競合会社データの誤再生成防止
